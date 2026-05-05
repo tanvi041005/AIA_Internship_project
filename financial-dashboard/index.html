@@ -20,18 +20,34 @@
     <nav class="nav-inner" aria-label="Primary">
       <a href="index.html" class="active">Overview</a>
       <a href="calendar.html">Calendar</a>
+      <a href="leads.html">Leads</a>
       <a href="policy-comparison.html">Policy Comparison</a>
       <a href="client-renewals.html">Client Renewals</a>
       <a href="recruitment.html">
-        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
         Recruitment
       </a>
       <a href="training.html">Training</a>
+      <a href="#resources">Resources</a>
     </nav>
   </div>
 
   <main id="main">
-    <section class="kpi-grid" aria-label="Key metrics">
+    <section class="header-actions" aria-label="Workspace controls">
+      <div class="header-actions-title">
+        <h1 class="page-title">Lead Management & Sales Tracker</h1>
+        <p class="page-lede">Manage leads, appointments, closure estimates, and daily tasks in one place.</p>
+      </div>
+      <section class="panel todo-widget" aria-label="Personal to-do list">
+        <h2>Personal To-Do List</h2>
+        <form id="personal-task-form" class="inline-form">
+          <input id="personal-task-input" type="text" placeholder="Add a personal task" required />
+          <button type="submit">Add</button>
+        </form>
+        <ul id="personal-task-list" class="todo-list"></ul>
+      </section>
+    </section>
+
+    <section class="kpi-grid" aria-label="Lead and sales summary">
       <article class="kpi-card">
         <div class="kpi-top">
           <div class="kpi-icon" aria-hidden="true">
@@ -40,7 +56,10 @@
           <span class="kpi-badge muted">+12.5%</span>
         </div>
         <p class="kpi-label">Total Premium Value</p>
-        <p class="kpi-value">$2.4M</p>
+        <div class="kpi-value-stack">
+          <p class="kpi-subvalue"><span>YTD</span><strong id="premium-ytd">PHP 0</strong></p>
+          <p class="kpi-subvalue"><span>Expected</span><strong id="premium-expected">PHP 0</strong></p>
+        </div>
       </article>
 
       <article class="kpi-card">
@@ -54,124 +73,66 @@
         <p class="kpi-value">342</p>
       </article>
 
-      <article class="kpi-card">
-        <div class="kpi-top">
-          <div class="kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <span class="kpi-badge alert">6 urgent</span>
-        </div>
-        <p class="kpi-label">Renewals Due (30 days)</p>
-        <p class="kpi-value">28</p>
-      </article>
-
-      <article class="kpi-card">
+      <a class="kpi-card kpi-card-clickable kpi-card-link" id="total-leads-card" href="leads.html" aria-label="Open Total Leads page">
         <div class="kpi-top">
           <div class="kpi-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           </div>
           <span class="kpi-badge positive">+23.1%</span>
         </div>
-        <p class="kpi-label">New Leads</p>
-        <p class="kpi-value">47</p>
-      </article>
+        <p class="kpi-label">Total Leads</p>
+        <p class="kpi-value" id="total-leads-count">0</p>
+      </a>
     </section>
 
     <section class="split-grid" aria-label="Detail panels">
       <article class="panel">
-        <h2>Recent Activity</h2>
-        <ul class="activity-list">
-          <li>
-            <span class="dot red" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">John Smith</span>
-                <span class="activity-time">2 hours ago</span>
-              </div>
-              <p class="activity-desc">Policy renewed</p>
-            </div>
-          </li>
-          <li>
-            <span class="dot orange" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Sarah Johnson</span>
-                <span class="activity-time">5 hours ago</span>
-              </div>
-              <p class="activity-desc">Renewal reminder sent</p>
-            </div>
-          </li>
-          <li>
-            <span class="dot blue" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Michael Chen</span>
-                <span class="activity-time">1 day ago</span>
-              </div>
-              <p class="activity-desc">New lead converted</p>
-            </div>
-          </li>
-          <li>
-            <span class="dot red" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Emma Davis</span>
-                <span class="activity-time">2 days ago</span>
-              </div>
-              <p class="activity-desc">Policy comparison requested</p>
-            </div>
-          </li>
-        </ul>
+        <h2>Estimated Closure</h2>
+        <div class="table-wrap">
+          <table class="lead-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Urgency</th>
+                <th>Plan Type</th>
+                <th>Premium</th>
+                <th>Commission Type</th>
+              </tr>
+            </thead>
+            <tbody id="closure-table-body"></tbody>
+          </table>
+        </div>
       </article>
 
       <article class="panel">
-        <h2>Top Products This Month</h2>
-        <ul class="product-list">
-          <li>
-            <div class="product-head">
-              <span class="product-name">Life Insurance - Term</span>
-              <div class="product-metrics">
-                <span class="amt">$156,000</span>
-                <span class="cnt">24 policies</span>
-              </div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
-          </li>
-          <li>
-            <div class="product-head">
-              <span class="product-name">Auto Insurance - Premium</span>
-              <div class="product-metrics">
-                <span class="amt">$142,300</span>
-                <span class="cnt">31 policies</span>
-              </div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:85%"></div></div>
-          </li>
-          <li>
-            <div class="product-head">
-              <span class="product-name">Health Insurance - Family</span>
-              <div class="product-metrics">
-                <span class="amt">$234,500</span>
-                <span class="cnt">18 policies</span>
-              </div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:95%"></div></div>
-          </li>
-          <li>
-            <div class="product-head">
-              <span class="product-name">Property Insurance</span>
-              <div class="product-metrics">
-                <span class="amt">$98,200</span>
-                <span class="cnt">12 policies</span>
-              </div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div>
-          </li>
-        </ul>
+        <h2>Sales Tracker Module</h2>
+        <ul class="activity-list" id="sales-performance-list"></ul>
+      </article>
+    </section>
+
+    <section class="panel split-grid" id="resources" aria-label="Calendar access and resources">
+      <article>
+        <h2>Calendar Access Control</h2>
+        <p class="page-lede">Switch role to preview what calendar scope is allowed.</p>
+        <div class="inline-form">
+          <label for="role-select">Role</label>
+          <select id="role-select">
+            <option value="agent">Agent</option>
+            <option value="district_manager">District Manager</option>
+          </select>
+        </div>
+        <ul id="calendar-permissions" class="activity-list"></ul>
+      </article>
+      <article>
+        <h2>Resources</h2>
+        <p class="page-lede">Open team documents directly in SharePoint.</p>
+        <a class="resource-link" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open SharePoint Resources</a>
       </article>
     </section>
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="auth.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

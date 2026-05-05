@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leads · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="leads.html" class="active">Leads</a>
+      <a href="policy-comparison.html">Policy Comparison</a>
+      <a href="client-renewals.html">Client Renewals</a>
+      <a href="recruitment.html">
+        Recruitment
+      </a>
+      <a href="training.html">Training</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title">Leads Module · Client Profiles</h1>
+    <p class="page-lede">View and track lead details, urgency, closure estimates, and sales pipeline.</p>
+
+    <section class="panel" aria-label="Lead profile module">
+      <div class="panel-head">
+        <h2>Lead Profiles</h2>
+        <div class="lead-controls">
+          <label for="lead-date-filter">Filter by date</label>
+          <input type="date" id="lead-date-filter" />
+          <label for="lead-sort-select">Timeline sort</label>
+          <select id="lead-sort-select">
+            <option value="asc">Earliest first</option>
+            <option value="desc">Latest first</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="lead-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Contact / Profile</th>
+              <th>Meet-up Date</th>
+              <th>Location</th>
+              <th>Meeting Type</th>
+              <th>Urgency</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="lead-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="split-grid" aria-label="Lead performance panels">
+      <article class="panel">
+        <h2>Estimated Closure</h2>
+        <div class="table-wrap">
+          <table class="lead-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Urgency</th>
+                <th>Plan Type</th>
+                <th>Premium</th>
+                <th>Commission Type</th>
+              </tr>
+            </thead>
+            <tbody id="closure-table-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Sales Tracker Module</h2>
+        <ul class="activity-list" id="sales-performance-list"></ul>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="lead-detail-dialog">
+    <article class="modal-card">
+      <header class="panel-head">
+        <h2 id="lead-detail-name">Lead Details</h2>
+        <button id="close-lead-dialog" type="button" class="ghost-btn">Close</button>
+      </header>
+      <div id="lead-detail-content"></div>
+    </article>
+  </dialog>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="auth.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

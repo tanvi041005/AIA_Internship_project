@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="main">
+    <section class="panel form-card login-role-card">
+      <h1 class="page-title">Sign in to Dashboard</h1>
+      <p class="page-lede">Login type is automatically tagged from the User ID.</p>
+
+      <form id="role-login-form">
+        <label for="login-username">User ID</label>
+        <input id="login-username" type="text" placeholder="e.g. AGT1024 / LDR2040 / DST3001" required />
+
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" placeholder="Enter password" required />
+
+        <p id="login-role-error" class="form-error" hidden></p>
+        <button type="submit">Login</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>

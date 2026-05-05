@@ -23,7 +23,6 @@
       <a href="policy-comparison.html">Policy Comparison</a>
       <a href="client-renewals.html">Client Renewals</a>
       <a href="recruitment.html">
-        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
         Recruitment
       </a>
       <a href="training.html">Training</a>
@@ -32,64 +31,95 @@
 
   <main id="main">
     <h1 class="page-title">Calendar</h1>
-    <p class="page-lede">Plan renewal reviews, training sessions, and recruitment milestones.</p>
+    <p class="page-lede">All lead meet-ups and appointments are tracked here with reminders.</p>
 
     <section class="panel">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;">
-        <h2 style="margin:0;font-size:1.125rem;">May 2026</h2>
-        <div style="display:flex;gap:0.5rem;">
-          <button type="button" style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;">Prev</button>
-          <button type="button" style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;">Next</button>
+      <div class="panel-head">
+        <h2 id="calendar-month-label">May 2026</h2>
+        <div class="calendar-controls">
+          <label class="calendar-both-toggle">
+            <input type="checkbox" id="calendar-show-personal" checked />
+            Personal
+          </label>
+          <label class="calendar-both-toggle">
+            <input type="checkbox" id="calendar-show-agency" />
+            Agency
+          </label>
+          <button type="button" id="prev-month-btn">Prev</button>
+          <button type="button" id="next-month-btn">Next</button>
         </div>
       </div>
+      <p class="calendar-legend">
+        <span class="event-indicator personal">Personal</span>
+        <span class="event-indicator agency">Agency</span>
+      </p>
 
-      <div class="cal-grid" role="grid" aria-label="May 2026">
-        <div class="cal-head">Sun</div><div class="cal-head">Mon</div><div class="cal-head">Tue</div><div class="cal-head">Wed</div><div class="cal-head">Thu</div><div class="cal-head">Fri</div><div class="cal-head">Sat</div>
-        <!-- Week 1 -->
-        <div class="cal-cell muted">·</div>
-        <div class="cal-cell muted">·</div>
-        <div class="cal-cell muted">·</div>
-        <div class="cal-cell muted">·</div>
-        <div class="cal-cell"><span class="pill">1</span></div>
-        <div class="cal-cell"><span class="pill">2</span></div>
-        <div class="cal-cell"><span class="pill">3</span></div>
-        <!-- Week 2 -->
-        <div class="cal-cell"><span class="pill">4</span></div>
-        <div class="cal-cell"><span class="pill highlight">5</span></div>
-        <div class="cal-cell"><span class="pill">6</span></div>
-        <div class="cal-cell"><span class="pill">7</span></div>
-        <div class="cal-cell"><span class="pill">8</span></div>
-        <div class="cal-cell"><span class="pill">9</span></div>
-        <div class="cal-cell"><span class="pill">10</span></div>
-        <!-- Week 3 -->
-        <div class="cal-cell"><span class="pill">11</span></div>
-        <div class="cal-cell"><span class="pill">12</span></div>
-        <div class="cal-cell"><span class="pill">13</span></div>
-        <div class="cal-cell"><span class="pill">14</span></div>
-        <div class="cal-cell"><span class="pill">15</span></div>
-        <div class="cal-cell"><span class="pill">16</span></div>
-        <div class="cal-cell"><span class="pill">17</span></div>
-        <!-- Week 4 -->
-        <div class="cal-cell"><span class="pill highlight">18</span></div>
-        <div class="cal-cell"><span class="pill">19</span></div>
-        <div class="cal-cell"><span class="pill">20</span></div>
-        <div class="cal-cell"><span class="pill">21</span></div>
-        <div class="cal-cell"><span class="pill">22</span></div>
-        <div class="cal-cell"><span class="pill">23</span></div>
-        <div class="cal-cell"><span class="pill">24</span></div>
-        <!-- Week 5 -->
-        <div class="cal-cell"><span class="pill">25</span></div>
-        <div class="cal-cell"><span class="pill">26</span></div>
-        <div class="cal-cell"><span class="pill">27</span></div>
-        <div class="cal-cell"><span class="pill">28</span></div>
-        <div class="cal-cell"><span class="pill">29</span></div>
-        <div class="cal-cell"><span class="pill">30</span></div>
-        <div class="cal-cell"><span class="pill">31</span></div>
+      <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Lead meet-up calendar"></div>
+      <div class="panel-head">
+        <h3>Appointment Reminders</h3>
       </div>
-      <p style="margin:1rem 0 0;font-size:0.875rem;color:var(--text-muted);">Highlighted dates are sample renewal reviews.</p>
+      <ul id="calendar-reminder-list" class="activity-list"></ul>
+
+      <section class="agency-manager" aria-label="Agency event manager">
+        <div class="panel-head">
+          <h3>Agency Events Management</h3>
+        </div>
+        <p id="agency-events-access-note" class="page-lede"></p>
+        <form id="agency-event-form" class="inline-form">
+          <input type="hidden" id="agency-event-edit-id" />
+          <label for="agency-event-date">Date</label>
+          <input type="date" id="agency-event-date" required />
+          <label for="agency-event-title">Event</label>
+          <input type="text" id="agency-event-title" placeholder="Enter agency event title" required />
+          <button type="submit" id="agency-event-submit-btn">Add Event</button>
+          <button type="button" id="agency-event-cancel-btn" class="ghost-btn">Cancel Edit</button>
+        </form>
+        <ul id="agency-events-editor-list" class="activity-list"></ul>
+      </section>
     </section>
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+
+  <dialog id="personal-event-dialog">
+    <article class="modal-card">
+      <header class="event-dialog-header">
+        <h3>Add Personal Event</h3>
+      </header>
+      <form id="personal-event-dialog-form" class="event-dialog-form">
+        <label for="personal-event-dialog-title">Event Title</label>
+        <input type="text" id="personal-event-dialog-title" placeholder="Client review meeting" required />
+
+        <div class="event-dialog-row">
+          <div>
+            <label for="personal-event-dialog-date">Date</label>
+            <input type="text" id="personal-event-dialog-date" readonly />
+          </div>
+          <div>
+            <label for="personal-event-dialog-start-time">From</label>
+            <input type="time" id="personal-event-dialog-start-time" required />
+          </div>
+          <div>
+            <label for="personal-event-dialog-end-time">Until</label>
+            <input type="time" id="personal-event-dialog-end-time" required />
+          </div>
+        </div>
+
+        <label for="personal-event-dialog-location">Location</label>
+        <input type="text" id="personal-event-dialog-location" placeholder="Office / Zoom / Client site" />
+
+        <label for="personal-event-dialog-notes">Notes</label>
+        <textarea id="personal-event-dialog-notes" rows="4" placeholder="Optional notes..."></textarea>
+
+        <div class="event-dialog-actions">
+          <button type="button" id="close-personal-event-dialog" class="ghost-btn">Close</button>
+          <button type="submit">Save Event</button>
+        </div>
+      </form>
+    </article>
+  </dialog>
+
+  <script src="auth.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

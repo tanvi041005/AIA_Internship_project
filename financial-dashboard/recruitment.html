@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Recruitment · Financial Agent Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <script>
-    if (sessionStorage.getItem("fm_leader_auth") !== "1") {
-      location.replace("recruitment-login.html?next=recruitment.html");
-    }
-  </script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -28,7 +24,6 @@
       <a href="policy-comparison.html">Policy Comparison</a>
       <a href="client-renewals.html">Client Renewals</a>
       <a href="recruitment.html" class="active">
-        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
         Recruitment
       </a>
       <a href="training.html">Training</a>
@@ -38,13 +33,10 @@
   <main id="main">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-start;">
       <div>
-        <p style="margin:0;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand);">Leaders only</p>
+        <p style="margin:0;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand);">Leaders & District</p>
         <h1 class="page-title" style="margin-top:0.35rem;">Recruitment</h1>
         <p class="page-lede" style="margin-bottom:0;">Pipeline snapshot — replace with live ATS data.</p>
       </div>
-      <button type="button" id="sign-out" style="padding:0.45rem 1rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;color:var(--brand);">
-        Sign out (this browser)
-      </button>
     </div>
 
     <div class="table-wrap" style="margin-top:1.5rem;">
@@ -86,12 +78,5 @@
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
-
-  <script>
-    document.getElementById("sign-out").addEventListener("click", function () {
-      sessionStorage.removeItem("fm_leader_auth");
-      location.href = "recruitment-login.html";
-    });
-  </script>
 </body>
 </html>
