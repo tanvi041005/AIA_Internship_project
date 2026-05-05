@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="policy-comparison.html">Policy Comparison</a>
+      <a href="client-renewals.html">Client Renewals</a>
+      <a href="recruitment.html">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
+        Recruitment
+      </a>
+      <a href="training.html" class="active">Training</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title" style="max-width:36rem;margin-left:auto;margin-right:auto;">Training</h1>
+    <p class="page-lede" style="max-width:36rem;margin-left:auto;margin-right:auto;">Feed-style updates — similar layout to X.</p>
+
+    <div class="feed" id="feed">
+      <div class="feed-compose">
+        <label class="sr-only" for="compose">Compose update</label>
+        <textarea id="compose" rows="3" placeholder="Share a tip, link, or win…"></textarea>
+        <button type="button" id="post-btn">Post</button>
+        <div style="clear:both;"></div>
+      </div>
+      <div id="feed-list"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Posts saved in localStorage for this browser</footer>
+
+  <style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}</style>
+
+  <script>
+    (function () {
+      var STORAGE = "fm_training_posts_v1";
+      var seed = [
+        { id: "s1", author: "Enablement Team", handle: "enablement", time: "2h", body: "New module: objection handling on renewal calls — scenarios posted tomorrow.", likes: 42, reposts: 9, replies: 6 },
+        { id: "s2", author: "Compliance Desk", handle: "compliance", time: "5h", body: "Policy Comparison page updated for v2026.04 — leaders acknowledge by Friday.", likes: 128, reposts: 31, replies: 14 },
+        { id: "s3", author: "Sales Coaching", handle: "coaching", time: "1d", body: "8‑minute micro‑training: discovery questions for multi‑year agreements.", likes: 67, reposts: 11, replies: 3 },
+      ];
+
+      function load() {
+        try {
+          var raw = localStorage.getItem(STORAGE);
+          if (raw) return JSON.parse(raw);
+        } catch (e) {}
+        return [];
+      }
+
+      function save(posts) {
+        localStorage.setItem(STORAGE, JSON.stringify(posts));
+      }
+
+      function esc(s) {
+        var d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function render(extraLocal) {
+        var local = extraLocal || load();
+        var merged = local.concat(seed);
+        var seen = {};
+        merged = merged.filter(function (p) {
+          if (seen[p.id]) return false;
+          seen[p.id] = true;
+          return true;
+        });
+
+        var html = merged.map(function (p) {
+          return (
+            '<article class="feed-item">' +
+            '<div class="avatar" aria-hidden="true">' + esc(p.author.charAt(0)) + "</div>" +
+            '<div><div class="feed-meta"><strong>' + esc(p.author) + "</strong> @" + esc(p.handle) + " · " + esc(p.time) + "</div>" +
+            '<p class="feed-body">' + esc(p.body) + "</p>" +
+            '<div class="feed-actions"><button type="button">💬 ' + p.replies + '</button><button type="button">🔁 ' + p.reposts + '</button><button type="button">♥ ' + p.likes + "</button></div></div></article>"
+          );
+        }).join("");
+        document.getElementById("feed-list").innerHTML = html;
+      }
+
+      document.getElementById("post-btn").addEventListener("click", function () {
+        var ta = document.getElementById("compose");
+        var body = ta.value.trim();
+        if (!body) return;
+        var posts = load();
+        posts.unshift({
+          id: "u" + Date.now(),
+          author: "You",
+          handle: "you",
+          time: "now",
+          body: body,
+          likes: 0,
+          reposts: 0,
+          replies: 0,
+        });
+        save(posts);
+        ta.value = "";
+        render(posts);
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

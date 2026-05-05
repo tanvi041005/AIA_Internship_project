@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html" class="active">Calendar</a>
+      <a href="policy-comparison.html">Policy Comparison</a>
+      <a href="client-renewals.html">Client Renewals</a>
+      <a href="recruitment.html">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
+        Recruitment
+      </a>
+      <a href="training.html">Training</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title">Calendar</h1>
+    <p class="page-lede">Plan renewal reviews, training sessions, and recruitment milestones.</p>
+
+    <section class="panel">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;">
+        <h2 style="margin:0;font-size:1.125rem;">May 2026</h2>
+        <div style="display:flex;gap:0.5rem;">
+          <button type="button" style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;">Prev</button>
+          <button type="button" style="padding:0.45rem 0.85rem;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;">Next</button>
+        </div>
+      </div>
+
+      <div class="cal-grid" role="grid" aria-label="May 2026">
+        <div class="cal-head">Sun</div><div class="cal-head">Mon</div><div class="cal-head">Tue</div><div class="cal-head">Wed</div><div class="cal-head">Thu</div><div class="cal-head">Fri</div><div class="cal-head">Sat</div>
+        <!-- Week 1 -->
+        <div class="cal-cell muted">·</div>
+        <div class="cal-cell muted">·</div>
+        <div class="cal-cell muted">·</div>
+        <div class="cal-cell muted">·</div>
+        <div class="cal-cell"><span class="pill">1</span></div>
+        <div class="cal-cell"><span class="pill">2</span></div>
+        <div class="cal-cell"><span class="pill">3</span></div>
+        <!-- Week 2 -->
+        <div class="cal-cell"><span class="pill">4</span></div>
+        <div class="cal-cell"><span class="pill highlight">5</span></div>
+        <div class="cal-cell"><span class="pill">6</span></div>
+        <div class="cal-cell"><span class="pill">7</span></div>
+        <div class="cal-cell"><span class="pill">8</span></div>
+        <div class="cal-cell"><span class="pill">9</span></div>
+        <div class="cal-cell"><span class="pill">10</span></div>
+        <!-- Week 3 -->
+        <div class="cal-cell"><span class="pill">11</span></div>
+        <div class="cal-cell"><span class="pill">12</span></div>
+        <div class="cal-cell"><span class="pill">13</span></div>
+        <div class="cal-cell"><span class="pill">14</span></div>
+        <div class="cal-cell"><span class="pill">15</span></div>
+        <div class="cal-cell"><span class="pill">16</span></div>
+        <div class="cal-cell"><span class="pill">17</span></div>
+        <!-- Week 4 -->
+        <div class="cal-cell"><span class="pill highlight">18</span></div>
+        <div class="cal-cell"><span class="pill">19</span></div>
+        <div class="cal-cell"><span class="pill">20</span></div>
+        <div class="cal-cell"><span class="pill">21</span></div>
+        <div class="cal-cell"><span class="pill">22</span></div>
+        <div class="cal-cell"><span class="pill">23</span></div>
+        <div class="cal-cell"><span class="pill">24</span></div>
+        <!-- Week 5 -->
+        <div class="cal-cell"><span class="pill">25</span></div>
+        <div class="cal-cell"><span class="pill">26</span></div>
+        <div class="cal-cell"><span class="pill">27</span></div>
+        <div class="cal-cell"><span class="pill">28</span></div>
+        <div class="cal-cell"><span class="pill">29</span></div>
+        <div class="cal-cell"><span class="pill">30</span></div>
+        <div class="cal-cell"><span class="pill">31</span></div>
+      </div>
+      <p style="margin:1rem 0 0;font-size:0.875rem;color:var(--text-muted);">Highlighted dates are sample renewal reviews.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruitment login · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="policy-comparison.html">Policy Comparison</a>
+      <a href="client-renewals.html">Client Renewals</a>
+      <a href="recruitment-login.html" class="active">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
+        Recruitment
+      </a>
+      <a href="training.html">Training</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title">Leader access</h1>
+    <p class="page-lede">Recruitment analytics are restricted. Enter the shared access code (demo default: <code>changeme</code>).</p>
+
+    <div class="panel form-card">
+      <form id="login-form" novalidate>
+        <label for="code">Access code</label>
+        <input id="code" name="code" type="password" autocomplete="current-password" required />
+        <p id="login-error" class="form-error" hidden role="alert"></p>
+        <button type="submit">Unlock recruitment</button>
+      </form>
+    </div>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Demo gate uses browser sessionStorage only</footer>
+
+  <script>
+    (function () {
+      var ACCESS_CODE = "changeme";
+      var params = new URLSearchParams(location.search);
+      var next = params.get("next") || "recruitment.html";
+      if (!/^recruitment\.html$/i.test(next)) next = "recruitment.html";
+
+      document.getElementById("login-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var input = document.getElementById("code");
+        var err = document.getElementById("login-error");
+        err.hidden = true;
+        if (input.value === ACCESS_CODE) {
+          sessionStorage.setItem("fm_leader_auth", "1");
+          location.href = next;
+        } else {
+          err.textContent = "Incorrect code.";
+          err.hidden = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

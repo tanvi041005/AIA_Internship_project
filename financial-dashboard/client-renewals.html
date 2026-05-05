@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Renewals · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="policy-comparison.html">Policy Comparison</a>
+      <a href="client-renewals.html" class="active">Client Renewals</a>
+      <a href="recruitment.html">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/></svg>
+        Recruitment
+      </a>
+      <a href="training.html">Training</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title">Client Renewals</h1>
+    <p class="page-lede">Renewal desk pipeline — owners, dates, and workflow states.</p>
+
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th scope="col">Client</th>
+            <th scope="col">Segment</th>
+            <th scope="col">Renewal date</th>
+            <th scope="col">Owner</th>
+            <th scope="col">ARR</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Northwind Logistics</strong></td>
+            <td>Enterprise</td>
+            <td>2026-06-15</td>
+            <td>Alex Ng</td>
+            <td>$420k</td>
+            <td><span class="badge warn">In review</span></td>
+          </tr>
+          <tr>
+            <td><strong>Helios Bio</strong></td>
+            <td>Growth</td>
+            <td>2026-07-02</td>
+            <td>Priya Shah</td>
+            <td>$118k</td>
+            <td><span class="badge brand">Sent</span></td>
+          </tr>
+          <tr>
+            <td><strong>Urban Mobility Co.</strong></td>
+            <td>Enterprise</td>
+            <td>2026-07-28</td>
+            <td>Alex Ng</td>
+            <td>$955k</td>
+            <td><span class="badge neutral">Draft</span></td>
+          </tr>
+          <tr>
+            <td><strong>Bright Schools Trust</strong></td>
+            <td>Public</td>
+            <td>2026-08-10</td>
+            <td>Jordan Lee</td>
+            <td>$260k</td>
+            <td><span class="badge ok">Signed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+</body>
+</html>
