@@ -24,7 +24,7 @@ const leadData = [
     meetupLocation: "Online - Teams",
     meetingType: "Non-F2F",
     urgency: "Non-Urgent",
-    remarks: "Requested policy comparison with family package.",
+    remarks: "Requested plan options with family package.",
     planType: "Health Insurance - Family",
     premium: 98000,
     commissionType: "Recurring",
