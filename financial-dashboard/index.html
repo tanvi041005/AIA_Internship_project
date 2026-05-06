@@ -12,16 +12,16 @@
   <header class="site-header">
     <div class="site-header-inner">
       <h1 class="site-title">Financial Agent Dashboard</h1>
-      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
     </div>
   </header>
 
   <div class="nav-strip">
     <nav class="nav-inner" aria-label="Primary">
       <a href="index.html" class="active">Overview</a>
-      <a href="calendar.html">Calendar</a>
       <a href="leads.html">Leads</a>
-      <a href="client-renewals.html">Client Renewals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="index.html#sales-closure">Sales / Closure</a>
       <a href="recruitment.html">
         Recruitment
       </a>
@@ -31,90 +31,99 @@
   </div>
 
   <main id="main">
-    <section class="header-actions" aria-label="Workspace controls">
-      <div class="header-actions-title">
-        <h1 class="page-title">Lead Management & Sales Tracker</h1>
-        <p class="page-lede">Manage leads, appointments, closure estimates, and daily tasks in one place.</p>
-      </div>
-    </section>
-
-    <section class="kpi-grid" aria-label="Lead and sales summary">
-      <article class="kpi-card">
+    <section class="kpi-grid performance-kpis" aria-label="Lead and FYC summary">
+      <article class="kpi-card fyc-card">
         <div class="kpi-top">
-          <div class="kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <span class="kpi-badge muted">+12.5%</span>
+          <p class="kpi-label">Yearly FYC</p>
+          <span class="kpi-badge muted">This year</span>
         </div>
-        <p class="kpi-label">Total Premium Value</p>
-        <div class="kpi-value-stack">
-          <p class="kpi-subvalue"><span>YTD</span><strong id="premium-ytd">SGD 0</strong></p>
-          <p class="kpi-subvalue"><span>Expected</span><strong id="premium-expected">SGD 0</strong></p>
+        <p class="kpi-value" id="yearly-fyc-value">SGD 0</p>
+        <div class="metric-progress" aria-hidden="true"><span id="yearly-fyc-progress"></span></div>
+        <p class="kpi-subvalue"><span id="yearly-fyc-percent">0%</span><strong id="yearly-fyc-target">SGD 0</strong></p>
+      </article>
+
+      <article class="kpi-card fyc-card">
+        <div class="kpi-top">
+          <p class="kpi-label">This Week FYC</p>
+          <span class="kpi-badge muted">Last week</span>
         </div>
+        <p class="kpi-value" id="weekly-fyc-value">SGD 0</p>
+        <p class="kpi-subvalue"><span id="weekly-fyc-last">SGD 0 vs last week</span><strong id="weekly-fyc-change">0%</strong></p>
       </article>
 
       <a class="kpi-card kpi-card-clickable kpi-card-link" id="total-leads-card" href="leads.html" aria-label="Open Total Leads page">
         <div class="kpi-top">
-          <div class="kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-          </div>
-          <span class="kpi-badge positive">+23.1%</span>
+          <p class="kpi-label">Total Leads</p>
+          <span class="kpi-badge positive">This week</span>
         </div>
-        <p class="kpi-label">Total Leads</p>
         <p class="kpi-value" id="total-leads-count">0</p>
+        <p class="kpi-subvalue"><span id="urgent-leads-count">0 urgent</span><strong id="near-close-count">0 near close</strong></p>
       </a>
     </section>
 
-    <section class="split-grid" aria-label="Detail panels">
-      <article class="panel">
-        <h2>Estimated Closure</h2>
-        <div class="table-wrap">
-          <table class="lead-table">
+    <section class="performance-grid" aria-label="Performance overview">
+      <article class="panel leaderboard-panel">
+        <div class="panel-head">
+          <h2>Leaderboard</h2>
+          <span class="summary-line">YTD FYC ranking</span>
+        </div>
+        <div class="table-wrap compact-table">
+          <table class="lead-table leaderboard-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Urgency</th>
-                <th>Plan Type</th>
-                <th>Premium</th>
-                <th>Commission Type</th>
+                <th>#</th>
+                <th>Agent</th>
+                <th>Monthly Production</th>
+                <th>YTD FYC</th>
               </tr>
             </thead>
-            <tbody id="closure-table-body"></tbody>
+            <tbody id="leaderboard-table-body"></tbody>
           </table>
         </div>
       </article>
 
       <article class="panel">
-        <h2>Sales Tracker Module</h2>
-        <ul class="activity-list" id="sales-performance-list"></ul>
-      </article>
-    </section>
-
-    <section class="split-grid" aria-label="CPF tracker and calendar access">
-      <article class="panel">
-        <h2>CPF Tracker</h2>
-        <ul class="activity-list" id="cpf-tracker-list"></ul>
-      </article>
-
-      <article class="panel">
-        <h2>Calendar Access Control</h2>
-        <p class="page-lede">Switch role to preview what calendar scope is allowed.</p>
-        <div class="inline-form">
-          <label for="role-select">Role</label>
-          <select id="role-select">
-            <option value="agent">Agent</option>
-            <option value="district_manager">District Manager</option>
-          </select>
+        <div class="panel-head">
+          <h2>Year FYC by Agent</h2>
+          <span class="summary-line">Top producers</span>
         </div>
-        <ul id="calendar-permissions" class="activity-list"></ul>
+        <div class="bar-chart" id="agent-fyc-chart" aria-label="Year FYC by agent"></div>
+        <p class="chart-insight" id="agent-fyc-insight">Select an agent bar to view FYC details.</p>
       </article>
-    </section>
 
-    <section class="panel" id="resources" aria-label="Resources">
-      <article>
-        <h2>Resources</h2>
-        <p class="page-lede">Open team documents, product decks, and compliance files directly in SharePoint.</p>
-        <a class="resource-link" href="resources.html">Open Resources Tab</a>
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Monthly YTD</h2>
+          <span class="summary-line">Amounts in FYC</span>
+        </div>
+        <div class="line-chart" id="monthly-ytd-chart" aria-label="Monthly YTD chart"></div>
+        <p class="chart-insight" id="monthly-ytd-insight">Select a month to view YTD FYC.</p>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Mentee List</h2>
+          <span class="summary-line" id="mentee-count-label">0 total</span>
+        </div>
+        <ul class="activity-list mentee-list" id="mentee-list"></ul>
+      </article>
+
+      <article class="panel" id="sales-closure">
+        <div class="panel-head">
+          <h2>Sales Funnel Dashboard</h2>
+          <a class="ghost-link" href="leads.html">Open leads</a>
+        </div>
+        <div class="funnel-wrap" id="sales-funnel-dashboard" aria-label="Sales funnel dashboard"></div>
+        <p class="chart-insight" id="sales-funnel-insight">Select a funnel stage to view lead count.</p>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Weekly FYC / Case Count</h2>
+          <span class="summary-line">Current week</span>
+        </div>
+        <div class="weekly-chart" id="weekly-fyc-case-chart" aria-label="Weekly FYC and case count chart"></div>
+        <p class="chart-insight" id="weekly-fyc-case-insight">Select a day to view FYC and case count.</p>
       </article>
     </section>
   </main>

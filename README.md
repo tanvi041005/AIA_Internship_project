@@ -1,6 +1,6 @@
 # AIA Internship project
 
-Financial Agent Dashboard — static HTML/CSS (no build step).
+Financial Agent Dashboard - static HTML/CSS (no build step).
 
 ## Run locally
 
@@ -12,9 +12,11 @@ Start-Process .\financial-dashboard\index.html
 
 ## Pages
 
-- **Overview** — KPIs, recent activity, top products  
-- **Calendar**, **Policy Comparison**, **Client Renewals**, **Training**  
-- **Recruitment** — leader gate; default demo code is `changeme` (see `recruitment-login.html`)
+- **Overview** - lead KPIs, sales / closure summary, CPF tracker, and resources
+- **Leads** - client profiles, urgency tracking, filtering, and closure estimates
+- **Calendar** - appointments, meet-ups, reminders, and linked tasks
+- **Recruitment** - leader gate; default demo code is `changeme` (see `recruitment-login.html`)
+- **Training** and **Resources**
 
 ## GitHub
 

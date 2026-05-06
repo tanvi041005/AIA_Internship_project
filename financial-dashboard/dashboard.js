@@ -1,9 +1,9 @@
 const leadData = [
   {
     id: 1,
-    name: "John Smith",
+    name: "Tan Wei Ming",
     age: 34,
-    contactProfile: "john.smith@email.com | +63 917 100 1122",
+    contactProfile: "weiming.tan@email.com | +65 8123 4456",
     meetupDate: "2026-05-06",
     meetupLocation: "Makati Office",
     meetingType: "F2F",
@@ -17,9 +17,9 @@ const leadData = [
   },
   {
     id: 2,
-    name: "Sarah Johnson",
+    name: "Nur Aisyah Rahman",
     age: 42,
-    contactProfile: "sarah.j@email.com | +63 917 200 3344",
+    contactProfile: "aisyah.rahman@email.com | +65 8234 5567",
     meetupDate: "2026-05-08",
     meetupLocation: "Online - Teams",
     meetingType: "Non-F2F",
@@ -33,9 +33,9 @@ const leadData = [
   },
   {
     id: 3,
-    name: "Michael Chen",
+    name: "Marcus Lim",
     age: 29,
-    contactProfile: "m.chen@email.com | +63 917 300 5566",
+    contactProfile: "marcus.lim@email.com | +65 8345 6678",
     meetupDate: "2026-05-10",
     meetupLocation: "BGC Cafe",
     meetingType: "F2F",
@@ -49,9 +49,9 @@ const leadData = [
   },
   {
     id: 4,
-    name: "Emma Davis",
+    name: "Priya Nair",
     age: 38,
-    contactProfile: "emma.d@email.com | +63 917 400 7788",
+    contactProfile: "priya.nair@email.com | +65 8456 7789",
     meetupDate: "2026-05-18",
     meetupLocation: "District Office",
     meetingType: "F2F",
@@ -65,9 +65,9 @@ const leadData = [
   },
   {
     id: 5,
-    name: "Noah Wilson",
+    name: "Daniel Koh",
     age: 46,
-    contactProfile: "nwilson@email.com | +63 917 500 9988",
+    contactProfile: "daniel.koh@email.com | +65 8567 8890",
     meetupDate: "2026-05-21",
     meetupLocation: "Online - Zoom",
     meetingType: "Non-F2F",
@@ -88,27 +88,68 @@ const districtEventsSeed = [
 
 const cpfTrackerData = [
   {
-    name: "John Smith",
+    name: "Tan Wei Ming",
     accountFocus: "OA allocation",
     status: "Review due",
     amount: 42000,
     note: "Confirm CPF nomination and protection gap before revised proposal."
   },
   {
-    name: "Sarah Johnson",
+    name: "Nur Aisyah Rahman",
     accountFocus: "MA buffer",
     status: "On track",
     amount: 28000,
     note: "Family health plan discussion includes MediSave affordability check."
   },
   {
-    name: "Michael Chen",
+    name: "Marcus Lim",
     accountFocus: "SA planning",
     status: "Action needed",
     amount: 36000,
     note: "Prepare retirement income projection before next F2F meeting."
   }
 ];
+
+const performanceData = {
+  yearlyFyc: 111800,
+  yearlyTarget: 1500000,
+  weeklyFyc: 6913,
+  lastWeekFyc: 5187,
+  leaderboard: [
+    { agent: "Alicia Tan", monthlyProduction: 0, ytdFyc: 34525, delta: 435 },
+    { agent: "Brandon Lee", monthlyProduction: 0, ytdFyc: 23210, delta: 44 },
+    { agent: "Chloe Ong", monthlyProduction: 0, ytdFyc: 9400, delta: -39 },
+    { agent: "Darren Lim", monthlyProduction: 0, ytdFyc: 8025, delta: 0 },
+    { agent: "Farah Rahim", monthlyProduction: 0, ytdFyc: 7627, delta: -26 },
+    { agent: "Gavin Teo", monthlyProduction: 0, ytdFyc: 6577, delta: 346 },
+    { agent: "Hui Min Chua", monthlyProduction: 0, ytdFyc: 6100, delta: 76 },
+    { agent: "Isaac Wong", monthlyProduction: 0, ytdFyc: 5240, delta: -55 },
+    { agent: "Jia En Low", monthlyProduction: 0, ytdFyc: 4941, delta: -56 },
+    { agent: "Kumar Singh", monthlyProduction: 0, ytdFyc: 2022, delta: 0 }
+  ],
+  monthlyYtd: [
+    { month: "Jan", value: 6200 },
+    { month: "Feb", value: 12400 },
+    { month: "Mar", value: 18800 },
+    { month: "Apr", value: 33100 },
+    { month: "May", value: 45500 },
+    { month: "Jun", value: 58600 },
+    { month: "Jul", value: 68800 },
+    { month: "Aug", value: 74200 },
+    { month: "Sep", value: 87500 },
+    { month: "Oct", value: 96800 },
+    { month: "Nov", value: 104600 },
+    { month: "Dec", value: 111800 }
+  ],
+  menteeStatuses: ["Top producer", "Consistent follow-up", "Needs weekly coaching", "Pipeline review due"],
+  weekly: [
+    { day: "Mon", fyc: 4200, cases: 2 },
+    { day: "Tue", fyc: 6800, cases: 3 },
+    { day: "Wed", fyc: 2600, cases: 1 },
+    { day: "Thu", fyc: 9100, cases: 4 },
+    { day: "Fri", fyc: 5600, cases: 2 }
+  ]
+};
 
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
@@ -132,6 +173,14 @@ function money(value) {
     currency: "SGD",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function compactMoney(value) {
+  const sign = value < 0 ? "-" : "";
+  const absolute = Math.abs(value);
+  if (absolute >= 1000000) return `${sign}SGD ${(absolute / 1000000).toFixed(1)}M`;
+  if (absolute >= 1000) return `${sign}SGD ${(absolute / 1000).toFixed(1)}K`;
+  return `${sign}${money(absolute)}`;
 }
 
 function getAgencyEvents() {
@@ -430,10 +479,206 @@ function wireLeadFilters() {
 
 function renderOverviewCards() {
   updateLeadSummary(leadData);
-  updatePremiumSummary(leadData);
-  renderClosureTable(leadData);
-  renderSalesPerformance(leadData);
-  renderCpfTracker();
+  renderPerformanceOverview();
+}
+
+function renderPerformanceOverview() {
+  renderFycKpis();
+  renderLeaderboard();
+  renderAgentFycChart();
+  renderMonthlyYtdChart();
+  renderMenteeList();
+  renderSalesFunnel();
+  renderWeeklyFycCaseChart();
+}
+
+function wireChartInteractions(container, insightElement) {
+  if (!container || !insightElement) return;
+  const items = Array.from(container.querySelectorAll("[data-insight]"));
+  const setSelected = (item) => {
+    insightElement.textContent = item.dataset.insight;
+    container.querySelectorAll(".is-selected").forEach((selected) => selected.classList.remove("is-selected"));
+    item.classList.add("is-selected");
+  };
+  items.forEach((item) => {
+    const updateInsight = () => {
+      setSelected(item);
+    };
+    item.addEventListener("click", updateInsight);
+    item.addEventListener("mouseenter", updateInsight);
+    item.addEventListener("focus", updateInsight);
+  });
+  if (items.length > 0) setSelected(items[0]);
+}
+
+function renderFycKpis() {
+  const yearlyValue = document.getElementById("yearly-fyc-value");
+  const yearlyProgress = document.getElementById("yearly-fyc-progress");
+  const yearlyPercent = document.getElementById("yearly-fyc-percent");
+  const yearlyTarget = document.getElementById("yearly-fyc-target");
+  const weeklyValue = document.getElementById("weekly-fyc-value");
+  const weeklyLast = document.getElementById("weekly-fyc-last");
+  const weeklyChange = document.getElementById("weekly-fyc-change");
+  const urgentLeads = document.getElementById("urgent-leads-count");
+  const nearClose = document.getElementById("near-close-count");
+
+  const targetPercent = Math.min(100, Math.round((performanceData.yearlyFyc / performanceData.yearlyTarget) * 1000) / 10);
+  const weekDelta = performanceData.lastWeekFyc
+    ? Math.round(((performanceData.weeklyFyc - performanceData.lastWeekFyc) / performanceData.lastWeekFyc) * 1000) / 10
+    : 0;
+
+  if (yearlyValue) yearlyValue.textContent = compactMoney(performanceData.yearlyFyc);
+  if (yearlyProgress) yearlyProgress.style.width = `${targetPercent}%`;
+  if (yearlyPercent) yearlyPercent.textContent = `${targetPercent}%`;
+  if (yearlyTarget) yearlyTarget.textContent = compactMoney(performanceData.yearlyTarget);
+  if (weeklyValue) weeklyValue.textContent = compactMoney(performanceData.weeklyFyc);
+  if (weeklyLast) weeklyLast.textContent = `${compactMoney(performanceData.lastWeekFyc)} vs last week`;
+  if (weeklyChange) weeklyChange.textContent = `${weekDelta > 0 ? "+" : ""}${weekDelta}%`;
+  if (urgentLeads) urgentLeads.textContent = `${leadData.filter((lead) => lead.urgency === "Urgent").length} urgent`;
+  if (nearClose) nearClose.textContent = `${leadData.filter((lead) => lead.stage === "Closing" || lead.stage === "Proposal Sent").length} near close`;
+}
+
+function renderLeaderboard() {
+  const tbody = document.getElementById("leaderboard-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = performanceData.leaderboard
+    .map(
+      (item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.agent}</td>
+        <td>${money(item.monthlyProduction)} <span class="muted-text">(0.0%)</span></td>
+        <td>${money(item.ytdFyc)} <span class="${item.delta >= 0 ? "positive-text" : "negative-text"}">(${item.delta >= 0 ? "+" : ""}${item.delta}%)</span></td>
+      </tr>
+    `
+    )
+    .join("");
+}
+
+function renderAgentFycChart() {
+  const chart = document.getElementById("agent-fyc-chart");
+  const insight = document.getElementById("agent-fyc-insight");
+  if (!chart) return;
+  const maxValue = Math.max(...performanceData.leaderboard.map((item) => item.ytdFyc));
+  const colors = ["#a6192e", "#e8decf", "#c69a67", "#4a4a4a", "#aaa7a2"];
+  chart.innerHTML = performanceData.leaderboard
+    .slice(0, 9)
+    .map((item, index) => {
+      const height = Math.max(10, Math.round((item.ytdFyc / maxValue) * 100));
+      return `
+        <button type="button" class="bar-chart-item" data-insight="${item.agent}: ${money(item.ytdFyc)} YTD FYC, ${money(item.monthlyProduction)} monthly production.">
+          <span class="bar-value">${Math.round(item.ytdFyc).toLocaleString("en-SG")}</span>
+          <span class="bar-column" style="height:${height}%;background:${colors[index % colors.length]}"></span>
+          <span class="bar-label">${item.agent.split(" ")[0]}</span>
+        </button>
+      `;
+    })
+    .join("");
+  wireChartInteractions(chart, insight);
+}
+
+function renderMonthlyYtdChart() {
+  const chart = document.getElementById("monthly-ytd-chart");
+  const insight = document.getElementById("monthly-ytd-insight");
+  if (!chart) return;
+  const maxValue = Math.max(...performanceData.monthlyYtd.map((item) => item.value));
+  chart.innerHTML = performanceData.monthlyYtd
+    .map((item) => {
+      const height = Math.max(4, Math.round((item.value / maxValue) * 100));
+      return `
+        <button type="button" class="monthly-point" data-insight="${item.month}: ${money(item.value)} YTD FYC.">
+          <span class="monthly-bar" style="height:${height}%"></span>
+          <strong>${compactMoney(item.value).replace("SGD ", "")}</strong>
+          <small>${item.month}</small>
+        </button>
+      `;
+    })
+    .join("");
+  wireChartInteractions(chart, insight);
+}
+
+function renderMenteeList() {
+  const list = document.getElementById("mentee-list");
+  const count = document.getElementById("mentee-count-label");
+  if (!list) return;
+  const mentees = performanceData.leaderboard.slice(0, 4).map((agent, index) => ({
+    name: agent.agent,
+    status: performanceData.menteeStatuses[index] || "Mentorship active",
+    fyc: agent.ytdFyc
+  }));
+  if (count) count.textContent = `${mentees.length} total`;
+  list.innerHTML = mentees
+    .map(
+      (mentee) => `
+      <li>
+        <span class="dot blue" aria-hidden="true"></span>
+        <div class="activity-body">
+          <div class="activity-row">
+            <span class="activity-name">${mentee.name}</span>
+            <span class="activity-time">${money(mentee.fyc)}</span>
+          </div>
+          <p class="activity-desc">${mentee.status}</p>
+        </div>
+      </li>
+    `
+    )
+    .join("");
+}
+
+function renderSalesFunnel() {
+  const funnel = document.getElementById("sales-funnel-dashboard");
+  const insight = document.getElementById("sales-funnel-insight");
+  if (!funnel) return;
+  const stages = [
+    { label: "Prospecting", count: leadData.length, color: "#d89a00" },
+    { label: "Fact Find", count: leadData.filter((lead) => lead.stage === "Qualified" || lead.stage === "Follow-up").length, color: "#d84562" },
+    { label: "Opening", count: leadData.filter((lead) => lead.stage === "Proposal Sent" || lead.stage === "Negotiation").length, color: "#9b2f85" },
+    { label: "Closing", count: leadData.filter((lead) => lead.stage === "Closing").length, color: "#523781" }
+  ];
+  funnel.innerHTML = `
+    <div class="funnel-shape">
+      ${stages
+        .map((stage, index) => {
+          const width = 88 - index * 14;
+          return `
+            <button type="button" class="funnel-stage" style="--stage-width:${width}%;--stage-color:${stage.color}" data-insight="${stage.label}: ${stage.count} lead${stage.count === 1 ? "" : "s"} in this stage.">
+              <span>${stage.label}</span>
+              <strong>${stage.count}</strong>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+    <div class="funnel-legend">
+      ${stages.map((stage) => `<span><i style="background:${stage.color}"></i>${stage.label}</span>`).join("")}
+    </div>
+  `;
+  wireChartInteractions(funnel, insight);
+}
+
+function renderWeeklyFycCaseChart() {
+  const chart = document.getElementById("weekly-fyc-case-chart");
+  const insight = document.getElementById("weekly-fyc-case-insight");
+  if (!chart) return;
+  const maxFyc = Math.max(...performanceData.weekly.map((item) => item.fyc));
+  const maxCases = Math.max(...performanceData.weekly.map((item) => item.cases));
+  chart.innerHTML = performanceData.weekly
+    .map((item) => {
+      const fycHeight = Math.max(8, Math.round((item.fyc / maxFyc) * 100));
+      const caseHeight = Math.max(8, Math.round((item.cases / maxCases) * 100));
+      return `
+        <button type="button" class="weekly-item" data-insight="${item.day}: ${money(item.fyc)} FYC across ${item.cases} case${item.cases === 1 ? "" : "s"}.">
+          <div class="weekly-bars">
+            <span class="weekly-bar fyc" style="height:${fycHeight}%"></span>
+            <span class="weekly-bar cases" style="height:${caseHeight}%"></span>
+          </div>
+          <strong>${item.day}</strong>
+          <small>${compactMoney(item.fyc).replace("SGD ", "")} / ${item.cases}</small>
+        </button>
+      `;
+    })
+    .join("");
+  wireChartInteractions(chart, insight);
 }
 
 function wireRoleControl() {

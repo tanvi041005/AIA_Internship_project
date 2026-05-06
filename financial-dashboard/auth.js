@@ -87,6 +87,23 @@
       }
     }
 
+    if (loggedRole && !document.getElementById("header-user-meta")) {
+      const roleLabels = {
+        agent: "Agent",
+        leader: "Leader",
+        district: "District Manager"
+      };
+      const user = sessionStorage.getItem("dashboardUser") || "User";
+      const meta = document.createElement("div");
+      meta.id = "header-user-meta";
+      meta.className = "header-user-meta";
+      meta.innerHTML = `
+        <span>${roleLabels[loggedRole] || "User"}</span>
+        <strong>${user}</strong>
+      `;
+      nav.appendChild(meta);
+    }
+
     const logout = document.createElement("a");
     logout.href = "login.html";
     logout.id = "logout-link";
