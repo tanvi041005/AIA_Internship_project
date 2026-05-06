@@ -27,6 +27,7 @@
         Recruitment
       </a>
       <a href="training.html">Training</a>
+      <a href="resources.html">Resources</a>
     </nav>
   </div>
 
@@ -36,7 +37,10 @@
 
     <section class="panel" aria-label="Lead profile module">
       <div class="panel-head">
-        <h2>Lead Profiles</h2>
+        <div>
+          <h2>Lead Profiles</h2>
+          <p class="summary-line" id="lead-summary-line">Showing 0 leads</p>
+        </div>
         <div class="lead-controls">
           <label for="lead-date-filter">Filter by date</label>
           <input type="date" id="lead-date-filter" />
@@ -89,6 +93,11 @@
         <h2>Sales Tracker Module</h2>
         <ul class="activity-list" id="sales-performance-list"></ul>
       </article>
+    </section>
+
+    <section class="panel" aria-label="CPF tracker">
+      <h2>CPF Tracker</h2>
+      <ul class="activity-list" id="cpf-tracker-list"></ul>
     </section>
   </main>
 

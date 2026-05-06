@@ -85,8 +85,34 @@ const districtEventsSeed = [
   { id: "agency-1", date: "2026-05-12", title: "District Training Session", type: "District Event" },
   { id: "agency-2", date: "2026-05-25", title: "District Sales Review", type: "District Event" }
 ];
+
+const cpfTrackerData = [
+  {
+    name: "John Smith",
+    accountFocus: "OA allocation",
+    status: "Review due",
+    amount: 42000,
+    note: "Confirm CPF nomination and protection gap before revised proposal."
+  },
+  {
+    name: "Sarah Johnson",
+    accountFocus: "MA buffer",
+    status: "On track",
+    amount: 28000,
+    note: "Family health plan discussion includes MediSave affordability check."
+  },
+  {
+    name: "Michael Chen",
+    accountFocus: "SA planning",
+    status: "Action needed",
+    amount: 36000,
+    note: "Prepare retirement income projection before next F2F meeting."
+  }
+];
+
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
+const PERSONAL_TASKS_STORAGE_KEY = "personalTasks";
 
 function isOverviewPage() {
   return document.getElementById("lead-table-body") !== null;
@@ -101,9 +127,9 @@ function isCalendarPage() {
 }
 
 function money(value) {
-  return new Intl.NumberFormat("en-PH", {
+  return new Intl.NumberFormat("en-SG", {
     style: "currency",
-    currency: "PHP",
+    currency: "SGD",
     maximumFractionDigits: 0
   }).format(value);
 }
@@ -140,19 +166,56 @@ function savePersonalEvents(events) {
   localStorage.setItem(PERSONAL_EVENTS_STORAGE_KEY, JSON.stringify(events));
 }
 
+function getPersonalTasks() {
+  try {
+    const raw = localStorage.getItem(PERSONAL_TASKS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch (error) {
+    // Fall back to empty list if storage is invalid.
+  }
+  return [];
+}
+
+function savePersonalTasks(tasks) {
+  localStorage.setItem(PERSONAL_TASKS_STORAGE_KEY, JSON.stringify(tasks));
+  window.dispatchEvent(new CustomEvent("personalTasksUpdated"));
+}
+
+function addPersonalTask(payload) {
+  const title = String(payload.title || "").trim();
+  if (!title) return null;
+  const task = {
+    id: `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    title,
+    done: false,
+    source: payload.source || "manual",
+    dueDate: payload.dueDate || "",
+    eventTitle: payload.eventTitle || ""
+  };
+  const tasks = getPersonalTasks();
+  tasks.unshift(task);
+  savePersonalTasks(tasks);
+  return task;
+}
+
 function addPersonalEvent(payload) {
-  const { date, title, startTime = "", endTime = "", location = "", notes = "" } = payload;
+  const { date, title, startTime = "", endTime = "", location = "", notes = "", taskTitle = "", taskId = "" } = payload;
   const events = getPersonalEvents();
-  events.push({
+  const eventItem = {
     id: `personal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     date,
     title,
     startTime,
     endTime,
     location,
-    notes
-  });
+    notes,
+    taskTitle,
+    taskId
+  };
+  events.push(eventItem);
   savePersonalEvents(events);
+  return eventItem;
 }
 
 function formatTimeRange(event) {
@@ -170,6 +233,7 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
     .map((lead) => ({
       date: lead.meetupDate,
       title: `${lead.name} · ${lead.meetingType} Meet-up`,
+      location: lead.meetupLocation,
       type: "Personal Appointment",
       category: "personal",
       editable: false
@@ -214,6 +278,13 @@ function renderLeadTable(rows) {
     .join("");
 }
 
+function updateLeadPageSummary(rows) {
+  const summary = document.getElementById("lead-summary-line");
+  if (!summary) return;
+  const urgentCount = rows.filter((lead) => lead.urgency === "Urgent").length;
+  summary.textContent = `Showing ${rows.length} lead${rows.length === 1 ? "" : "s"} · ${urgentCount} urgent`;
+}
+
 function renderClosureTable(rows) {
   const tbody = document.getElementById("closure-table-body");
   if (!tbody) return;
@@ -243,6 +314,29 @@ function renderSalesPerformance(rows) {
     <li><span class="dot red" aria-hidden="true"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">Urgent Leads</span><span class="activity-time">${urgentCount}</span></div><p class="activity-desc">Requires immediate follow-up and meeting confirmation.</p></div></li>
     <li><span class="dot orange" aria-hidden="true"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">Near Conversion</span><span class="activity-time">${conversionReady}</span></div><p class="activity-desc">Leads in proposal or closing stage.</p></div></li>
   `;
+}
+
+function renderCpfTracker() {
+  const list = document.getElementById("cpf-tracker-list");
+  if (!list) return;
+
+  list.innerHTML = cpfTrackerData
+    .map((item) => {
+      const dotClass = item.status === "On track" ? "blue" : item.status === "Review due" ? "orange" : "red";
+      return `
+        <li>
+          <span class="dot ${dotClass}" aria-hidden="true"></span>
+          <div class="activity-body">
+            <div class="activity-row">
+              <span class="activity-name">${item.name} · ${item.accountFocus}</span>
+              <span class="activity-time">${money(item.amount)}</span>
+            </div>
+            <p class="activity-desc"><strong>${item.status}:</strong> ${item.note}</p>
+          </div>
+        </li>
+      `;
+    })
+    .join("");
 }
 
 function updatePremiumSummary(rows) {
@@ -322,8 +416,10 @@ function wireLeadFilters() {
     renderLeadTable(filtered);
     renderClosureTable(filtered);
     renderSalesPerformance(filtered);
+    renderCpfTracker();
     updatePremiumSummary(filtered);
     updateLeadSummary(filtered);
+    updateLeadPageSummary(filtered);
     wireLeadDetailDialog(filtered);
   };
 
@@ -337,6 +433,7 @@ function renderOverviewCards() {
   updatePremiumSummary(leadData);
   renderClosureTable(leadData);
   renderSalesPerformance(leadData);
+  renderCpfTracker();
 }
 
 function wireRoleControl() {
@@ -357,11 +454,8 @@ function wirePersonalTodo() {
   const list = document.getElementById("personal-task-list");
   if (!form || !input || !list) return;
 
-  const getTasks = () => JSON.parse(localStorage.getItem("personalTasks") || "[]");
-  const saveTasks = (tasks) => localStorage.setItem("personalTasks", JSON.stringify(tasks));
-
   const renderTasks = () => {
-    const tasks = getTasks();
+    const tasks = getPersonalTasks();
     list.innerHTML = tasks
       .map(
         (task, index) => `
@@ -375,9 +469,9 @@ function wirePersonalTodo() {
     list.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
       checkbox.addEventListener("change", (event) => {
         const taskIndex = Number(event.target.dataset.taskIndex);
-        const tasksList = getTasks();
+        const tasksList = getPersonalTasks();
         tasksList[taskIndex].done = event.target.checked;
-        saveTasks(tasksList);
+        savePersonalTasks(tasksList);
       });
     });
   };
@@ -386,13 +480,99 @@ function wirePersonalTodo() {
     event.preventDefault();
     const value = input.value.trim();
     if (!value) return;
-    const tasks = getTasks();
-    tasks.unshift({ title: value, done: false });
-    saveTasks(tasks);
+    addPersonalTask({ title: value });
     input.value = "";
     renderTasks();
   });
 
+  window.addEventListener("personalTasksUpdated", renderTasks);
+  renderTasks();
+}
+
+function wireFloatingTodo() {
+  if (document.getElementById("floating-task-form")) return;
+  const main = document.getElementById("main");
+  if (!main) return;
+
+  const widget = document.createElement("aside");
+  widget.className = "todo-sidebar is-collapsed";
+  widget.setAttribute("aria-label", "Personal to-do list");
+  widget.innerHTML = `
+    <button type="button" class="todo-sidebar-toggle" id="todo-sidebar-toggle" aria-expanded="false" aria-controls="todo-sidebar-panel">
+      <span class="todo-toggle-short">Tasks</span>
+      <span class="todo-toggle-count" id="todo-sidebar-count">0</span>
+    </button>
+    <div class="todo-sidebar-panel" id="todo-sidebar-panel">
+      <div class="todo-sidebar-head">
+        <div>
+          <h2>Personal To-Do</h2>
+          <p id="todo-sidebar-progress">0 open tasks</p>
+        </div>
+        <button type="button" class="ghost-btn" id="todo-sidebar-close">Close</button>
+      </div>
+      <form id="floating-task-form" class="floating-task-form">
+        <input id="floating-task-input" type="text" placeholder="Add a task" required />
+        <button type="submit">Add</button>
+      </form>
+      <ul id="floating-task-list" class="todo-list"></ul>
+    </div>
+  `;
+  document.body.appendChild(widget);
+
+  const toggle = document.getElementById("todo-sidebar-toggle");
+  const close = document.getElementById("todo-sidebar-close");
+  const count = document.getElementById("todo-sidebar-count");
+  const progress = document.getElementById("todo-sidebar-progress");
+  const form = document.getElementById("floating-task-form");
+  const input = document.getElementById("floating-task-input");
+  const list = document.getElementById("floating-task-list");
+
+  const setExpanded = (expanded) => {
+    widget.classList.toggle("is-collapsed", !expanded);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    localStorage.setItem("todoSidebarExpanded", expanded ? "true" : "false");
+    if (expanded) input.focus();
+  };
+
+  const renderTasks = () => {
+    const tasks = getPersonalTasks();
+    const openTasks = tasks.filter((task) => !task.done).length;
+    count.textContent = String(openTasks);
+    progress.textContent = `${openTasks} open task${openTasks === 1 ? "" : "s"}`;
+    list.innerHTML = tasks
+      .map(
+        (task, index) => `
+        <li class="${task.done ? "is-done" : ""}">
+          <label><input type="checkbox" data-task-index="${index}" ${task.done ? "checked" : ""}> <span>${task.title}${task.dueDate ? `<small>Due ${task.dueDate}${task.eventTitle ? ` · ${task.eventTitle}` : ""}</small>` : ""}</span></label>
+        </li>
+      `
+      )
+      .join("");
+
+    list.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+      checkbox.addEventListener("change", (event) => {
+        const taskIndex = Number(event.target.dataset.taskIndex);
+        const tasksList = getPersonalTasks();
+        tasksList[taskIndex].done = event.target.checked;
+        savePersonalTasks(tasksList);
+        renderTasks();
+      });
+    });
+  };
+
+  toggle.addEventListener("click", () => setExpanded(widget.classList.contains("is-collapsed")));
+  close.addEventListener("click", () => setExpanded(false));
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = input.value.trim();
+    if (!value) return;
+    addPersonalTask({ title: value });
+    input.value = "";
+    renderTasks();
+  });
+
+  window.addEventListener("personalTasksUpdated", renderTasks);
+  setExpanded(localStorage.getItem("todoSidebarExpanded") === "true");
   renderTasks();
 }
 
@@ -461,6 +641,10 @@ function renderCalendar(currentDate, role, viewOptions) {
 
 }
 
+function getCalendarEventsForView(role, viewOptions) {
+  return getLeadEvents(role, viewOptions);
+}
+
 function wireCalendarPage() {
   const prevBtn = document.getElementById("prev-month-btn");
   const nextBtn = document.getElementById("next-month-btn");
@@ -496,14 +680,22 @@ function wireCalendarPage() {
   });
 
   wirePersonalEventDialog(state, update);
+  wireCalendarEventDialog();
   wireAgencyEventManager(userRole, update);
   update();
+  showTodayRemindersOnce(state);
 }
 
 function wireCalendarDateClicks(state) {
   document.querySelectorAll(".cal-cell-clickable[data-date]").forEach((cell) => {
     const openForCell = () => {
       state.selectedDate = cell.dataset.date;
+      const role = localStorage.getItem("calendarRole") || "agent";
+      const events = getCalendarEventsForView(role, state).filter((event) => event.date === state.selectedDate);
+      if (events.length > 0) {
+        openCalendarEventDialog(state.selectedDate, events);
+        return;
+      }
       openPersonalEventDialog(state.selectedDate);
     };
 
@@ -517,6 +709,59 @@ function wireCalendarDateClicks(state) {
   });
 }
 
+function openCalendarEventDialog(date, events) {
+  const dialog = document.getElementById("calendar-event-dialog");
+  const title = document.getElementById("calendar-event-dialog-title");
+  const list = document.getElementById("calendar-event-dialog-list");
+  const addButton = document.getElementById("calendar-add-personal-from-detail");
+  if (!dialog || !title || !list || !addButton) return;
+
+  title.textContent = `Scheduled Events · ${date}`;
+  list.innerHTML = events
+    .map(
+      (event) => `
+      <li>
+        <span class="dot ${event.category === "personal" ? "blue" : "orange"}" aria-hidden="true"></span>
+        <div class="activity-body">
+          <div class="activity-row">
+            <span class="activity-name">${event.title}</span>
+            <span class="activity-time">${event.type}</span>
+          </div>
+          <p class="activity-desc">${event.location ? `${event.location} · ` : ""}${formatTimeRange(event)}</p>
+          ${event.taskTitle ? `<p class="activity-desc"><strong>Linked task:</strong> ${event.taskTitle}</p>` : ""}
+        </div>
+      </li>
+    `
+    )
+    .join("");
+
+  addButton.onclick = () => {
+    dialog.close();
+    openPersonalEventDialog(date);
+  };
+  dialog.showModal();
+}
+
+function wireCalendarEventDialog() {
+  const dialog = document.getElementById("calendar-event-dialog");
+  const closeBtn = document.getElementById("close-calendar-event-dialog");
+  if (!dialog || !closeBtn) return;
+  closeBtn.addEventListener("click", () => dialog.close());
+}
+
+function showTodayRemindersOnce(state) {
+  const today = new Date().toISOString().slice(0, 10);
+  const reminderKey = `calendarReminderShown-${today}`;
+  if (sessionStorage.getItem(reminderKey)) return;
+
+  const role = localStorage.getItem("calendarRole") || "agent";
+  const events = getCalendarEventsForView(role, state).filter((event) => event.date === today);
+  if (events.length === 0) return;
+
+  sessionStorage.setItem(reminderKey, "true");
+  openCalendarEventDialog(today, events);
+}
+
 function openPersonalEventDialog(date) {
   const dialog = document.getElementById("personal-event-dialog");
   const dateInput = document.getElementById("personal-event-dialog-date");
@@ -525,13 +770,15 @@ function openPersonalEventDialog(date) {
   const endTimeInput = document.getElementById("personal-event-dialog-end-time");
   const locationInput = document.getElementById("personal-event-dialog-location");
   const notesInput = document.getElementById("personal-event-dialog-notes");
-  if (!dialog || !dateInput || !titleInput || !startTimeInput || !endTimeInput || !locationInput || !notesInput || !date) return;
+  const taskInput = document.getElementById("personal-event-dialog-task");
+  if (!dialog || !dateInput || !titleInput || !startTimeInput || !endTimeInput || !locationInput || !notesInput || !taskInput || !date) return;
   dateInput.value = date;
   titleInput.value = "";
   startTimeInput.value = "";
   endTimeInput.value = "";
   locationInput.value = "";
   notesInput.value = "";
+  taskInput.value = "";
   dialog.showModal();
   titleInput.focus();
 }
@@ -546,7 +793,8 @@ function wirePersonalEventDialog(state, refreshCalendar) {
   const endTimeInput = document.getElementById("personal-event-dialog-end-time");
   const locationInput = document.getElementById("personal-event-dialog-location");
   const notesInput = document.getElementById("personal-event-dialog-notes");
-  if (!dialog || !form || !closeBtn || !dateInput || !titleInput || !startTimeInput || !endTimeInput || !locationInput || !notesInput) return;
+  const taskInput = document.getElementById("personal-event-dialog-task");
+  if (!dialog || !form || !closeBtn || !dateInput || !titleInput || !startTimeInput || !endTimeInput || !locationInput || !notesInput || !taskInput) return;
 
   closeBtn.addEventListener("click", () => dialog.close());
   form.addEventListener("submit", (event) => {
@@ -557,8 +805,10 @@ function wirePersonalEventDialog(state, refreshCalendar) {
     const endTime = endTimeInput.value;
     const location = locationInput.value.trim();
     const notes = notesInput.value.trim();
+    const taskTitle = taskInput.value.trim();
     if (!date || !title || !startTime || !endTime) return;
-    addPersonalEvent({ date, title, startTime, endTime, location, notes });
+    const task = taskTitle ? addPersonalTask({ title: taskTitle, source: "calendar", dueDate: date, eventTitle: title }) : null;
+    addPersonalEvent({ date, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "" });
     state.selectedDate = date;
     dialog.close();
     refreshCalendar();
@@ -661,14 +911,18 @@ if (isOverviewPage()) {
   wireLeadFilters();
   wireRoleControl();
   wirePersonalTodo();
+  wireFloatingTodo();
 }
 
 if (isHomeDashboardPage()) {
   renderOverviewCards();
   wireRoleControl();
   wirePersonalTodo();
+  wireFloatingTodo();
 }
 
 if (isCalendarPage()) {
   wireCalendarPage();
 }
+
+wireFloatingTodo();

@@ -27,7 +27,7 @@
         Recruitment
       </a>
       <a href="training.html">Training</a>
-      <a href="#resources">Resources</a>
+      <a href="resources.html">Resources</a>
     </nav>
   </div>
 
@@ -37,14 +37,6 @@
         <h1 class="page-title">Lead Management & Sales Tracker</h1>
         <p class="page-lede">Manage leads, appointments, closure estimates, and daily tasks in one place.</p>
       </div>
-      <section class="panel todo-widget" aria-label="Personal to-do list">
-        <h2>Personal To-Do List</h2>
-        <form id="personal-task-form" class="inline-form">
-          <input id="personal-task-input" type="text" placeholder="Add a personal task" required />
-          <button type="submit">Add</button>
-        </form>
-        <ul id="personal-task-list" class="todo-list"></ul>
-      </section>
     </section>
 
     <section class="kpi-grid" aria-label="Lead and sales summary">
@@ -57,8 +49,8 @@
         </div>
         <p class="kpi-label">Total Premium Value</p>
         <div class="kpi-value-stack">
-          <p class="kpi-subvalue"><span>YTD</span><strong id="premium-ytd">PHP 0</strong></p>
-          <p class="kpi-subvalue"><span>Expected</span><strong id="premium-expected">PHP 0</strong></p>
+          <p class="kpi-subvalue"><span>YTD</span><strong id="premium-ytd">SGD 0</strong></p>
+          <p class="kpi-subvalue"><span>Expected</span><strong id="premium-expected">SGD 0</strong></p>
         </div>
       </article>
 
@@ -110,8 +102,13 @@
       </article>
     </section>
 
-    <section class="panel split-grid" id="resources" aria-label="Calendar access and resources">
-      <article>
+    <section class="split-grid" aria-label="CPF tracker and calendar access">
+      <article class="panel">
+        <h2>CPF Tracker</h2>
+        <ul class="activity-list" id="cpf-tracker-list"></ul>
+      </article>
+
+      <article class="panel">
         <h2>Calendar Access Control</h2>
         <p class="page-lede">Switch role to preview what calendar scope is allowed.</p>
         <div class="inline-form">
@@ -123,10 +120,13 @@
         </div>
         <ul id="calendar-permissions" class="activity-list"></ul>
       </article>
+    </section>
+
+    <section class="panel" id="resources" aria-label="Resources">
       <article>
         <h2>Resources</h2>
-        <p class="page-lede">Open team documents directly in SharePoint.</p>
-        <a class="resource-link" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open SharePoint Resources</a>
+        <p class="page-lede">Open team documents, product decks, and compliance files directly in SharePoint.</p>
+        <a class="resource-link" href="resources.html">Open Resources Tab</a>
       </article>
     </section>
   </main>

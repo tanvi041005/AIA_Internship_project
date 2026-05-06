@@ -20,12 +20,14 @@
     <nav class="nav-inner" aria-label="Primary">
       <a href="index.html">Overview</a>
       <a href="calendar.html" class="active">Calendar</a>
+      <a href="leads.html">Leads</a>
       <a href="policy-comparison.html">Policy Comparison</a>
       <a href="client-renewals.html">Client Renewals</a>
       <a href="recruitment.html">
         Recruitment
       </a>
       <a href="training.html">Training</a>
+      <a href="resources.html">Resources</a>
     </nav>
   </div>
 
@@ -55,6 +57,7 @@
       </p>
 
       <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Lead meet-up calendar"></div>
+      <p class="summary-line">Select a date with events to view appointment details, or select an empty date to add a personal reminder.</p>
       <div class="panel-head">
         <h3>Appointment Reminders</h3>
       </div>
@@ -111,11 +114,27 @@
         <label for="personal-event-dialog-notes">Notes</label>
         <textarea id="personal-event-dialog-notes" rows="4" placeholder="Optional notes..."></textarea>
 
+        <label for="personal-event-dialog-task">Linked Task</label>
+        <input type="text" id="personal-event-dialog-task" placeholder="Follow up after meeting" />
+
         <div class="event-dialog-actions">
           <button type="button" id="close-personal-event-dialog" class="ghost-btn">Close</button>
           <button type="submit">Save Event</button>
         </div>
       </form>
+    </article>
+  </dialog>
+
+  <dialog id="calendar-event-dialog">
+    <article class="modal-card">
+      <header class="panel-head">
+        <h3 id="calendar-event-dialog-title">Scheduled Events</h3>
+        <button type="button" id="close-calendar-event-dialog" class="ghost-btn">Close</button>
+      </header>
+      <ul id="calendar-event-dialog-list" class="activity-list"></ul>
+      <div class="event-dialog-actions">
+        <button type="button" id="calendar-add-personal-from-detail">Add Personal Event</button>
+      </div>
     </article>
   </dialog>
 
