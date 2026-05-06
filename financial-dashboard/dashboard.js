@@ -630,18 +630,18 @@ function renderSalesFunnel() {
   const insight = document.getElementById("sales-funnel-insight");
   if (!funnel) return;
   const stages = [
-    { label: "Prospecting", count: leadData.length, color: "#d89a00" },
-    { label: "Fact Find", count: leadData.filter((lead) => lead.stage === "Qualified" || lead.stage === "Follow-up").length, color: "#d84562" },
-    { label: "Opening", count: leadData.filter((lead) => lead.stage === "Proposal Sent" || lead.stage === "Negotiation").length, color: "#9b2f85" },
-    { label: "Closing", count: leadData.filter((lead) => lead.stage === "Closing").length, color: "#523781" }
+    { label: "Prospecting", count: leadData.length, color: "#d99a00", shade: "#b77f00" },
+    { label: "Fact Find", count: leadData.filter((lead) => lead.stage === "Qualified" || lead.stage === "Follow-up").length, color: "#d64a62", shade: "#b8334c" },
+    { label: "Opening", count: leadData.filter((lead) => lead.stage === "Proposal Sent" || lead.stage === "Negotiation").length, color: "#9b2f91", shade: "#76226e" },
+    { label: "Closing", count: leadData.filter((lead) => lead.stage === "Closing").length, color: "#4d367f", shade: "#332358" }
   ];
   funnel.innerHTML = `
     <div class="funnel-shape">
       ${stages
         .map((stage, index) => {
-          const width = 88 - index * 14;
+          const width = 92 - index * 14;
           return `
-            <button type="button" class="funnel-stage" style="--stage-width:${width}%;--stage-color:${stage.color}" data-insight="${stage.label}: ${stage.count} lead${stage.count === 1 ? "" : "s"} in this stage.">
+            <button type="button" class="funnel-stage" style="--stage-width:${width}%;--stage-color:${stage.color};--stage-shade:${stage.shade}" data-insight="${stage.label}: ${stage.count} lead${stage.count === 1 ? "" : "s"} in this stage.">
               <span>${stage.label}</span>
               <strong>${stage.count}</strong>
             </button>

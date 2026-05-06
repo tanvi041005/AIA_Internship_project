@@ -506,64 +506,112 @@ main {
   display: grid;
   place-items: center;
   min-height: 250px;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .funnel-shape {
-  width: min(420px, 100%);
+  width: min(300px, 100%);
   display: grid;
   justify-items: center;
-  gap: 0.32rem;
+  gap: 0;
+  padding-top: 8px;
 }
 
 .funnel-stage {
   position: relative;
   width: var(--stage-width);
-  min-height: 38px;
+  min-height: 44px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 0 clamp(1.35rem, 8vw, 3.25rem);
+  gap: 0.55rem;
+  margin-top: -4px;
+  padding: 0 1rem;
   color: #fff;
   border: 0;
   background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   font-weight: 700;
+  text-align: center;
+  text-shadow: none;
 }
 
 .funnel-stage::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 6px 0 0;
   z-index: 0;
-  background: var(--stage-color);
-  clip-path: polygon(5% 0, 95% 0, 88% 100%, 12% 100%);
+  background: linear-gradient(180deg, var(--stage-color) 0%, var(--stage-shade) 100%);
+  clip-path: polygon(7% 0, 93% 0, 84% 100%, 16% 100%);
+  border-radius: 0 0 14px 14px / 0 0 8px 8px;
+  box-shadow: 0 5px 9px rgba(32, 33, 36, 0.08);
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.funnel-stage::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 4%;
+  right: 4%;
+  height: 15px;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--stage-shade) 0%, var(--stage-shade) 54%, rgba(255, 255, 255, 0.16) 55%, var(--stage-color) 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
   transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.funnel-stage:first-child {
+  min-height: 50px;
+  margin-top: 0;
+}
+
+.funnel-stage:first-child::after {
+  height: 18px;
 }
 
 .funnel-stage span,
 .funnel-stage strong {
   position: relative;
   z-index: 1;
+  transform: translateY(4px);
+}
+
+.funnel-stage strong {
+  min-width: 1.2rem;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.04rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .funnel-stage:hover::before,
 .funnel-stage:focus-visible::before,
 .funnel-stage.is-selected::before {
   filter: brightness(0.92) saturate(1.15);
-  transform: scaleX(1.025);
+  transform: translateY(-1px) scaleX(1.015);
+  box-shadow: 0 7px 12px rgba(32, 33, 36, 0.13);
+}
+
+.funnel-stage:hover::after,
+.funnel-stage:focus-visible::after,
+.funnel-stage.is-selected::after {
+  filter: brightness(0.95) saturate(1.15);
+  transform: translateY(-1px);
 }
 
 .funnel-legend {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.65rem;
+  gap: 0.5rem 0.75rem;
   color: var(--text-muted);
   font-size: 0.75rem;
+  max-width: 360px;
 }
 
 .funnel-legend span {

@@ -17,6 +17,19 @@
     .quiz-option:checked + label { border-color: #d31145; background-color: #fff1f3; }
     .topic-row { transition: 0.2s ease; }
     .topic-row:not(.locked):hover { background: #fff7f8; }
+    .nav-strip { position: sticky; top: 64px; z-index: 40; background: rgba(255,255,255,.96); border-bottom: 1px solid #dedbd4; box-shadow: 0 1px 8px rgba(32,33,36,.08); backdrop-filter: blur(10px); }
+    .nav-inner { max-width: 1120px; margin: 0 auto; padding: .45rem 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+    .nav-inner a { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; padding: .45rem .75rem; border-radius: 7px; border: 1px solid transparent; font-size: .875rem; font-weight: 600; color: #69655e; text-decoration: none; transition: background .15s, color .15s, border-color .15s; }
+    .nav-inner a:hover { background: #faf9f7; color: #a6192e; }
+    .nav-inner a.active { background: #fff1f3; color: #a6192e; border-color: #f4cbd2; }
+    .header-user-meta { display: grid; gap: .12rem; justify-items: end; margin-left: auto; min-width: max-content; padding: .32rem .65rem; border: 1px solid #dedbd4; border-radius: 8px; background: #fff; color: #202124; }
+    .header-user-meta span { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #69655e; }
+    .header-user-meta strong { font-size: .92rem; }
+    @media (max-width: 720px) {
+      .nav-inner { overflow-x: auto; flex-wrap: nowrap; gap: .35rem; scrollbar-width: thin; }
+      .nav-inner a { white-space: nowrap; }
+      .header-user-meta { margin-left: .25rem; justify-items: start; }
+    }
   </style>
 </head>
 <body class="text-slate-800">
@@ -27,11 +40,18 @@
         <div class="w-10 h-10 bg-aia-red rounded-full flex items-center justify-center text-white font-bold italic">AIA</div>
         <h1 class="text-xl font-bold tracking-tight">Agent Training <span class="text-slate-400 font-medium ml-2 text-sm border-l pl-2">Elite Academy</span></h1>
       </div>
-      <div class="text-sm text-slate-500 font-medium">
-        <a href="index.html" class="hover:text-red-600">Back to Dashboard</a>
-      </div>
     </div>
   </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="leads.html">Leads</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="training.html" class="active">Training</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
 
   <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
     <aside class="w-full lg:w-80 flex-shrink-0">
