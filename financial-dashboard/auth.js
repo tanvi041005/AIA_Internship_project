@@ -23,6 +23,8 @@
 
     const DEMO_USERS = {
       A123: { password: "A123", role: "agent" },
+      A124: { password: "A124", role: "agent" },
+      A125: { password: "A125", role: "agent" },
       L123: { password: "L123", role: "leader" },
       D123: { password: "D123", role: "district" }
     };
