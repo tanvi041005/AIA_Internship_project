@@ -23,8 +23,6 @@
 
     const DEMO_USERS = {
       A123: { password: "A123", role: "agent" },
-      A124: { password: "A124", role: "agent" },
-      A125: { password: "A125", role: "agent" },
       L123: { password: "L123", role: "leader" },
       D123: { password: "D123", role: "district" }
     };
@@ -79,7 +77,23 @@
   }
 
   const nav = document.querySelector(".nav-inner");
-  if (nav && !document.getElementById("logout-link")) {
+  if (nav) {
+    // Dynamic active tab highlighting based on the current page
+    const navLinks = nav.querySelectorAll("a:not(#logout-link)");
+    navLinks.forEach(link => {
+      const href = (link.getAttribute("href") || "").toLowerCase();
+      // Check if current link matches page or if we're in a lead-related sub-page
+      const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
+      const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
+
+      if (isCurrentPage || isLeadsSubPage) {
+        link.classList.add("active");
+      } else {
+        link.classList.remove("active");
+      }
+    });
+
+    if (!document.getElementById("logout-link")) {
     if (loggedRole === "agent") {
       const recruitmentLink = Array.from(nav.querySelectorAll("a")).find(
         (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
@@ -87,23 +101,6 @@
       if (recruitmentLink) {
         recruitmentLink.remove();
       }
-    }
-
-    if (loggedRole && !document.getElementById("header-user-meta")) {
-      const roleLabels = {
-        agent: "Agent",
-        leader: "Leader",
-        district: "District Manager"
-      };
-      const user = sessionStorage.getItem("dashboardUser") || "User";
-      const meta = document.createElement("div");
-      meta.id = "header-user-meta";
-      meta.className = "header-user-meta";
-      meta.innerHTML = `
-        <span>${roleLabels[loggedRole] || "User"}</span>
-        <strong>${user}</strong>
-      `;
-      nav.appendChild(meta);
     }
 
     const logout = document.createElement("a");
@@ -115,5 +112,6 @@
       sessionStorage.removeItem("dashboardUser");
     });
     nav.appendChild(logout);
+  }
   }
 })();

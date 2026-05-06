@@ -3,165 +3,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Leads · Financial Agent Dashboard</title>
-<style>
-*,*::before,*::after{box-sizing:border-box}
-:root{
-  --brand:#a6192e;--brand-dark:#7d1122;--brand-light:#fff1f3;
-  --bg-page:#f6f6f4;--card:#ffffff;--surface-subtle:#faf9f7;
-  --border:#dedbd4;--border-strong:#c9c3b8;
-  --text:#202124;--text-muted:#69655e;
-  --radius:8px;--shadow-soft:0 1px 2px rgba(32,33,36,.06);
-  font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg-page);color:var(--text);font-size:14px;line-height:1.5}
-h2,h3{margin:0}
-button{font-family:inherit;cursor:pointer}
-input,select{font-family:inherit}
-a{color:inherit;text-decoration:none}
-
-.skip-link{position:absolute;left:-9999px;top:auto}
-.skip-link:focus{left:1rem;top:1rem;padding:.5rem 1rem;background:var(--brand);color:#fff;border-radius:8px;z-index:100}
-
-.site-header{background:var(--brand);color:#fff;padding:1.5rem 1.5rem 1.75rem;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.site-header-inner{max-width:1120px;margin:0 auto}
-.site-title{margin:0;font-size:clamp(1.35rem,3vw,1.85rem);font-weight:700}
-.site-subtitle{margin:.35rem 0 0;font-size:.95rem;opacity:.92}
-
-.nav-strip{position:sticky;top:0;z-index:25;background:rgba(255,255,255,.96);border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(32,33,36,.08);backdrop-filter:blur(10px)}
-.nav-inner{max-width:1120px;margin:0 auto;padding:.45rem 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.25rem}
-.nav-inner a{display:inline-flex;align-items:center;gap:.35rem;min-height:36px;padding:.45rem .75rem;border-radius:7px;border:1px solid transparent;font-size:.875rem;font-weight:600;color:var(--text-muted);transition:background .15s,color .15s,border-color .15s}
-.nav-inner a:hover{background:var(--surface-subtle);color:var(--brand)}
-.nav-inner a.active{background:var(--brand-light);color:var(--brand);border-color:#f4cbd2}
-.header-user-meta{display:grid;gap:.12rem;justify-items:end;margin-left:auto;min-width:max-content;padding:.32rem .65rem;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text)}
-.header-user-meta span{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)}
-.header-user-meta strong{font-size:.92rem}
-
-main{max-width:1120px;margin:0 auto;padding:1.6rem 1rem 3rem}
-.page-title{font-size:1.45rem;font-weight:700;margin:0 0 .25rem}
-.page-lede{margin:0 0 1.25rem;color:var(--text-muted);font-size:.875rem}
-
-/* KPI */
-.kpi-grid{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.25rem}
-.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;box-shadow:var(--shadow-soft)}
-.kpi-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:0 0 .35rem}
-.kpi-value{font-size:1.55rem;font-weight:700;margin:0;letter-spacing:-.01em}
-.kpi-sub{font-size:.78rem;color:var(--text-muted);margin:.15rem 0 0}
-
-/* Panel */
-.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;box-shadow:var(--shadow-soft);margin-bottom:1rem}
-.panel-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem}
-
-/* Controls */
-.controls-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
-.controls-row input,.controls-row select{padding:.42rem .6rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;background:#fff}
-.controls-row input:focus,.controls-row select:focus{outline:2px solid #d9b8b8;outline-offset:-1px}
-.btn-ghost{padding:.42rem .75rem;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:.85rem;font-weight:600;color:var(--text-muted);transition:border-color .15s,color .15s;cursor:pointer}
-.btn-ghost:hover{border-color:var(--border-strong);color:var(--brand)}
-.btn-brand{padding:.42rem .85rem;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:.85rem;font-weight:600;transition:background .15s;cursor:pointer}
-.btn-brand:hover{background:var(--brand-dark)}
-.summary-line{font-size:.82rem;color:var(--text-muted);margin:0}
-
-/* Pipeline */
-.pipeline-wrap{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;height:40px;margin:.75rem 0 .5rem}
-.pipe-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;transition:opacity .2s;cursor:default;position:relative}
-.pipe-seg:hover{opacity:.85}
-.pipe-label{white-space:nowrap;overflow:hidden;padding:0 6px}
-.legend-row{display:flex;flex-wrap:wrap;gap:.5rem .9rem;margin-top:.5rem}
-.legend-item{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-muted)}
-.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-
-/* Table */
-.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
-.lead-table{width:100%;border-collapse:collapse;min-width:780px}
-.lead-table th{padding:.55rem .75rem;background:var(--surface-subtle);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;user-select:none;cursor:pointer}
-.lead-table th:hover{color:var(--brand)}
-.lead-table th .sort-arrow{margin-left:4px;opacity:.5;font-style:normal}
-.lead-table th.sorted .sort-arrow{opacity:1;color:var(--brand)}
-.lead-table td{padding:.65rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;font-size:.855rem}
-.lead-table tr:last-child td{border-bottom:none}
-.lead-row{cursor:pointer;transition:background .1s}
-.lead-row:hover{background:#fbfaf8}
-.lead-row.selected{background:var(--brand-light)}
-.status-pill{display:inline-block;padding:.12rem .45rem;border-radius:99px;font-size:.72rem;font-weight:700}
-.status-pill.urgent{background:#fee2e2;color:#b91c1c}
-.status-pill.non-urgent{background:#dcfce7;color:#166534}
-.status-pill.medium{background:#fef3c7;color:#92400e}
-.badge{display:inline-block;padding:.1rem .4rem;border-radius:99px;font-size:.72rem;font-weight:600}
-.badge.online{background:#dbeafe;color:#1d4ed8}
-.badge.physical{background:#f3f4f6;color:#374151}
-.badge.hybrid{background:#ede9fe;color:#5b21b6}
-
-/* Split grid */
-.split-grid{display:grid;gap:1rem;margin-bottom:1rem}
-@media(min-width:760px){.split-grid{grid-template-columns:1fr 1fr}}
-
-/* Closure table */
-.closure-table{width:100%;border-collapse:collapse}
-.closure-table th{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:.45rem .6rem;border-bottom:1px solid var(--border);text-align:left}
-.closure-table td{font-size:.84rem;padding:.55rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
-.closure-table tr:last-child td{border-bottom:none}
-.premium-val{font-weight:700;color:var(--brand)}
-
-/* Activity */
-.activity-list{list-style:none;margin:0;padding:0}
-.activity-list li{display:flex;gap:.65rem;padding:.7rem 0;border-bottom:1px solid var(--border)}
-.activity-list li:last-child{border-bottom:none}
-.dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.dot.red{background:var(--brand)}
-.dot.green{background:#16a34a}
-.dot.amber{background:#f59e0b}
-.dot.blue{background:#3b82f6}
-.activity-body{flex:1;min-width:0}
-.activity-row{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
-.activity-name{font-weight:650;font-size:.875rem}
-.activity-time{font-size:.78rem;color:var(--text-muted)}
-.activity-desc{margin:.15rem 0 0;font-size:.82rem;color:var(--text-muted)}
-
-/* Drawer */
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
-.drawer-overlay.open{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;height:100%;width:min(480px,96vw);background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,.14);z-index:41;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
-.drawer.open{transform:translateX(0)}
-.drawer-header{padding:1.1rem 1.25rem .85rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;background:var(--brand);color:#fff;flex-shrink:0}
-.drawer-header h2{font-size:1.1rem;color:#fff;margin:0}
-.drawer-header p{margin:.2rem 0 0;font-size:.82rem;opacity:.88}
-.drawer-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:50%;width:32px;height:32px;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background .15s}
-.drawer-close:hover{background:rgba(255,255,255,.3)}
-.drawer-body{padding:1.1rem 1.25rem;flex:1}
-.detail-section{margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
-.detail-section:last-child{border-bottom:none;margin-bottom:0}
-.detail-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 .65rem}
-.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem}
-.detail-item label{display:block;font-size:.72rem;color:var(--text-muted);margin-bottom:.15rem}
-.detail-item strong{font-size:.9rem;color:var(--text)}
-.detail-full{grid-column:1/-1}
-.remarks-box{background:var(--surface-subtle);border:1px solid var(--border);border-radius:8px;padding:.65rem .75rem;font-size:.875rem;color:var(--text);line-height:1.55}
-.timeline-list{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}
-.timeline-item{display:flex;gap:.65rem;align-items:flex-start}
-.t-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
-.t-dot.done{background:#16a34a}
-.t-dot.pending{background:#f59e0b}
-.t-text{font-size:.84rem}
-.t-text small{display:block;color:var(--text-muted);font-size:.75rem}
-.drawer-actions{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0}
-.drawer-actions .btn-brand,.drawer-actions .btn-ghost{flex:1;padding:.55rem;text-align:center}
-.avatar-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;flex-shrink:0;color:#fff}
-
-.site-footer{border-top:1px solid var(--border);background:#fdfdfc;padding:1rem;text-align:center;font-size:.75rem;color:var(--text-muted)}
-
-@media(max-width:720px){
-  body{font-size:13px}
-  main{padding-top:1.15rem}
-  .site-header{padding:1.25rem 1rem 1.4rem}
-  .nav-inner{overflow-x:auto;flex-wrap:nowrap;gap:.35rem;scrollbar-width:thin}
-  .nav-inner a{white-space:nowrap}
-  .header-user-meta{margin-left:.25rem;justify-items:start}
-  .kpi-grid{gap:.6rem}
-  .panel{padding:.9rem}
-  .controls-row{gap:.35rem}
-}
-</style>
+<link rel="stylesheet" href="leads.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -176,7 +18,7 @@ main{max-width:1120px;margin:0 auto;padding:1.6rem 1rem 3rem}
 <div class="nav-strip">
   <nav class="nav-inner" aria-label="Primary">
     <a href="index.html">Overview</a>
-    <a href="leads.html" class="active">Leads</a>
+    <a href="leads.html">Leads</a>
     <a href="calendar.html">Calendar</a>
     <a href="training.html">Training</a>
     <a href="resources.html">Resources</a>
@@ -512,6 +354,50 @@ main{max-width:1120px;margin:0 auto;padding:1.6rem 1rem 3rem}
   </div>
 </main>
 
+<!-- Email Modal -->
+<div class="email-modal-overlay" id="email-modal-overlay">
+  <div class="email-modal">
+    <button class="em-close" id="em-close-btn" aria-label="Close">✕</button>
+    <h2>Draft follow-up email</h2>
+    <p class="em-subtitle">Fill in the details, generate with AI, then open in your email app.</p>
+
+    <div class="em-section-label">Recipient</div>
+    <div class="em-row2">
+      <div class="em-field"><label>Their name</label><input type="text" id="em-name" placeholder="e.g. Sarah"></div>
+      <div class="em-field"><label>Email address</label><input type="email" id="em-to" placeholder="sarah@example.com"></div>
+    </div>
+    <div class="em-row2">
+      <div class="em-field"><label>Company / role (optional)</label><input type="text" id="em-company" placeholder="e.g. Acme, VP Sales"></div>
+      <div class="em-field"><label>Context / reason to follow up</label><input type="text" id="em-context" placeholder="e.g. demo call last Tuesday"></div>
+    </div>
+
+    <div class="em-section-label">Subject &amp; body</div>
+    <div class="em-field"><label>Subject</label><input type="text" id="em-subject" placeholder="Subject line"></div>
+    <div class="em-field"><label>Body</label><textarea id="em-body" placeholder="Your email body will appear here — or type your own."></textarea></div>
+
+    <div class="em-section-label">Open in your email app</div>
+    <div class="em-provider-grid">
+      <a class="em-pbtn gmail" id="em-link-gmail" href="#" target="_blank" onclick="emUpdateLinks()">
+        <svg viewBox="0 0 48 48" fill="none"><path d="M6 12.5A2.5 2.5 0 0 1 8.5 10h31A2.5 2.5 0 0 1 42 12.5V35a2.5 2.5 0 0 1-2.5 2.5h-31A2.5 2.5 0 0 1 6 35V12.5z" fill="#fff4f4" stroke="#EA4335" stroke-width="1.5"/><path d="M6 13l18 13L42 13" stroke="#EA4335" stroke-width="2" stroke-linecap="round"/></svg>
+        Gmail
+      </a>
+      <a class="em-pbtn outlook" id="em-link-outlook" href="#" target="_blank" onclick="emUpdateLinks()">
+        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f0f6fd" stroke="#0078D4" stroke-width="1.5"/><path d="M6 17h36" stroke="#0078D4" stroke-width="1.5"/><rect x="10" y="22" width="10" height="10" rx="2" fill="#0078D4"/><path d="M24 24h14M24 28h10M24 32h12" stroke="#0078D4" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Outlook
+      </a>
+      <a class="em-pbtn yahoo" id="em-link-yahoo" href="#" target="_blank" onclick="emUpdateLinks()">
+        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f5f0ff" stroke="#6001D2" stroke-width="1.5"/><text x="24" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#6001D2" font-family="sans-serif">Y!</text></svg>
+        Yahoo
+      </a>
+      <button class="em-pbtn copy" id="em-copy-btn" onclick="emCopy()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+
+  </div>
+</div>
+
 <!-- Drawer -->
 <div class="drawer-overlay" id="overlay"></div>
 <aside class="drawer" id="detail-drawer" aria-label="Lead details">
@@ -581,6 +467,7 @@ main{max-width:1120px;margin:0 auto;padding:1.6rem 1rem 3rem}
     </div></div>
   <div class="drawer-actions">
     <button class="btn-brand" id="btn-draft-email">Draft Follow-up Email</button>
+    <button class="btn-ghost" id="btn-edit-lead">Edit Profile</button>
     <button class="btn-ghost" id="btn-suggest-plan">Suggest Plan</button>
   </div>
 </aside>
@@ -588,364 +475,6 @@ main{max-width:1120px;margin:0 auto;padding:1.6rem 1rem 3rem}
 <footer class="site-footer">Financial Agent Dashboard · Internal use only</footer>
 
 <script src="auth.js"></script>
-<script>
-const LEADS = [
-  {
-    id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
-    meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Proposal Sent",
-    remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
-    planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
-    occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
-    followUps:[
-      {label:"Initial meeting",date:"2025-04-30",done:true},
-      {label:"Proposal sent",date:"2025-05-05",done:true},
-      {label:"Follow-up call",date:"2025-05-14",done:false},
-      {label:"Closing",date:"2025-05-20",done:false}
-    ]
-  },
-  {
-    id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
-    meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact-Find",
-    remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
-    planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
-    occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
-    followUps:[
-      {label:"Intro call",date:"2025-05-10",done:true},
-      {label:"Fact-find session",date:"2025-05-15",done:false},
-      {label:"Needs analysis",date:"2025-05-22",done:false}
-    ]
-  },
-  {
-    id:3,name:"Chen Jia Hao",age:42,contact:"9345-6789",email:"jiahao.chen@corp.sg",
-    meetDate:"2025-05-08",location:"Raffles Place (Client Office)",meetType:"Physical",urgency:"urgent",stage:"Closing",
-    remarks:"Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
-    planType:"CI + Keyman",premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
-    occupation:"Company Director",income:"SGD 22,000/mo",referredBy:"Existing client (Peter Goh)",
-    followUps:[
-      {label:"Discovery",date:"2025-04-22",done:true},
-      {label:"Proposal",date:"2025-05-02",done:true},
-      {label:"Negotiation",date:"2025-05-08",done:true},
-      {label:"Closing sign-off",date:"2025-05-15",done:false}
-    ]
-  },
-  {
-    id:4,name:"Priya Nair",age:31,contact:"9456-7890",email:"priya.nair@gmail.com",
-    meetDate:"2025-05-20",location:"Jurong East CC",meetType:"Hybrid",urgency:"non-urgent",stage:"Prospecting",
-    remarks:"Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
-    planType:"ILP",premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
-    occupation:"Secondary School Teacher",income:"SGD 4,500/mo",referredBy:"Colleague referral",
-    followUps:[
-      {label:"WhatsApp intro",date:"2025-05-17",done:true},
-      {label:"Meet-up",date:"2025-05-20",done:false},
-      {label:"Proposal",date:"2025-05-28",done:false}
-    ]
-  },
-  {
-    id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
-    meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Needs Analysis",
-    remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
-    planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
-    occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
-    followUps:[
-      {label:"Zoom intro",date:"2025-05-01",done:true},
-      {label:"Needs analysis",date:"2025-05-06",done:true},
-      {label:"Solutioning",date:"2025-05-12",done:false},
-      {label:"Proposal",date:"2025-05-19",done:false}
-    ]
-  },
-  {
-    id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
-    meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact-Find",
-    remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
-    planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
-    occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
-    followUps:[
-      {label:"Phone call",date:"2025-05-20",done:true},
-      {label:"Fact-find",date:"2025-05-25",done:false}
-    ]
-  }
-];
-
-const STAGES = ["Prospecting","Fact-Find","Needs Analysis","Proposal Sent","Closing"];
-const STAGE_COLORS = ["#6b7280","#3b82f6","#f59e0b","#a855f7","#a6192e"];
-const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
-const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
-
-let filtered = [...LEADS];
-let sortCol = "meetDate", sortDir = "asc", activeId = null;
-
-function init(){
-  renderKPIs();
-  renderPipeline();
-  sortData();
-  render();
-  renderClosure();
-  renderSales();
-  renderCPF();
-  bindEvents();
-}
-
-function renderKPIs(){
-  const urgent = LEADS.filter(l => l.urgency === "urgent").length;
-  const totalPrem = LEADS.reduce((a,l) => a + l.premium, 0);
-  const closing = LEADS.filter(l => l.stage === "Closing").length;
-  const avgAge = Math.round(LEADS.reduce((a,l) => a + l.age, 0) / LEADS.length);
-  const kpis = [
-    {label:"Total Leads", val:LEADS.length, sub:`${urgent} urgent`},
-    {label:"In Closing", val:closing, sub:"ready to sign"},
-    {label:"Est. Annual Premium", val:"SGD "+totalPrem.toLocaleString(), sub:"across all leads"},
-    {label:"Avg. Lead Age", val:avgAge+" yrs", sub:"average profile age"},
-    {label:"Referral Rate", val:"67%", sub:"4 of 6 referred"},
-  ];
-  document.getElementById("kpi-grid").innerHTML = kpis.map(k => `
-    <div class="kpi-card">
-      <p class="kpi-label">${k.label}</p>
-      <p class="kpi-value">${k.val}</p>
-      <p class="kpi-sub">${k.sub}</p>
-    </div>`).join("");
-}
-
-function renderPipeline(){
-  const counts = {};
-  STAGES.forEach(s => counts[s] = 0);
-  LEADS.forEach(l => { if(counts[l.stage] !== undefined) counts[l.stage]++; });
-  const total = LEADS.length;
-  document.getElementById("pipeline-bar").innerHTML = STAGES.map((s,i) => {
-    if(!counts[s]) return "";
-    const pct = Math.round((counts[s]/total)*100);
-    return `<div class="pipe-seg" style="width:${pct}%;background:${STAGE_COLORS[i]}" title="${s}: ${counts[s]}">
-      <span class="pipe-label">${s} (${counts[s]})</span></div>`;
-  }).join("");
-  document.getElementById("pipeline-legend").innerHTML = STAGES.map((s,i) =>
-    `<span class="legend-item"><span class="legend-dot" style="background:${STAGE_COLORS[i]}"></span>${s}: ${counts[s]}</span>`
-  ).join("");
-}
-
-function applyFilters(){
-  const search = document.getElementById("search-input").value.toLowerCase();
-  const urg = document.getElementById("urgency-filter").value;
-  const typ = document.getElementById("type-filter").value;
-  const dt = document.getElementById("date-filter").value;
-  filtered = LEADS.filter(l => {
-    if(search && !l.name.toLowerCase().includes(search) && !l.location.toLowerCase().includes(search)) return false;
-    if(urg && l.urgency !== urg) return false;
-    if(typ && l.meetType !== typ) return false;
-    if(dt && l.meetDate !== dt) return false;
-    return true;
-  });
-  sortData();
-  render();
-}
-
-function sortData(){
-  filtered.sort((a,b) => {
-    let va = a[sortCol] ?? a.name;
-    let vb = b[sortCol] ?? b.name;
-    if(sortCol === "urgency"){ va = URGENCY_ORDER[a.urgency]; vb = URGENCY_ORDER[b.urgency]; }
-    if(sortCol === "age" || sortCol === "premium"){ va = Number(va); vb = Number(vb); }
-    if(va < vb) return sortDir === "asc" ? -1 : 1;
-    if(va > vb) return sortDir === "asc" ? 1 : -1;
-    return 0;
-  });
-}
-
-function render(){
-  document.getElementById("summary-line").textContent = `Showing ${filtered.length} of ${LEADS.length} leads`;
-  document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
-    th.classList.toggle("sorted", th.dataset.col === sortCol);
-    const arrow = th.querySelector(".sort-arrow");
-    if(arrow) arrow.textContent = th.dataset.col === sortCol ? (sortDir === "asc" ? "↑" : "↓") : "↕";
-  });
-  const tbody = document.getElementById("lead-tbody");
-  if(!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = filtered.map(l => `
-    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
-      <td><strong style="color:var(--brand)">${l.name}</strong></td>
-      <td>${l.age}</td>
-      <td style="font-size:.82rem">${l.contact}</td>
-      <td>${formatDate(l.meetDate)}</td>
-      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.location}">${l.location}</td>
-      <td><span class="badge ${l.meetType.toLowerCase()}">${l.meetType}</span></td>
-      <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">${l.stage}</span></td>
-      <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.remarks}">${l.remarks}</td>
-    </tr>`).join("");
-  document.querySelectorAll(".lead-row").forEach(row => {
-    row.addEventListener("click", () => openDrawer(Number(row.dataset.id)));
-    row.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " ") openDrawer(Number(row.dataset.id)); });
-  });
-}
-
-function formatDate(d){
-  if(!d) return "—";
-  const [y,m,dd] = d.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${parseInt(dd)} ${months[parseInt(m)-1]} ${y}`;
-}
-
-function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
-
-function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
-
-function openDrawer(id){
-  const lead = LEADS.find(l => l.id === id);
-  if(!lead) return;
-  activeId = id;
-  render();
-  document.getElementById("drawer-name").textContent = lead.name;
-  document.getElementById("drawer-sub").textContent = `${lead.age} yrs · ${lead.occupation} · ${lead.stage}`;
-  const col = AVATAR_COLORS[(id-1) % AVATAR_COLORS.length];
-  document.getElementById("drawer-body").innerHTML = `
-    <div class="detail-section">
-      <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem">
-        <div class="avatar-circle" style="background:${col}">${initials(lead.name)}</div>
-        <div>
-          <p style="margin:0;font-size:1.05rem;font-weight:700">${lead.name}</p>
-          <p style="margin:.1rem 0 0;font-size:.82rem;color:var(--text-muted)">${lead.occupation} · ${lead.income}</p>
-          <p style="margin:.1rem 0 0;font-size:.82rem;color:var(--text-muted)">Referred by: <strong style="color:var(--text)">${lead.referredBy}</strong></p>
-        </div>
-      </div>
-      <p class="detail-section-title">Contact Info</p>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Phone</label><strong>${lead.contact}</strong></div>
-        <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">${lead.email}</strong></div>
-        <div class="detail-item"><label>Urgency</label><span class="status-pill ${lead.urgency}">${cap(lead.urgency)}</span></div>
-        <div class="detail-item"><label>Meeting Type</label><span class="badge ${lead.meetType.toLowerCase()}">${lead.meetType}</span></div>
-        <div class="detail-item"><label>Meet-up Date</label><strong>${formatDate(lead.meetDate)}</strong></div>
-        <div class="detail-item"><label>Location</label><strong style="font-size:.84rem">${lead.location}</strong></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <p class="detail-section-title">Financial Profile</p>
-      <div class="detail-grid">
-        <div class="detail-item"><label>CPF OA Balance</label><strong>SGD ${lead.cpfOA.toLocaleString()}</strong></div>
-        <div class="detail-item"><label>CPF SA Balance</label><strong>SGD ${lead.cpfSA.toLocaleString()}</strong></div>
-        <div class="detail-item"><label>Recommended Plan</label><strong>${lead.planType}</strong></div>
-        <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD ${lead.premium.toLocaleString()}</strong></div>
-        <div class="detail-item"><label>Commission Type</label><strong>${lead.commission}</strong></div>
-        <div class="detail-item"><label>Pipeline Stage</label><strong>${lead.stage}</strong></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <p class="detail-section-title">Remarks</p>
-      <div class="remarks-box">${lead.remarks}</div>
-    </div>
-    <div class="detail-section">
-      <p class="detail-section-title">Follow-up Timeline</p>
-      <ul class="timeline-list">
-        ${lead.followUps.map(f => `
-          <li class="timeline-item">
-            <span class="t-dot ${f.done ? "done" : "pending"}"></span>
-            <span class="t-text">${f.label}<small>${formatDate(f.date)} · ${f.done ? "Completed" : "Pending"}</small></span>
-          </li>`).join("")}
-      </ul>
-    </div>`;
-  document.getElementById("detail-drawer").classList.add("open");
-  document.getElementById("overlay").classList.add("open");
-  document.getElementById("drawer-close-btn").focus();
-}
-
-function closeDrawer(){
-  activeId = null;
-  render();
-  document.getElementById("detail-drawer").classList.remove("open");
-  document.getElementById("overlay").classList.remove("open");
-}
-
-function renderClosure(){
-  document.getElementById("closure-tbody").innerHTML = LEADS.map(l => `
-    <tr>
-      <td><strong>${l.name.split(" ")[0]} ${l.name.split(" ").slice(-1)[0]}</strong></td>
-      <td><span class="status-pill ${l.urgency}" style="font-size:.7rem">${cap(l.urgency)}</span></td>
-      <td style="font-size:.82rem">${l.planType}</td>
-      <td class="premium-val">SGD ${l.premium.toLocaleString()}</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">${l.commission}</td>
-    </tr>`).join("");
-}
-
-function renderSales(){
-  const items = [
-    {name:"Chen Jia Hao", color:"red", time:"This week", desc:"SGD 9,800 keyman + CI — closing stage. High confidence."},
-    {name:"Marcus Tan", color:"blue", time:"Next week", desc:"SGD 24,000 whole life — solutioning in progress."},
-    {name:"Nur Aisyah", color:"amber", time:"This month", desc:"SGD 3,600 endowment — fact-find pending."},
-    {name:"Total Pipeline", color:"green", time:"", desc:"SGD 45,800 estimated annual premium across 6 active leads."},
-  ];
-  document.getElementById("sales-list").innerHTML = items.map(i => `
-    <li>
-      <span class="dot ${i.color}"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">${i.name}</span>
-          <span class="activity-time">${i.time}</span>
-        </div>
-        <p class="activity-desc">${i.desc}</p>
-      </div>
-    </li>`).join("");
-}
-
-function renderCPF(){
-  document.getElementById("cpf-list").innerHTML = LEADS.map((l,i) => {
-    const tot = l.cpfOA + l.cpfSA;
-    const pct = Math.round((l.cpfSA / tot) * 100);
-    const colors = ["red","blue","amber","green","red","blue"];
-    return `<li>
-      <span class="dot ${colors[i]}"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">${l.name.split(" ")[0]}</span>
-          <span class="activity-time">SA: ${pct}% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD ${l.cpfOA.toLocaleString()} · SA: SGD ${l.cpfSA.toLocaleString()} · Total: SGD ${tot.toLocaleString()}</p>
-      </div>
-    </li>`;
-  }).join("");
-}
-
-function bindEvents(){
-  document.getElementById("search-input").addEventListener("input", applyFilters);
-  document.getElementById("urgency-filter").addEventListener("change", applyFilters);
-  document.getElementById("type-filter").addEventListener("change", applyFilters);
-  document.getElementById("date-filter").addEventListener("change", applyFilters);
-  document.getElementById("sort-select").addEventListener("change", e => {
-    sortDir = e.target.value; sortData(); render();
-  });
-  document.getElementById("clear-btn").addEventListener("click", () => {
-    document.getElementById("search-input").value = "";
-    document.getElementById("urgency-filter").value = "";
-    document.getElementById("type-filter").value = "";
-    document.getElementById("date-filter").value = "";
-    filtered = [...LEADS]; sortData(); render();
-  });
-  document.getElementById("add-lead-btn").addEventListener("click", () => {
-    alert("Add Lead form — wire up to your backend or modal here.");
-  });
-  document.getElementById("drawer-close-btn").addEventListener("click", closeDrawer);
-  document.getElementById("overlay").addEventListener("click", closeDrawer);
-  document.getElementById("btn-draft-email").addEventListener("click", () => {
-    const lead = LEADS.find(l => l.id === activeId);
-    if(lead) alert(`Draft a follow-up email for ${lead.name} regarding their ${lead.planType} plan.`);
-  });
-  document.getElementById("btn-suggest-plan").addEventListener("click", () => {
-    const lead = LEADS.find(l => l.id === activeId);
-    if(lead) alert(`Suggesting plan for ${lead.name} — Income: ${lead.income}, Age: ${lead.age}, Stage: ${lead.stage}.`);
-  });
-  document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
-    th.addEventListener("click", () => {
-      if(sortCol === th.dataset.col) sortDir = sortDir === "asc" ? "desc" : "asc";
-      else { sortCol = th.dataset.col; sortDir = "asc"; }
-      sortData(); render();
-    });
-  });
-  document.addEventListener("keydown", e => {
-    if(e.key === "Escape" && activeId) closeDrawer();
-  });
-}
-
-init();
-</script>
-
+<script src="leads.js"></script>
 
 </body></html>

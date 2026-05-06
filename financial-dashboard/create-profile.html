@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Profile · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .profile-form { display: grid; gap: 1rem; max-width: 640px; }
+    .profile-form label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .profile-form input,
+    .profile-form select,
+    .profile-form textarea {
+      width: 100%; padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border); border-radius: 8px; font: inherit;
+    }
+    .profile-form textarea { resize: vertical; min-height: 72px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-actions { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+    .form-actions .btn-primary {
+      padding: 0.58rem 1.2rem; background: var(--brand); color: #fff;
+      border: none; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .form-actions .btn-primary:hover { background: var(--brand-dark); }
+    .form-success {
+      display: none; padding: 0.75rem 1rem; background: #d1fae5;
+      color: #065f46; border-radius: 8px; font-weight: 600; margin-top: 0.5rem;
+    }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="leads.html">Leads</a>
+      <a href="client-renewals.html">Client Renewals</a>
+      <a href="recruitment.html">Recruitment</a>
+      <a href="training.html">Training</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title" id="page-heading">Create New Lead Profile</h1>
+    <p class="page-lede">Fill in the details below to add a new lead to the pipeline.</p>
+
+    <div class="panel" style="max-width: 680px;">
+      <form id="create-profile-form" class="profile-form" novalidate>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-name">Full Name <span aria-hidden="true">*</span></label>
+            <input type="text" id="cp-name" required placeholder="e.g. Jane Doe" />
+          </div>
+          <div>
+            <label for="cp-age">Age <span aria-hidden="true">*</span></label>
+            <input type="number" id="cp-age" required min="18" max="99" placeholder="e.g. 35" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-contact">Contact Number <span aria-hidden="true">*</span></label>
+            <input type="text" id="cp-contact" required placeholder="e.g. 9123-4567" />
+          </div>
+          <div>
+            <label for="cp-email">Email Address <span aria-hidden="true">*</span></label>
+            <input type="email" id="cp-email" required placeholder="e.g. jane@email.com" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-meetup-date">Meet-up Date <span aria-hidden="true">*</span></label>
+            <input type="date" id="cp-meetup-date" required />
+          </div>
+          <div>
+            <label for="cp-meeting-type">Meeting Type</label>
+            <select id="cp-meeting-type">
+              <option value="Physical">Physical</option>
+              <option value="Online">Online</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="cp-location">Location</label>
+          <input type="text" id="cp-location" placeholder="e.g. Makati Office" />
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-urgency">Urgency</label>
+            <select id="cp-urgency">
+              <option value="urgent">Urgent</option>
+              <option value="medium">Medium</option>
+              <option value="non-urgent" selected>Non-Urgent</option>
+            </select>
+          </div>
+          <div>
+            <label for="cp-stage">Stage</label>
+            <select id="cp-stage">
+              <option value="Prospecting">Prospecting</option>
+              <option value="Fact-Find">Fact-Find</option>
+              <option value="Needs Analysis">Needs Analysis</option>
+              <option value="Proposal Sent">Proposal Sent</option>
+              <option value="Closing">Closing</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-occupation">Occupation</label>
+            <input type="text" id="cp-occupation" placeholder="e.g. Software Engineer" />
+          </div>
+          <div>
+            <label for="cp-income">Monthly Income</label>
+            <input type="text" id="cp-income" placeholder="e.g. SGD 7,000" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-cpf-oa">CPF OA Balance</label>
+            <input type="number" id="cp-cpf-oa" placeholder="e.g. 50000" />
+          </div>
+          <div>
+            <label for="cp-cpf-sa">CPF SA Balance</label>
+            <input type="number" id="cp-cpf-sa" placeholder="e.g. 20000" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-plan-type">Plan Type</label>
+            <input type="text" id="cp-plan-type" placeholder="e.g. Life Insurance - Term" />
+          </div>
+          <div>
+            <label for="cp-premium">Premium (SGD)</label>
+            <input type="number" id="cp-premium" min="0" placeholder="e.g. 120000" />
+          </div>
+        </div>
+
+        <div>
+          <label for="cp-commission">Commission Type</label>
+          <select id="cp-commission">
+            <option value="Upfront">Upfront</option>
+            <option value="Recurring">Recurring</option>
+            <option value="Tiered">Tiered</option>
+            <option value="Hybrid">Hybrid</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="cp-referred">Referred By</label>
+          <input type="text" id="cp-referred" placeholder="e.g. John Tan" />
+        </div>
+
+        <div>
+          <label for="cp-remarks">Remarks</label>
+          <textarea id="cp-remarks" placeholder="Notes about this lead…"></textarea>
+        </div>
+
+        <p id="form-error" class="form-error" aria-live="polite"></p>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="submit-btn">Save Profile</button>
+          <a href="leads.html" class="ghost-btn">Cancel</a>
+        </div>
+
+        <p id="form-success" class="form-success" aria-live="polite">Profile saved! Redirecting…</p>
+      </form>
+    </div>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="auth.js"></script>
+  <script>
+    const LEADS_STORAGE_KEY = "financial_leads_data";
+
+    function getCustomLeads() {
+      try { return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+
+    const params = new URLSearchParams(location.search);
+    const editId = params.get("edit") ? Number(params.get("edit")) : null;
+    const editingLead = editId ? getCustomLeads().find((l) => l.id === editId) : null;
+
+    if (editingLead) {
+      document.getElementById("page-heading").textContent = "Edit Lead Profile";
+      document.getElementById("submit-btn").textContent = "Update Profile";
+      document.getElementById("cp-name").value = editingLead.name;
+      document.getElementById("cp-age").value = editingLead.age;
+      document.getElementById("cp-contact").value = editingLead.contact;
+      document.getElementById("cp-email").value = editingLead.email || "";
+      document.getElementById("cp-meetup-date").value = editingLead.meetDate;
+      document.getElementById("cp-meeting-type").value = editingLead.meetType;
+      document.getElementById("cp-location").value = editingLead.location;
+      document.getElementById("cp-urgency").value = editingLead.urgency;
+      document.getElementById("cp-stage").value = editingLead.stage;
+      document.getElementById("cp-occupation").value = editingLead.occupation || "";
+      document.getElementById("cp-income").value = editingLead.income || "";
+      document.getElementById("cp-cpf-oa").value = editingLead.cpfOA || "";
+      document.getElementById("cp-cpf-sa").value = editingLead.cpfSA || "";
+      document.getElementById("cp-plan-type").value = editingLead.planType;
+      document.getElementById("cp-premium").value = editingLead.premium;
+      document.getElementById("cp-commission").value = editingLead.commission;
+      document.getElementById("cp-referred").value = editingLead.referredBy || "";
+      document.getElementById("cp-remarks").value = editingLead.remarks;
+    }
+
+    document.getElementById("create-profile-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const err = document.getElementById("form-error");
+      err.textContent = "";
+
+      const name = document.getElementById("cp-name").value.trim();
+      const age = parseInt(document.getElementById("cp-age").value, 10);
+      const contact = document.getElementById("cp-contact").value.trim();
+      const email = document.getElementById("cp-email").value.trim();
+      const meetDate = document.getElementById("cp-meetup-date").value;
+
+      if (!name || !contact || !email || !meetDate || isNaN(age)) {
+        err.textContent = "Please fill in all required fields.";
+        return;
+      }
+
+      const updated = {
+        id: editId || Date.now(),
+        name, age,
+        contact,
+        email,
+        meetDate,
+        location: document.getElementById("cp-location").value.trim(),
+        meetType: document.getElementById("cp-meeting-type").value,
+        urgency: document.getElementById("cp-urgency").value,
+        stage: document.getElementById("cp-stage").value,
+        occupation: document.getElementById("cp-occupation").value.trim(),
+        income: document.getElementById("cp-income").value.trim(),
+        cpfOA: parseInt(document.getElementById("cp-cpf-oa").value, 10) || 0,
+        cpfSA: parseInt(document.getElementById("cp-cpf-sa").value, 10) || 0,
+        planType: document.getElementById("cp-plan-type").value.trim(),
+        premium: parseInt(document.getElementById("cp-premium").value, 10) || 0,
+        commission: document.getElementById("cp-commission").value,
+        referredBy: document.getElementById("cp-referred").value.trim(),
+        remarks: document.getElementById("cp-remarks").value.trim(),
+        owner: "agent",
+        followUps: editingLead ? editingLead.followUps : [
+          {label:"Lead Created", date: new Date().toISOString().split('T')[0], done:true}
+        ]
+      };
+
+      const leads = getCustomLeads();
+      if (editId) {
+        const idx = leads.findIndex((l) => l.id === editId);
+        if (idx !== -1) leads[idx] = updated; else leads.push(updated);
+      } else {
+        leads.push(updated);
+      }
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+
+      const successMsg = document.getElementById("form-success");
+      successMsg.textContent = editId ? "Profile updated! Redirecting…" : "Profile saved! Redirecting…";
+      successMsg.style.display = "block";
+      setTimeout(() => { window.location.href = "leads.html"; }, 1200);
+    });
+  </script>
+</body>
+</html>
