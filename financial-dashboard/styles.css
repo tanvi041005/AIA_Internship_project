@@ -147,6 +147,70 @@ a {
   border-color: #f4cbd2;
 }
 
+.overview-nav-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.overview-caret {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.overview-scope-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 35;
+  min-width: 180px;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(32, 33, 36, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.overview-nav-menu:hover .overview-scope-menu,
+.overview-nav-menu:focus-within .overview-scope-menu,
+.overview-nav-menu.is-open .overview-scope-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.overview-scope-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+}
+
+.overview-scope-menu button:hover,
+.overview-scope-menu button:focus-visible {
+  background: var(--brand-light);
+  color: var(--brand);
+}
+
+.nav-user-meta {
+  margin-left: auto;
+}
+
+#logout-link {
+  margin-left: 0;
+}
+
 .lock-icon {
   width: 14px;
   height: 14px;
@@ -213,6 +277,14 @@ main {
 .metric-toggle .active {
   background: #e8decf;
   color: var(--brand);
+}
+
+.overview-tabs-panel {
+  margin-bottom: 1rem;
+}
+
+.overview-tabs-panel .page-lede {
+  margin-bottom: 0;
 }
 
 /* KPI grid */
@@ -366,11 +438,42 @@ main {
 
 .compact-table {
   max-height: 340px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .leaderboard-table {
-  min-width: 620px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 0.58rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+.leaderboard-table th:first-child,
+.leaderboard-table td:first-child {
+  width: 2.4rem;
+}
+
+.leaderboard-table th:nth-child(2),
+.leaderboard-table td:nth-child(2) {
+  width: 34%;
+}
+
+.leaderboard-table th:nth-child(3),
+.leaderboard-table td:nth-child(3),
+.leaderboard-table th:nth-child(4),
+.leaderboard-table td:nth-child(4) {
+  width: 27%;
+}
+
+.leaderboard-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .leaderboard-table tbody tr:nth-child(even) {
@@ -379,6 +482,10 @@ main {
 
 .leaderboard-table tbody tr:nth-child(odd) {
   background: #fff;
+}
+
+.cases-leaderboard-table strong {
+  color: var(--brand);
 }
 
 .muted-text {
@@ -448,10 +555,70 @@ main {
   transform: translateY(-3px);
 }
 
+.cases-leaderboard-list {
+  display: grid;
+  gap: 0.45rem;
+  min-height: 320px;
+  align-content: start;
+}
+
+.case-rank-row {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 42px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.case-rank-row:nth-child(even) {
+  background: #f4eee5;
+}
+
+.case-rank-row:hover,
+.case-rank-row:focus-visible,
+.case-rank-row.is-selected {
+  border-color: var(--border-strong);
+  background: var(--brand-light);
+}
+
+.case-rank-number {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.case-rank-agent {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.case-rank-row strong {
+  color: var(--brand);
+}
+
 .bar-chart-item:focus-visible,
 .monthly-point:focus-visible,
 .weekly-item:focus-visible,
-.funnel-stage:focus-visible {
+.funnel-stage:focus-visible,
+.case-rank-row:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 3px;
 }
@@ -1488,6 +1655,10 @@ table.data tr:last-child td {
     flex-direction: column;
   }
 
+  .overview-nav-menu {
+    flex: 0 0 auto;
+  }
+
   .performance-kpis,
   .performance-grid {
     grid-template-columns: 1fr;
@@ -1566,6 +1737,10 @@ table.data tr:last-child td {
   width: 100%;
   border-collapse: collapse;
   min-width: 840px;
+}
+
+.lead-table.leaderboard-table {
+  min-width: 0;
 }
 
 .lead-table th,

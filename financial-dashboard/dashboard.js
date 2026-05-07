@@ -151,6 +151,12 @@ const performanceData = {
   ]
 };
 
+const overviewScopeCopy = {
+  district: "District-wide performance across all agents, leads, and FYC activity.",
+  agency: "Department view for agency production, selected agents, and active lead movement.",
+  personal: "Your personal production, appointments, lead pipeline, and weekly case activity."
+};
+
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
 const PERSONAL_TASKS_STORAGE_KEY = "personalTasks";
@@ -482,14 +488,141 @@ function renderOverviewCards() {
   renderPerformanceOverview();
 }
 
-function renderPerformanceOverview() {
-  renderFycKpis();
-  renderLeaderboard();
-  renderAgentFycChart();
-  renderMonthlyYtdChart();
-  renderMenteeList();
-  renderSalesFunnel();
-  renderWeeklyFycCaseChart();
+function getOverviewDataset(scope = "district") {
+  if (scope === "personal") {
+    const personalLeads = leadData.filter((lead) => lead.owner === "agent");
+    const personalFyc = 34525;
+    return {
+      scope,
+      leads: personalLeads,
+      data: {
+        yearlyFyc: personalFyc,
+        yearlyTarget: 180000,
+        weeklyFyc: 4200,
+        lastWeekFyc: 3600,
+        leaderboard: [
+          { agent: "You", monthlyProduction: 4200, ytdFyc: personalFyc, delta: 18 },
+          { agent: "Team Average", monthlyProduction: 3100, ytdFyc: 23210, delta: 9 },
+          { agent: "Best Peer", monthlyProduction: 5600, ytdFyc: 52400, delta: 27 }
+        ],
+        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.31) })),
+        menteeStatuses: ["Follow-up due", "Proposal pending", "Closing conversation"],
+        weekly: [
+          { day: "Mon", fyc: 1200, cases: 1 },
+          { day: "Tue", fyc: 0, cases: 0 },
+          { day: "Wed", fyc: 2100, cases: 1 },
+          { day: "Thu", fyc: 900, cases: 1 },
+          { day: "Fri", fyc: 0, cases: 0 }
+        ]
+      }
+    };
+  }
+
+  if (scope === "agency") {
+    const agencyLeads = leadData.filter((lead) => lead.owner === "agent");
+    const agencyLeaderboard = performanceData.leaderboard.slice(0, 6);
+    return {
+      scope,
+      leads: agencyLeads,
+      data: {
+        yearlyFyc: 83540,
+        yearlyTarget: 650000,
+        weeklyFyc: 5200,
+        lastWeekFyc: 4800,
+        leaderboard: agencyLeaderboard,
+        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.72) })),
+        menteeStatuses: ["Top producer", "Strong pipeline", "Needs weekly coaching", "Follow-up discipline"],
+        weekly: [
+          { day: "Mon", fyc: 2900, cases: 1 },
+          { day: "Tue", fyc: 4500, cases: 2 },
+          { day: "Wed", fyc: 1800, cases: 1 },
+          { day: "Thu", fyc: 6100, cases: 3 },
+          { day: "Fri", fyc: 3400, cases: 1 }
+        ]
+      }
+    };
+  }
+
+  return { scope: "district", leads: leadData, data: performanceData };
+}
+
+function renderPerformanceOverview(scope = localStorage.getItem("overviewScope") || "agency") {
+  const { data, leads } = getOverviewDataset(scope);
+  const lede = document.getElementById("overview-scope-lede");
+  if (lede) lede.textContent = overviewScopeCopy[scope] || overviewScopeCopy.district;
+  toggleOverviewPanels(scope);
+  updateAgentPanelLabels(scope);
+  renderFycKpis(data, leads);
+  renderLeaderboard(data);
+  renderAgentFycChart(data, scope);
+  renderMonthlyYtdChart(data);
+  renderMenteeList(data);
+  renderSalesFunnel(leads);
+  renderWeeklyFycCaseChart(data);
+}
+
+function updateAgentPanelLabels(scope) {
+  const title = document.getElementById("agent-fyc-panel-title");
+  const summary = document.getElementById("agent-fyc-panel-summary");
+  const insight = document.getElementById("agent-fyc-insight");
+  const chart = document.getElementById("agent-fyc-chart");
+  if (title) title.textContent = scope === "district" ? "Leaderboard for YTD Cases" : "Year FYC by Agent";
+  if (summary) summary.textContent = scope === "district" ? "YTD case ranking" : "Top producers";
+  if (insight) {
+    insight.classList.toggle("is-hidden", scope === "district");
+    insight.textContent = "Select an agent bar to view FYC details.";
+  }
+  if (chart) chart.setAttribute("aria-label", scope === "district" ? "Leaderboard for YTD cases" : "Year FYC by agent");
+}
+
+function toggleOverviewPanels(scope) {
+  const compactOverviewPanelIds = ["monthly-ytd-panel", "mentee-list-panel", "sales-closure", "weekly-fyc-case-panel"];
+  const useCompactOverview = scope === "district" || scope === "agency";
+  compactOverviewPanelIds.forEach((panelId) => {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.classList.toggle("is-hidden", useCompactOverview);
+  });
+
+  ["leaderboard-panel", "agent-fyc-panel"].forEach((panelId) => {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.classList.toggle("is-hidden", scope === "personal");
+  });
+}
+
+function wireOverviewTabs() {
+  const tabs = Array.from(document.querySelectorAll("[data-overview-scope]"));
+  const isOverviewDashboard = document.getElementById("total-leads-card") !== null;
+  const overviewLink = document.querySelector(".overview-nav-menu a[href='index.html']");
+  const scopeLabels = {
+    district: "District Overview",
+    agency: "Agency Overview",
+    personal: "Personal Overview"
+  };
+  if (tabs.length === 0 && !isOverviewDashboard) return;
+
+  const setScope = (scope) => {
+    const normalizedScope = ["district", "agency", "personal"].includes(scope) ? scope : "agency";
+    localStorage.setItem("overviewScope", normalizedScope);
+    if (overviewLink) {
+      overviewLink.innerHTML = `<span>${scopeLabels[normalizedScope]}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
+    }
+    tabs.forEach((tab) => {
+      const isActive = tab.dataset.overviewScope === normalizedScope;
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-selected", String(isActive));
+    });
+    renderPerformanceOverview(normalizedScope);
+  };
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => setScope(tab.dataset.overviewScope));
+  });
+
+  if (isOverviewDashboard) {
+    window.addEventListener("overviewScopeChanged", (event) => setScope(event.detail.scope));
+  }
+
+  setScope(localStorage.getItem("overviewScope") || "agency");
 }
 
 function wireChartInteractions(container, insightElement) {
@@ -511,7 +644,7 @@ function wireChartInteractions(container, insightElement) {
   if (items.length > 0) setSelected(items[0]);
 }
 
-function renderFycKpis() {
+function renderFycKpis(data = performanceData, leads = leadData) {
   const yearlyValue = document.getElementById("yearly-fyc-value");
   const yearlyProgress = document.getElementById("yearly-fyc-progress");
   const yearlyPercent = document.getElementById("yearly-fyc-percent");
@@ -519,49 +652,92 @@ function renderFycKpis() {
   const weeklyValue = document.getElementById("weekly-fyc-value");
   const weeklyLast = document.getElementById("weekly-fyc-last");
   const weeklyChange = document.getElementById("weekly-fyc-change");
+  const totalLeads = document.getElementById("total-leads-count");
   const urgentLeads = document.getElementById("urgent-leads-count");
   const nearClose = document.getElementById("near-close-count");
 
-  const targetPercent = Math.min(100, Math.round((performanceData.yearlyFyc / performanceData.yearlyTarget) * 1000) / 10);
-  const weekDelta = performanceData.lastWeekFyc
-    ? Math.round(((performanceData.weeklyFyc - performanceData.lastWeekFyc) / performanceData.lastWeekFyc) * 1000) / 10
+  const targetPercent = Math.min(100, Math.round((data.yearlyFyc / data.yearlyTarget) * 1000) / 10);
+  const weekDelta = data.lastWeekFyc
+    ? Math.round(((data.weeklyFyc - data.lastWeekFyc) / data.lastWeekFyc) * 1000) / 10
     : 0;
+  const totalCases = data.weekly.reduce((sum, item) => sum + item.cases, 0);
 
-  if (yearlyValue) yearlyValue.textContent = compactMoney(performanceData.yearlyFyc);
+  if (yearlyValue) yearlyValue.textContent = compactMoney(data.yearlyFyc);
   if (yearlyProgress) yearlyProgress.style.width = `${targetPercent}%`;
   if (yearlyPercent) yearlyPercent.textContent = `${targetPercent}%`;
-  if (yearlyTarget) yearlyTarget.textContent = compactMoney(performanceData.yearlyTarget);
-  if (weeklyValue) weeklyValue.textContent = compactMoney(performanceData.weeklyFyc);
-  if (weeklyLast) weeklyLast.textContent = `${compactMoney(performanceData.lastWeekFyc)} vs last week`;
+  if (yearlyTarget) yearlyTarget.textContent = compactMoney(data.yearlyTarget);
+  if (weeklyValue) weeklyValue.textContent = compactMoney(data.weeklyFyc);
+  if (weeklyLast) weeklyLast.textContent = `${compactMoney(data.lastWeekFyc)} vs previous MTD`;
   if (weeklyChange) weeklyChange.textContent = `${weekDelta > 0 ? "+" : ""}${weekDelta}%`;
-  if (urgentLeads) urgentLeads.textContent = `${leadData.filter((lead) => lead.urgency === "Urgent").length} urgent`;
-  if (nearClose) nearClose.textContent = `${leadData.filter((lead) => lead.stage === "Closing" || lead.stage === "Proposal Sent").length} near close`;
+  if (totalLeads) totalLeads.textContent = String(totalCases);
+  if (urgentLeads) urgentLeads.textContent = `${leads.filter((lead) => lead.urgency === "Urgent").length} urgent`;
+  if (nearClose) nearClose.textContent = `${leads.filter((lead) => lead.stage === "Closing" || lead.stage === "Proposal Sent").length} near close`;
 }
 
-function renderLeaderboard() {
+function renderLeaderboard(data = performanceData) {
   const tbody = document.getElementById("leaderboard-table-body");
   if (!tbody) return;
-  tbody.innerHTML = performanceData.leaderboard
+  tbody.innerHTML = data.leaderboard
     .map(
       (item, index) => `
       <tr>
         <td>${index + 1}</td>
         <td>${item.agent}</td>
-        <td>${money(item.monthlyProduction)} <span class="muted-text">(0.0%)</span></td>
-        <td>${money(item.ytdFyc)} <span class="${item.delta >= 0 ? "positive-text" : "negative-text"}">(${item.delta >= 0 ? "+" : ""}${item.delta}%)</span></td>
+        <td>${compactMoney(item.monthlyProduction)} <span class="muted-text">(0.0%)</span></td>
+        <td>${compactMoney(item.ytdFyc)} <span class="${item.delta >= 0 ? "positive-text" : "negative-text"}">(${item.delta >= 0 ? "+" : ""}${item.delta}%)</span></td>
       </tr>
     `
     )
     .join("");
 }
 
-function renderAgentFycChart() {
+function getYtdCaseCount(item, index) {
+  if (Number.isFinite(item.ytdCases)) return item.ytdCases;
+  return Math.max(4, Math.round(item.ytdFyc / 850) - index);
+}
+
+function renderAgentFycChart(data = performanceData, scope = "agency") {
   const chart = document.getElementById("agent-fyc-chart");
   const insight = document.getElementById("agent-fyc-insight");
   if (!chart) return;
-  const maxValue = Math.max(...performanceData.leaderboard.map((item) => item.ytdFyc));
+  if (scope === "district") {
+    chart.className = "table-wrap compact-table";
+    chart.innerHTML = `
+      <table class="lead-table leaderboard-table cases-leaderboard-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Agent</th>
+            <th>Monthly Cases</th>
+            <th>YTD Cases</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.leaderboard
+            .slice(0, 9)
+            .map((item, index) => {
+              const ytdCases = getYtdCaseCount(item, index);
+              const monthlyCases = Math.max(0, Math.round(item.monthlyProduction / 1800));
+              return `
+                <tr class="case-leaderboard-row">
+                  <td>${index + 1}</td>
+                  <td>${item.agent}</td>
+                  <td>${monthlyCases}</td>
+                  <td><strong>${ytdCases}</strong></td>
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    `;
+    return;
+  }
+
+  chart.className = "bar-chart";
+  const maxValue = Math.max(...data.leaderboard.map((item) => item.ytdFyc));
   const colors = ["#a6192e", "#e8decf", "#c69a67", "#4a4a4a", "#aaa7a2"];
-  chart.innerHTML = performanceData.leaderboard
+  chart.innerHTML = data.leaderboard
     .slice(0, 9)
     .map((item, index) => {
       const height = Math.max(10, Math.round((item.ytdFyc / maxValue) * 100));
@@ -577,12 +753,12 @@ function renderAgentFycChart() {
   wireChartInteractions(chart, insight);
 }
 
-function renderMonthlyYtdChart() {
+function renderMonthlyYtdChart(data = performanceData) {
   const chart = document.getElementById("monthly-ytd-chart");
   const insight = document.getElementById("monthly-ytd-insight");
   if (!chart) return;
-  const maxValue = Math.max(...performanceData.monthlyYtd.map((item) => item.value));
-  chart.innerHTML = performanceData.monthlyYtd
+  const maxValue = Math.max(...data.monthlyYtd.map((item) => item.value));
+  chart.innerHTML = data.monthlyYtd
     .map((item) => {
       const height = Math.max(4, Math.round((item.value / maxValue) * 100));
       return `
@@ -597,13 +773,13 @@ function renderMonthlyYtdChart() {
   wireChartInteractions(chart, insight);
 }
 
-function renderMenteeList() {
+function renderMenteeList(data = performanceData) {
   const list = document.getElementById("mentee-list");
   const count = document.getElementById("mentee-count-label");
   if (!list) return;
-  const mentees = performanceData.leaderboard.slice(0, 4).map((agent, index) => ({
+  const mentees = data.leaderboard.slice(0, 4).map((agent, index) => ({
     name: agent.agent,
-    status: performanceData.menteeStatuses[index] || "Mentorship active",
+    status: data.menteeStatuses[index] || "Mentorship active",
     fyc: agent.ytdFyc
   }));
   if (count) count.textContent = `${mentees.length} total`;
@@ -625,15 +801,15 @@ function renderMenteeList() {
     .join("");
 }
 
-function renderSalesFunnel() {
+function renderSalesFunnel(leads = leadData) {
   const funnel = document.getElementById("sales-funnel-dashboard");
   const insight = document.getElementById("sales-funnel-insight");
   if (!funnel) return;
   const stages = [
-    { label: "Prospecting", count: leadData.length, color: "#d99a00", shade: "#b77f00" },
-    { label: "Fact Find", count: leadData.filter((lead) => lead.stage === "Qualified" || lead.stage === "Follow-up").length, color: "#d64a62", shade: "#b8334c" },
-    { label: "Opening", count: leadData.filter((lead) => lead.stage === "Proposal Sent" || lead.stage === "Negotiation").length, color: "#9b2f91", shade: "#76226e" },
-    { label: "Closing", count: leadData.filter((lead) => lead.stage === "Closing").length, color: "#4d367f", shade: "#332358" }
+    { label: "Prospecting", count: leads.length, color: "#d99a00", shade: "#b77f00" },
+    { label: "Fact Find", count: leads.filter((lead) => lead.stage === "Qualified" || lead.stage === "Follow-up").length, color: "#d64a62", shade: "#b8334c" },
+    { label: "Opening", count: leads.filter((lead) => lead.stage === "Proposal Sent" || lead.stage === "Negotiation").length, color: "#9b2f91", shade: "#76226e" },
+    { label: "Closing", count: leads.filter((lead) => lead.stage === "Closing").length, color: "#4d367f", shade: "#332358" }
   ];
   funnel.innerHTML = `
     <div class="funnel-shape">
@@ -656,13 +832,13 @@ function renderSalesFunnel() {
   wireChartInteractions(funnel, insight);
 }
 
-function renderWeeklyFycCaseChart() {
+function renderWeeklyFycCaseChart(data = performanceData) {
   const chart = document.getElementById("weekly-fyc-case-chart");
   const insight = document.getElementById("weekly-fyc-case-insight");
   if (!chart) return;
-  const maxFyc = Math.max(...performanceData.weekly.map((item) => item.fyc));
-  const maxCases = Math.max(...performanceData.weekly.map((item) => item.cases));
-  chart.innerHTML = performanceData.weekly
+  const maxFyc = Math.max(...data.weekly.map((item) => item.fyc), 1);
+  const maxCases = Math.max(...data.weekly.map((item) => item.cases), 1);
+  chart.innerHTML = data.weekly
     .map((item) => {
       const fycHeight = Math.max(8, Math.round((item.fyc / maxFyc) * 100));
       const caseHeight = Math.max(8, Math.round((item.cases / maxCases) * 100));
@@ -1160,7 +1336,7 @@ if (isOverviewPage()) {
 }
 
 if (isHomeDashboardPage()) {
-  renderOverviewCards();
+  wireOverviewTabs();
   wireRoleControl();
   wirePersonalTodo();
   wireFloatingTodo();
