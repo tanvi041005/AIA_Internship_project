@@ -863,6 +863,129 @@ main {
   font-size: 0.86rem;
 }
 
+.cpf-layout {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+@media (min-width: 980px) {
+  .cpf-layout {
+    grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  }
+}
+
+.cpf-form,
+.cpf-results-panel {
+  min-height: 100%;
+}
+
+.cpf-panel-note {
+  margin: -0.25rem 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.cpf-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.cpf-form label {
+  display: grid;
+  gap: 0.32rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cpf-form input[type="number"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.cpf-form input[type="number"]:focus {
+  outline: 2px solid #f4cbd2;
+  outline-offset: -1px;
+  border-color: #d9b8b8;
+}
+
+.cpf-check-row {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  align-content: center;
+  min-height: 40px;
+  padding: 0.52rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.cpf-check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand);
+}
+
+.cpf-actions {
+  margin-top: 1rem;
+}
+
+.cpf-result-grid {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.cpf-result-grid .kpi-card {
+  border-top-color: #c69a67;
+  min-height: 128px;
+}
+
+.cpf-result-grid .kpi-value {
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  word-break: break-word;
+}
+
+.cpf-total-card {
+  border-top-color: var(--brand) !important;
+  background: linear-gradient(180deg, #fff, #fff7f8);
+}
+
+.cpf-summary-list {
+  margin-top: 0.5rem;
+}
+
+.cpf-detail-grid {
+  margin-top: 1rem;
+}
+
+.cpf-detail-grid .panel {
+  min-height: 260px;
+}
+
+.cpf-projection-table th:first-child,
+.cpf-projection-table td:first-child {
+  width: 3.2rem;
+}
+
+.cpf-projection-table th:nth-child(2),
+.cpf-projection-table td:nth-child(2),
+.cpf-projection-table th:nth-child(3),
+.cpf-projection-table td:nth-child(3),
+.cpf-projection-table th:nth-child(4),
+.cpf-projection-table td:nth-child(4) {
+  width: 31%;
+}
+
 /* Two columns */
 .split-grid {
   display: grid;
@@ -1783,6 +1906,11 @@ table.data tr:last-child td {
 
   .performance-kpis,
   .performance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cpf-form-grid,
+  .cpf-result-grid {
     grid-template-columns: 1fr;
   }
 
