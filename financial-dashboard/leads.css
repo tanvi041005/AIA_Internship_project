@@ -58,7 +58,7 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 
 /* Table */
 .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
-.lead-table{width:100%;border-collapse:collapse;min-width:1160px;table-layout:fixed}
+.lead-table{width:100%;border-collapse:collapse;min-width:1080px;table-layout:fixed}
 .lead-table th{padding:.55rem .55rem;background:var(--surface-subtle);font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;user-select:none;cursor:pointer}
 .lead-table th:hover{color:var(--brand)}
 .lead-table th .sort-arrow{margin-left:4px;opacity:.5;font-style:normal}
@@ -74,12 +74,12 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 .lead-table th:nth-child(8),.lead-table td:nth-child(8){width:95px}
 .lead-table th:nth-child(9),.lead-table td:nth-child(9){width:125px}
 .lead-table th:nth-child(10),.lead-table td:nth-child(10){width:170px}
-.lead-table th:nth-child(11),.lead-table td:nth-child(11){width:72px}
 .lead-table tr:last-child td{border-bottom:none}
 .lead-name{color:var(--brand);line-height:1.35}
 .lead-contact,.lead-date{white-space:nowrap}
 .lead-location,.lead-remarks{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lead-row{cursor:default;transition:background .1s}
+.lead-row{cursor:pointer;transition:background .1s}
+.lead-row:focus-visible{outline:2px solid #d9b8b8;outline-offset:-2px}
 .lead-row:hover{background:#fbfaf8}
 .lead-row.selected{background:var(--brand-light)}
 .status-pill{display:inline-block;padding:0;border-radius:0;background:transparent;font-size:.72rem;font-weight:700}
@@ -151,8 +151,6 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 .drawer-actions{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0}
 .drawer-actions .btn-brand,.drawer-actions .btn-ghost{flex:1;padding:.55rem;text-align:center}
 .avatar-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;flex-shrink:0;color:#fff}
-.edit-btn{padding:.28rem .55rem;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--brand);font-size:.76rem;font-weight:700;cursor:pointer}
-.edit-btn:hover{border-color:var(--brand);background:var(--brand-light)}
 
 .site-footer{border-top:1px solid var(--border);background:#fdfdfc;padding:1rem;text-align:center;font-size:.75rem;color:var(--text-muted)}
 

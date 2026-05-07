@@ -154,11 +154,11 @@ function render(){
   });
   const tbody = document.getElementById("lead-tbody");
   if(!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map(l => `
-    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}">
+    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
       <td><strong class="lead-name">${l.name}</strong></td>
       <td>${l.age}</td>
       <td class="lead-contact">${l.contact}</td>
@@ -169,14 +169,7 @@ function render(){
       <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
       <td><span class="stage-pill ${stageClass(l.stage)}">${l.stage}</span></td>
       <td class="lead-remarks" title="${l.remarks}">${l.remarks}</td>
-      <td><button class="edit-btn" type="button" data-id="${l.id}">Edit</button></td>
     </tr>`).join("");
-  document.querySelectorAll(".edit-btn").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      openDrawer(Number(btn.dataset.id));
-    });
-  });
 }
 
 function formatDate(d){
@@ -338,6 +331,18 @@ function bindEvents(){
   });
   document.getElementById("btn-edit-lead").addEventListener("click", () => {
     if(activeId) window.location.href = `create-profile.html?edit=${activeId}`;
+  });
+  document.getElementById("lead-tbody").addEventListener("click", e => {
+    const row = e.target.closest("tr[data-id]");
+    if(!row) return;
+    openDrawer(Number(row.dataset.id));
+  });
+  document.getElementById("lead-tbody").addEventListener("keydown", e => {
+    if(e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest("tr[data-id]");
+    if(!row) return;
+    e.preventDefault();
+    openDrawer(Number(row.dataset.id));
   });
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
     th.addEventListener("click", () => {
