@@ -18,8 +18,9 @@
 <div class="nav-strip">
   <nav class="nav-inner" aria-label="Primary">
     <a href="index.html">Overview</a>
-    <a href="leads.html">Leads</a>
+    <a href="leads.html" class="active">Leads</a>
     <a href="calendar.html">Calendar</a>
+    <a href="room-booking.html">Room Booking</a>
     <a href="training.html">Training</a>
     <a href="resources.html">Resources</a>
   </nav>
@@ -27,7 +28,7 @@
 
 <main id="main">
   <h1 class="page-title">Leads Module · Client Profiles</h1>
-  <p class="page-lede">Track leads, urgency, pipeline stages, and closure estimates. Click any row for full client details.</p>
+  <p class="page-lede">Track leads, urgency, pipeline stages, and closure estimates. Use Edit to view or update client details.</p>
 
   <div class="kpi-grid" id="kpi-grid">
     <div class="kpi-card">
@@ -86,16 +87,6 @@
       </div>
     </div>
 
-    <div>
-      <div class="pipeline-wrap" id="pipeline-bar"><div class="pipe-seg" style="width:17%;background:#6b7280" title="Prospecting: 1">
-      <span class="pipe-label">Prospecting (1)</span></div><div class="pipe-seg" style="width:33%;background:#3b82f6" title="Fact-Find: 2">
-      <span class="pipe-label">Fact-Find (2)</span></div><div class="pipe-seg" style="width:17%;background:#f59e0b" title="Needs Analysis: 1">
-      <span class="pipe-label">Needs Analysis (1)</span></div><div class="pipe-seg" style="width:17%;background:#a855f7" title="Proposal Sent: 1">
-      <span class="pipe-label">Proposal Sent (1)</span></div><div class="pipe-seg" style="width:17%;background:#a6192e" title="Closing: 1">
-      <span class="pipe-label">Closing (1)</span></div></div>
-      <div class="legend-row" id="pipeline-legend"><span class="legend-item"><span class="legend-dot" style="background:#6b7280"></span>Prospecting: 1</span><span class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Fact-Find: 2</span><span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Needs Analysis: 1</span><span class="legend-item"><span class="legend-dot" style="background:#a855f7"></span>Proposal Sent: 1</span><span class="legend-item"><span class="legend-dot" style="background:#a6192e"></span>Closing: 1</span></div>
-    </div>
-
     <div class="table-wrap" style="margin-top:.75rem">
       <table class="lead-table">
         <thead>
@@ -103,77 +94,79 @@
             <th data-col="name">Name <i class="sort-arrow">↕</i></th>
             <th data-col="age">Age <i class="sort-arrow">↕</i></th>
             <th data-col="contact">Contact</th>
-            <th data-col="meetDate" class="sorted">Meet-up Date <i class="sort-arrow">↑</i></th>
+            <th data-col="meetDate" class="sorted">First Appt. <i class="sort-arrow">↑</i></th>
+            <th data-col="nextMeetDate">Follow-up <i class="sort-arrow">↕</i></th>
             <th data-col="location">Location</th>
             <th data-col="meetType">Meeting Type</th>
             <th data-col="urgency">Urgency <i class="sort-arrow">↕</i></th>
             <th data-col="stage">Pipeline Stage</th>
             <th data-col="remarks">Remarks</th>
+            <th aria-label="Actions"></th>
           </tr>
         </thead>
         <tbody id="lead-tbody">
-    <tr class="lead-row" data-id="5" tabindex="0" role="button" aria-label="View details for Marcus Tan Boon Kiat">
+    <tr class="lead-row" data-id="5">
       <td><strong style="color:var(--brand)">Marcus Tan Boon Kiat</strong></td>
       <td>38</td>
       <td style="font-size:.82rem">9567-8901</td>
       <td>6 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="CBD (Zoom)">CBD (Zoom)</td>
-      <td><span class="badge online">Online</span></td>
+      <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Needs Analysis</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.">Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.</td>
     </tr>
-    <tr class="lead-row" data-id="3" tabindex="0" role="button" aria-label="View details for Chen Jia Hao">
+    <tr class="lead-row" data-id="3">
       <td><strong style="color:var(--brand)">Chen Jia Hao</strong></td>
       <td>42</td>
       <td style="font-size:.82rem">9345-6789</td>
       <td>8 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Raffles Place (Client Office)">Raffles Place (Client Office)</td>
-      <td><span class="badge physical">Physical</span></td>
+      <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Closing</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.">Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.</td>
     </tr>
-    <tr class="lead-row" data-id="1" tabindex="0" role="button" aria-label="View details for Lim Wei Jie">
+    <tr class="lead-row" data-id="1">
       <td><strong style="color:var(--brand)">Lim Wei Jie</strong></td>
       <td>34</td>
       <td style="font-size:.82rem">9123-4567</td>
       <td>12 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Toa Payoh HDB">Toa Payoh HDB</td>
-      <td><span class="badge physical">Physical</span></td>
+      <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Proposal Sent</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Interested in term life; wife expecting. Has existing GE policy expiring soon.">Interested in term life; wife expecting. Has existing GE policy expiring soon.</td>
     </tr>
-    <tr class="lead-row" data-id="2" tabindex="0" role="button" aria-label="View details for Nur Aisyah Binte Rahman">
+    <tr class="lead-row" data-id="2">
       <td><strong style="color:var(--brand)">Nur Aisyah Binte Rahman</strong></td>
       <td>28</td>
       <td style="font-size:.82rem">8234-5678</td>
       <td>15 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Tampines Mall">Tampines Mall</td>
-      <td><span class="badge online">Online</span></td>
+      <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill medium">Medium</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Self-employed, irregular income. Keen on savings plan for rainy day fund.">Self-employed, irregular income. Keen on savings plan for rainy day fund.</td>
     </tr>
-    <tr class="lead-row" data-id="4" tabindex="0" role="button" aria-label="View details for Priya Nair">
+    <tr class="lead-row" data-id="4">
       <td><strong style="color:var(--brand)">Priya Nair</strong></td>
       <td>31</td>
       <td style="font-size:.82rem">9456-7890</td>
       <td>20 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Jurong East CC">Jurong East CC</td>
-      <td><span class="badge hybrid">Hybrid</span></td>
+      <td><span class="badge-text">Hybrid</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Prospecting</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.">Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.</td>
     </tr>
-    <tr class="lead-row" data-id="6" tabindex="0" role="button" aria-label="View details for Sandra Loh Mei Ling">
+    <tr class="lead-row" data-id="6">
       <td><strong style="color:var(--brand)">Sandra Loh Mei Ling</strong></td>
       <td>55</td>
       <td style="font-size:.82rem">8678-9012</td>
       <td>25 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Woodlands Civic Centre">Woodlands Civic Centre</td>
-      <td><span class="badge physical">Physical</span></td>
+      <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.">Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.</td>
@@ -182,7 +175,7 @@
     </div>
   </div>
 
-  <div class="split-grid">
+  <div class="split-grid single-panel">
     <div class="panel">
       <div class="panel-head">
         <h2 style="font-size:1rem;font-weight:700">Estimated Closure</h2>
@@ -243,52 +236,6 @@
     </tr></tbody>
         </table>
       </div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2 style="font-size:1rem;font-weight:700">Sales Performance</h2>
-      </div>
-      <ul class="activity-list" id="sales-list">
-    <li>
-      <span class="dot red"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Chen Jia Hao</span>
-          <span class="activity-time">This week</span>
-        </div>
-        <p class="activity-desc">SGD 9,800 keyman + CI — closing stage. High confidence.</p>
-      </div>
-    </li>
-    <li>
-      <span class="dot blue"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Marcus Tan</span>
-          <span class="activity-time">Next week</span>
-        </div>
-        <p class="activity-desc">SGD 24,000 whole life — solutioning in progress.</p>
-      </div>
-    </li>
-    <li>
-      <span class="dot amber"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Nur Aisyah</span>
-          <span class="activity-time">This month</span>
-        </div>
-        <p class="activity-desc">SGD 3,600 endowment — fact-find pending.</p>
-      </div>
-    </li>
-    <li>
-      <span class="dot green"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Total Pipeline</span>
-          <span class="activity-time"></span>
-        </div>
-        <p class="activity-desc">SGD 45,800 estimated annual premium across 6 active leads.</p>
-      </div>
-    </li></ul>
     </div>
   </div>
 
@@ -423,8 +370,9 @@
         <div class="detail-item"><label>Phone</label><strong>9567-8901</strong></div>
         <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">marcus.tbk@finco.com</strong></div>
         <div class="detail-item"><label>Urgency</label><span class="status-pill urgent">Urgent</span></div>
-        <div class="detail-item"><label>Meeting Type</label><span class="badge online">Online</span></div>
-        <div class="detail-item"><label>Meet-up Date</label><strong>6 May 2025</strong></div>
+        <div class="detail-item"><label>Meeting Type</label><span class="badge-text">Online</span></div>
+        <div class="detail-item"><label>First Appointment</label><strong>6 May 2025</strong></div>
+        <div class="detail-item"><label>Follow-up Date</label><strong>12 May 2025</strong></div>
         <div class="detail-item"><label>Location</label><strong style="font-size:.84rem">CBD (Zoom)</strong></div>
       </div>
     </div>
@@ -468,7 +416,6 @@
   <div class="drawer-actions">
     <button class="btn-brand" id="btn-draft-email">Draft Follow-up Email</button>
     <button class="btn-ghost" id="btn-edit-lead">Edit Profile</button>
-    <button class="btn-ghost" id="btn-suggest-plan">Suggest Plan</button>
   </div>
 </aside>
 

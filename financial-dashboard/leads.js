@@ -89,11 +89,9 @@ let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 function init(){
   if(!localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LEADS));
   renderKPIs();
-  renderPipeline();
   sortData();
   render();
   renderClosure();
-  renderSales();
   renderCPF();
   bindEvents();
 }
@@ -118,24 +116,6 @@ function renderKPIs(){
     </div>`).join("");
 }
 
-function renderPipeline(){
-  const counts = {};
-  STAGES.forEach(s => counts[s] = 0);
-  LEADS.forEach(l => { if(counts[l.stage] !== undefined) counts[l.stage]++; });
-  const total = LEADS.length;
-  document.getElementById("pipeline-bar").innerHTML = STAGES.map((s,i) => {
-    if(!counts[s]) return "";
-    const pct = Math.round((counts[s]/total)*100);
-    const activeClass = stageFilter === s ? " active" : "";
-    return `<div class="pipe-seg${activeClass}" style="width:${pct}%;background:${STAGE_COLORS[i]}" title="${s}: ${counts[s]}" data-stage="${s}">
-      <span class="pipe-label">${s} (${counts[s]})</span></div>`;
-  }).join("");
-  document.getElementById("pipeline-legend").innerHTML = STAGES.map((s,i) => {
-    const activeClass = stageFilter === s ? " active" : "";
-    return `<span class="legend-item${activeClass}" data-stage="${s}"><span class="legend-dot" style="background:${STAGE_COLORS[i]}"></span>${s}: ${counts[s]}</span>`;
-  }).join("");
-}
-
 function applyFilters(){
   const search = document.getElementById("search-input").value.toLowerCase();
   const urg = document.getElementById("urgency-filter").value;
@@ -155,8 +135,8 @@ function applyFilters(){
 
 function sortData(){
   filtered.sort((a,b) => {
-    let va = a[sortCol] ?? a.name;
-    let vb = b[sortCol] ?? b.name;
+    let va = sortCol === "nextMeetDate" ? getNextMeetDate(a) : (a[sortCol] ?? a.name);
+    let vb = sortCol === "nextMeetDate" ? getNextMeetDate(b) : (b[sortCol] ?? b.name);
     if(sortCol === "urgency"){ va = URGENCY_ORDER[a.urgency]; vb = URGENCY_ORDER[b.urgency]; }
     if(sortCol === "age" || sortCol === "premium"){ va = Number(va); vb = Number(vb); }
     if(va < vb) return sortDir === "asc" ? -1 : 1;
@@ -174,24 +154,28 @@ function render(){
   });
   const tbody = document.getElementById("lead-tbody");
   if(!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map(l => `
-    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
-      <td><strong style="color:var(--brand)">${l.name}</strong></td>
+    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}">
+      <td><strong class="lead-name">${l.name}</strong></td>
       <td>${l.age}</td>
-      <td style="font-size:.82rem">${l.contact}</td>
-      <td>${formatDate(l.meetDate)}</td>
-      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.location}">${l.location}</td>
+      <td class="lead-contact">${l.contact}</td>
+      <td class="lead-date">${formatDate(l.meetDate)}</td>
+      <td class="lead-date">${formatDate(getNextMeetDate(l))}</td>
+      <td class="lead-location" title="${l.location}">${l.location}</td>
       <td><span class="badge ${l.meetType.toLowerCase()}">${l.meetType}</span></td>
       <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">${l.stage}</span></td>
-      <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.remarks}">${l.remarks}</td>
+      <td><span class="stage-pill ${stageClass(l.stage)}">${l.stage}</span></td>
+      <td class="lead-remarks" title="${l.remarks}">${l.remarks}</td>
+      <td><button class="edit-btn" type="button" data-id="${l.id}">Edit</button></td>
     </tr>`).join("");
-  document.querySelectorAll(".lead-row").forEach(row => {
-    row.addEventListener("click", () => openDrawer(Number(row.dataset.id)));
-    row.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " ") openDrawer(Number(row.dataset.id)); });
+  document.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      openDrawer(Number(btn.dataset.id));
+    });
   });
 }
 
@@ -202,9 +186,19 @@ function formatDate(d){
   return `${parseInt(dd)} ${months[parseInt(m)-1]} ${y}`;
 }
 
+function getNextMeetDate(lead){
+  if(lead.nextMeetDate) return lead.nextMeetDate;
+  const pending = (lead.followUps || [])
+    .filter(f => !f.done && f.date)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  return pending[0]?.date || "";
+}
+
 function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 
 function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+
+function stageClass(stage){ return stage.toLowerCase().replace(/\s+/g, "-"); }
 
 function openDrawer(id){
   const lead = LEADS.find(l => l.id === id);
@@ -230,7 +224,8 @@ function openDrawer(id){
         <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">${lead.email}</strong></div>
         <div class="detail-item"><label>Urgency</label><span class="status-pill ${lead.urgency}">${cap(lead.urgency)}</span></div>
         <div class="detail-item"><label>Meeting Type</label><span class="badge ${lead.meetType.toLowerCase()}">${lead.meetType}</span></div>
-        <div class="detail-item"><label>Meet-up Date</label><strong>${formatDate(lead.meetDate)}</strong></div>
+        <div class="detail-item"><label>First Appointment</label><strong>${formatDate(lead.meetDate)}</strong></div>
+        <div class="detail-item"><label>Follow-up Date</label><strong>${formatDate(getNextMeetDate(lead))}</strong></div>
         <div class="detail-item"><label>Location</label><strong style="font-size:.84rem">${lead.location}</strong></div>
       </div>
     </div>
@@ -242,7 +237,7 @@ function openDrawer(id){
         <div class="detail-item"><label>Recommended Plan</label><strong>${lead.planType}</strong></div>
         <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD ${lead.premium.toLocaleString()}</strong></div>
         <div class="detail-item"><label>Commission Type</label><strong>${lead.commission}</strong></div>
-        <div class="detail-item"><label>Pipeline Stage</label><strong>${lead.stage}</strong></div>
+        <div class="detail-item"><label>Pipeline Stage</label><span class="stage-pill ${stageClass(lead.stage)}">${lead.stage}</span></div>
       </div>
     </div>
     <div class="detail-section">
@@ -282,26 +277,6 @@ function renderClosure(){
     </tr>`).join("");
 }
 
-function renderSales(){
-  const items = [
-    {name:"Chen Jia Hao", color:"red", time:"This week", desc:"SGD 9,800 keyman + CI — closing stage. High confidence."},
-    {name:"Marcus Tan", color:"blue", time:"Next week", desc:"SGD 24,000 whole life — solutioning in progress."},
-    {name:"Nur Aisyah", color:"amber", time:"This month", desc:"SGD 3,600 endowment — fact-find pending."},
-    {name:"Total Pipeline", color:"green", time:"", desc:"SGD 45,800 estimated annual premium across 6 active leads."},
-  ];
-  document.getElementById("sales-list").innerHTML = items.map(i => `
-    <li>
-      <span class="dot ${i.color}"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">${i.name}</span>
-          <span class="activity-time">${i.time}</span>
-        </div>
-        <p class="activity-desc">${i.desc}</p>
-      </div>
-    </li>`).join("");
-}
-
 function renderCPF(){
   document.getElementById("cpf-list").innerHTML = LEADS.map((l,i) => {
     const tot = l.cpfOA + l.cpfSA;
@@ -334,24 +309,7 @@ function bindEvents(){
     document.getElementById("type-filter").value = "";
     document.getElementById("date-filter").value = "";
     stageFilter = null;
-    renderPipeline();
     filtered = [...LEADS]; sortData(); render();
-  });
-  document.getElementById("pipeline-bar").addEventListener("click", e => {
-    const seg = e.target.closest(".pipe-seg");
-    if(seg) {
-      stageFilter = stageFilter === seg.dataset.stage ? null : seg.dataset.stage;
-      renderPipeline();
-      applyFilters();
-    }
-  });
-  document.getElementById("pipeline-legend").addEventListener("click", e => {
-    const item = e.target.closest(".legend-item");
-    if(item) {
-      stageFilter = stageFilter === item.dataset.stage ? null : item.dataset.stage;
-      renderPipeline();
-      applyFilters();
-    }
   });
   document.getElementById("add-lead-btn").addEventListener("click", () => {
     window.location.href = "create-profile.html";
@@ -380,10 +338,6 @@ function bindEvents(){
   });
   document.getElementById("btn-edit-lead").addEventListener("click", () => {
     if(activeId) window.location.href = `create-profile.html?edit=${activeId}`;
-  });
-  document.getElementById("btn-suggest-plan").addEventListener("click", () => {
-    const lead = LEADS.find(l => l.id === activeId);
-    if(lead) alert(`Suggesting plan for ${lead.name} — Income: ${lead.income}, Age: ${lead.age}, Stage: ${lead.stage}.`);
   });
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
     th.addEventListener("click", () => {

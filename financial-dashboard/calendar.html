@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calendar · Financial Agent Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -21,6 +22,7 @@
       <a href="index.html">Overview</a>
       <a href="leads.html">Leads</a>
       <a href="calendar.html" class="active">Calendar</a>
+      <a href="room-booking.html">Room Booking</a>
       <a href="training.html">Training</a>
       <a href="resources.html">Resources</a>
     </nav>
@@ -42,6 +44,11 @@
             <input type="checkbox" id="calendar-show-agency" />
             Agency
           </label>
+          <label class="calendar-both-toggle">
+            <input type="checkbox" id="calendar-show-holidays" checked />
+            Holidays
+          </label>
+          <button type="button" id="today-btn">Today</button>
           <button type="button" id="prev-month-btn">Prev</button>
           <button type="button" id="next-month-btn">Next</button>
         </div>
@@ -49,31 +56,11 @@
       <p class="calendar-legend">
         <span class="event-indicator personal">Personal</span>
         <span class="event-indicator agency">Agency</span>
+        <span class="event-indicator holiday">Holidays</span>
       </p>
 
       <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Lead meet-up calendar"></div>
-      <p class="summary-line">Select a date with events to view appointment details, or select an empty date to add a personal reminder.</p>
-      <div class="panel-head">
-        <h3>Appointment Reminders</h3>
-      </div>
-      <ul id="calendar-reminder-list" class="activity-list"></ul>
 
-      <section class="agency-manager" aria-label="Agency event manager">
-        <div class="panel-head">
-          <h3>Agency Events Management</h3>
-        </div>
-        <p id="agency-events-access-note" class="page-lede"></p>
-        <form id="agency-event-form" class="inline-form">
-          <input type="hidden" id="agency-event-edit-id" />
-          <label for="agency-event-date">Date</label>
-          <input type="date" id="agency-event-date" required />
-          <label for="agency-event-title">Event</label>
-          <input type="text" id="agency-event-title" placeholder="Enter agency event title" required />
-          <button type="submit" id="agency-event-submit-btn">Add Event</button>
-          <button type="button" id="agency-event-cancel-btn" class="ghost-btn">Cancel Edit</button>
-        </form>
-        <ul id="agency-events-editor-list" class="activity-list"></ul>
-      </section>
     </section>
   </main>
 
@@ -82,39 +69,81 @@
   <dialog id="personal-event-dialog">
     <article class="modal-card">
       <header class="event-dialog-header">
-        <h3>Add Personal Event</h3>
+        <h3 id="personal-event-dialog-heading">Add Personal Event</h3>
       </header>
       <form id="personal-event-dialog-form" class="event-dialog-form">
-        <label for="personal-event-dialog-title">Event Title</label>
-        <input type="text" id="personal-event-dialog-title" placeholder="Client review meeting" required />
+        <div id="personal-event-source-toggle" style="display:none;">
+          <label style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.5rem;">Save as</label>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+            <button type="button" class="event-type-btn active" data-source="personal">Personal</button>
+            <button type="button" class="event-type-btn" data-source="agency">Agency</button>
+          </div>
+          <input type="hidden" id="personal-event-dialog-source" value="personal" />
+        </div>
 
-        <div class="event-dialog-row">
-          <div>
-            <label for="personal-event-dialog-date">Date</label>
-            <input type="text" id="personal-event-dialog-date" readonly />
+        <label for="personal-event-dialog-title" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Event Title</label>
+        <input type="text" id="personal-event-dialog-title" placeholder="Client review meeting" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+
+        <div id="personal-event-type-section">
+          <label style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.5rem;margin-top:0.75rem;">Type</label>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+            <button type="button" class="event-type-btn" data-type="Appointment">Appointment</button>
+            <button type="button" class="event-type-btn" data-type="Task">Task</button>
+            <button type="button" class="event-type-btn" data-type="Event">Event</button>
           </div>
-          <div>
-            <label for="personal-event-dialog-start-time">From</label>
-            <input type="time" id="personal-event-dialog-start-time" required />
+          <input type="hidden" id="personal-event-dialog-type" value="Appointment" />
+        </div>
+
+        <div>
+          <label for="personal-event-dialog-date" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Date</label>
+          <input type="text" id="personal-event-dialog-date" readonly style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+        </div>
+
+        <div id="personal-event-extra-fields">
+          <div class="event-dialog-row" style="grid-template-columns:1fr 1fr;">
+            <div>
+              <label for="personal-event-dialog-start-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">From</label>
+              <input type="time" id="personal-event-dialog-start-time" style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+            </div>
+            <div>
+              <label for="personal-event-dialog-end-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Until</label>
+              <input type="time" id="personal-event-dialog-end-time" style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+            </div>
           </div>
-          <div>
-            <label for="personal-event-dialog-end-time">Until</label>
-            <input type="time" id="personal-event-dialog-end-time" required />
+
+          <label for="personal-event-dialog-location" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Location</label>
+          <input type="text" id="personal-event-dialog-location" placeholder="Office / Zoom / Client site" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+
+          <label for="personal-event-dialog-notes" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Notes</label>
+          <textarea id="personal-event-dialog-notes" rows="3" placeholder="Optional notes..." style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;"></textarea>
+
+          <label for="personal-event-dialog-task" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Linked Task</label>
+          <input type="text" id="personal-event-dialog-task" placeholder="Follow up after meeting" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+
+          <div id="personal-event-repeat-section">
+            <label for="personal-event-dialog-repeat" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Repeat</label>
+            <select id="personal-event-dialog-repeat" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;font:inherit;">
+              <option value="none">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          <div id="personal-event-repeat-end-wrap" style="display:none;">
+            <label for="personal-event-dialog-repeat-end" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Repeat Until</label>
+            <input type="date" id="personal-event-dialog-repeat-end" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
           </div>
         </div>
 
-        <label for="personal-event-dialog-location">Location</label>
-        <input type="text" id="personal-event-dialog-location" placeholder="Office / Zoom / Client site" />
+        <input type="hidden" id="personal-event-dialog-edit-id" />
 
-        <label for="personal-event-dialog-notes">Notes</label>
-        <textarea id="personal-event-dialog-notes" rows="4" placeholder="Optional notes..."></textarea>
-
-        <label for="personal-event-dialog-task">Linked Task</label>
-        <input type="text" id="personal-event-dialog-task" placeholder="Follow up after meeting" />
-
-        <div class="event-dialog-actions">
-          <button type="button" id="close-personal-event-dialog" class="ghost-btn">Close</button>
-          <button type="submit">Save Event</button>
+        <div class="event-dialog-actions" style="display:flex;justify-content:space-between;gap:0.5rem;margin-top:1rem;">
+          <button type="button" id="personal-event-dialog-delete-btn" style="display:none;color:#b91c1c;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:0.4rem 0.7rem;cursor:pointer;font:inherit;font-weight:600;">Delete</button>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="button" id="close-personal-event-dialog" class="ghost-btn">Close</button>
+            <button type="submit" id="personal-event-dialog-submit-btn" style="background:var(--brand);color:#fff;border:1px solid var(--brand);padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:600;">Save Event</button>
+          </div>
         </div>
       </form>
     </article>
@@ -130,6 +159,40 @@
       <div class="event-dialog-actions">
         <button type="button" id="calendar-add-personal-from-detail">Add Personal Event</button>
       </div>
+    </article>
+  </dialog>
+
+  <dialog id="agency-event-edit-dialog">
+    <article class="modal-card">
+      <header class="panel-head">
+        <h3>Edit Agency Event</h3>
+        <button type="button" id="agency-edit-dialog-close" class="ghost-btn">Close</button>
+      </header>
+      <form id="agency-edit-dialog-form" style="display:grid;gap:1rem;margin-top:1rem;">
+        <input type="hidden" id="agency-edit-dialog-id" />
+        <div>
+          <label for="agency-edit-dialog-date" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Date</label>
+          <input type="date" id="agency-edit-dialog-date" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+        </div>
+        <div>
+          <label for="agency-edit-dialog-title" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Title</label>
+          <input type="text" id="agency-edit-dialog-title" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+          <div>
+            <label for="agency-edit-dialog-start-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">From</label>
+            <input type="time" id="agency-edit-dialog-start-time" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          </div>
+          <div>
+            <label for="agency-edit-dialog-end-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Until</label>
+            <input type="time" id="agency-edit-dialog-end-time" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;justify-content:space-between;">
+          <button type="button" id="agency-edit-dialog-delete" class="ghost-btn" style="color:var(--danger,#dc2626);">Delete Event</button>
+          <button type="submit" style="background:var(--brand);color:#fff;border:1px solid var(--brand);padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:600;">Save Changes</button>
+        </div>
+      </form>
     </article>
   </dialog>
 
