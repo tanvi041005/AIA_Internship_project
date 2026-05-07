@@ -123,9 +123,28 @@
         <p class="chart-insight" id="weekly-fyc-case-insight">Select a day to view FYC and case count.</p>
       </article>
     </section>
+
+    <section aria-label="Team production report">
+      <article class="panel" id="production-report-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Team Production Report</h2>
+            <span class="summary-line" id="production-report-label">Upload your Excel file to display agent performance</span>
+          </div>
+          <label class="upload-btn">
+            Upload Excel
+            <input type="file" id="production-file-input" accept=".xlsx,.xls" style="display:none" />
+          </label>
+        </div>
+        <div id="production-report-content">
+          <p class="prod-placeholder">No file loaded — click "Upload Excel" to import your production report.</p>
+        </div>
+      </article>
+    </section>
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="auth.js"></script>
   <script src="dashboard.js"></script>
 </body>

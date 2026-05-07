@@ -1730,3 +1730,213 @@ dialog::backdrop {
   font-size: 0.7rem;
 }
 
+
+/* ── Production Report ───────────────────────────────────────────────────── */
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.upload-btn:hover { background: var(--brand-dark); }
+
+.prod-placeholder {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* KPI chips */
+.prod-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.prod-kpi {
+  flex: 1 1 120px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.prod-kpi span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.prod-kpi strong {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Chart panels */
+.prod-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 720px) {
+  .prod-charts-grid { grid-template-columns: 1fr; }
+}
+
+.prod-chart-panel {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+.prod-target-panel { margin-top: 0; }
+
+.prod-chart-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* Horizontal bars */
+.prod-hbar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 48px;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+.prod-hbar-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prod-hbar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #eeeae3;
+  overflow: hidden;
+}
+.prod-hbar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+.prod-hbar-val {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Target rows */
+.prod-target-row {
+  margin-bottom: 0.75rem;
+}
+.prod-target-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.3rem;
+}
+.prod-target-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.prod-target-nums {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.prod-todo {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* Production Report — agency filter & summary cards */
+.prod-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.prod-filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prod-agency-select {
+  padding: 0.42rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  background: #fff;
+  cursor: pointer;
+  min-width: 180px;
+}
+.prod-agency-select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Agency summary cards (shown when "All" is selected) */
+.prod-agency-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.prod-agency-card {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+}
+.prod-agency-card-name {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.prod-agency-card-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+.prod-agency-card-stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.prod-agency-card-stats strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.prod-agency-card-stats small {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

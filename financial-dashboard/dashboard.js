@@ -1,4 +1,4 @@
-const leadData = [
+﻿const leadData = [
   {
     id: 1,
     name: "Tan Wei Ming",
@@ -13,7 +13,8 @@ const leadData = [
     premium: 120000,
     commissionType: "Upfront",
     stage: "Negotiation",
-    owner: "agent"
+    owner: "agent",
+    agency: "Agency Alpha"
   },
   {
     id: 2,
@@ -29,7 +30,8 @@ const leadData = [
     premium: 98000,
     commissionType: "Recurring",
     stage: "Qualified",
-    owner: "agent"
+    owner: "agent",
+    agency: "Agency Beta"
   },
   {
     id: 3,
@@ -45,7 +47,8 @@ const leadData = [
     premium: 76000,
     commissionType: "Tiered",
     stage: "Proposal Sent",
-    owner: "agent"
+    owner: "agent",
+    agency: "Agency Alpha"
   },
   {
     id: 4,
@@ -61,7 +64,8 @@ const leadData = [
     premium: 142000,
     commissionType: "Upfront",
     stage: "Follow-up",
-    owner: "district"
+    owner: "district",
+    agency: "Agency Gamma"
   },
   {
     id: 5,
@@ -77,7 +81,8 @@ const leadData = [
     premium: 186000,
     commissionType: "Hybrid",
     stage: "Closing",
-    owner: "district"
+    owner: "district",
+    agency: "Agency Beta"
   }
 ];
 
@@ -281,7 +286,7 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
     .filter((lead) => (role === "district_manager" ? lead.owner === "district" : lead.owner === "agent"))
     .map((lead) => ({
       date: lead.meetupDate,
-      title: `${lead.name} · ${lead.meetingType} Meet-up`,
+      title: `${lead.name} Â· ${lead.meetingType} Meet-up`,
       location: lead.meetupLocation,
       type: "Personal Appointment",
       category: "personal",
@@ -331,7 +336,7 @@ function updateLeadPageSummary(rows) {
   const summary = document.getElementById("lead-summary-line");
   if (!summary) return;
   const urgentCount = rows.filter((lead) => lead.urgency === "Urgent").length;
-  summary.textContent = `Showing ${rows.length} lead${rows.length === 1 ? "" : "s"} · ${urgentCount} urgent`;
+  summary.textContent = `Showing ${rows.length} lead${rows.length === 1 ? "" : "s"} Â· ${urgentCount} urgent`;
 }
 
 function renderClosureTable(rows) {
@@ -377,7 +382,7 @@ function renderCpfTracker() {
           <span class="dot ${dotClass}" aria-hidden="true"></span>
           <div class="activity-body">
             <div class="activity-row">
-              <span class="activity-name">${item.name} · ${item.accountFocus}</span>
+              <span class="activity-name">${item.name} Â· ${item.accountFocus}</span>
               <span class="activity-time">${money(item.amount)}</span>
             </div>
             <p class="activity-desc"><strong>${item.status}:</strong> ${item.note}</p>
@@ -439,7 +444,7 @@ function wireLeadDetailDialog(currentRows) {
         <p><strong>Meet-up:</strong> ${lead.meetupDate} at ${lead.meetupLocation} (${lead.meetingType})</p>
         <p><strong>Urgency:</strong> ${lead.urgency}</p>
         <p><strong>Remarks:</strong> ${lead.remarks}</p>
-        <p><strong>Plan & Premium:</strong> ${lead.planType} · ${money(lead.premium)}</p>
+        <p><strong>Plan & Premium:</strong> ${lead.planType} Â· ${money(lead.premium)}</p>
       `;
       dialog.showModal();
     });
@@ -450,14 +455,27 @@ function wireLeadDetailDialog(currentRows) {
 function wireLeadFilters() {
   const filterInput = document.getElementById("lead-date-filter");
   const sortSelect = document.getElementById("lead-sort-select");
+  const agencySelect = document.getElementById("lead-agency-filter"); // Assuming this ID for the new dropdown
   if (!filterInput || !sortSelect) return;
+
+  // Populate agency filter dropdown
+  if (agencySelect) {
+    const uniqueAgencies = [...new Set(leadData.map(lead => lead.agency))].sort();
+    agencySelect.innerHTML = '<option value="">All Agencies</option>' +
+      uniqueAgencies.map(agency => `<option value="${agency}">${agency}</option>`).join('');
+  }
 
   const update = () => {
     const dateFilter = filterInput.value;
     const sortDirection = sortSelect.value;
+    const agencyFilter = agencySelect ? agencySelect.value : "";
+
     let filtered = [...leadData];
     if (dateFilter) {
       filtered = filtered.filter((lead) => lead.meetupDate === dateFilter);
+    }
+    if (agencyFilter) {
+      filtered = filtered.filter((lead) => lead.agency === agencyFilter);
     }
     filtered.sort((a, b) =>
       sortDirection === "asc" ? a.meetupDate.localeCompare(b.meetupDate) : b.meetupDate.localeCompare(a.meetupDate)
@@ -474,6 +492,7 @@ function wireLeadFilters() {
 
   filterInput.addEventListener("change", update);
   sortSelect.addEventListener("change", update);
+  if (agencySelect) agencySelect.addEventListener("change", update);
   update();
 }
 
@@ -788,7 +807,7 @@ function wireFloatingTodo() {
       .map(
         (task, index) => `
         <li class="${task.done ? "is-done" : ""}">
-          <label><input type="checkbox" data-task-index="${index}" ${task.done ? "checked" : ""}> <span>${task.title}${task.dueDate ? `<small>Due ${task.dueDate}${task.eventTitle ? ` · ${task.eventTitle}` : ""}</small>` : ""}</span></label>
+          <label><input type="checkbox" data-task-index="${index}" ${task.done ? "checked" : ""}> <span>${task.title}${task.dueDate ? `<small>Due ${task.dueDate}${task.eventTitle ? ` Â· ${task.eventTitle}` : ""}</small>` : ""}</span></label>
         </li>
       `
       )
@@ -844,7 +863,7 @@ function renderCalendar(currentDate, role, viewOptions) {
 
   let html = heads.map((day) => `<div class="cal-head">${day}</div>`).join("");
   for (let i = 0; i < firstDay; i += 1) {
-    html += `<div class="cal-cell muted">·</div>`;
+    html += `<div class="cal-cell muted">Â·</div>`;
   }
   for (let day = 1; day <= daysInMonth; day += 1) {
     const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -877,7 +896,7 @@ function renderCalendar(currentDate, role, viewOptions) {
             <span class="activity-name">${event.title}</span>
             <span class="activity-time">${event.date}</span>
           </div>
-          <p class="activity-desc">${event.type} reminder scheduled${event.category === "personal" ? ` · ${formatTimeRange(event)}` : ""}.</p>
+          <p class="activity-desc">${event.type} reminder scheduled${event.category === "personal" ? ` Â· ${formatTimeRange(event)}` : ""}.</p>
         </div>
       </li>
     `
@@ -961,7 +980,7 @@ function openCalendarEventDialog(date, events) {
   const addButton = document.getElementById("calendar-add-personal-from-detail");
   if (!dialog || !title || !list || !addButton) return;
 
-  title.textContent = `Scheduled Events · ${date}`;
+  title.textContent = `Scheduled Events Â· ${date}`;
   list.innerHTML = events
     .map(
       (event) => `
@@ -972,7 +991,7 @@ function openCalendarEventDialog(date, events) {
             <span class="activity-name">${event.title}</span>
             <span class="activity-time">${event.type}</span>
           </div>
-          <p class="activity-desc">${event.location ? `${event.location} · ` : ""}${formatTimeRange(event)}</p>
+          <p class="activity-desc">${event.location ? `${event.location} Â· ` : ""}${formatTimeRange(event)}</p>
           ${event.taskTitle ? `<p class="activity-desc"><strong>Linked task:</strong> ${event.taskTitle}</p>` : ""}
         </div>
       </li>
@@ -1171,3 +1190,198 @@ if (isCalendarPage()) {
 }
 
 wireFloatingTodo();
+
+
+
+// Production Report
+
+function wireProductionReport() {
+  var input = document.getElementById("production-file-input");
+  if (!input) return;
+  input.addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var wb = XLSX.read(ev.target.result, { type: "array" });
+        var ws = wb.Sheets["Summary"] || wb.Sheets[wb.SheetNames[0]];
+        renderProductionViz(ws, file.name);
+      } catch (err) {
+        document.getElementById("production-report-content").innerHTML =
+          "<p class='prod-placeholder' style='color:var(--brand)'>Could not parse file: " + err.message + "</p>";
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function renderProductionViz(ws, fileName) {
+  var content = document.getElementById("production-report-content");
+  var label   = document.getElementById("production-report-label");
+  if (!content) return;
+
+  var range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+
+  function cellVal(col, row) {
+    var cell = ws[XLSX.utils.encode_cell({ c: col, r: row })];
+    return cell ? cell.v : "";
+  }
+  function toNum(v) { return parseFloat(v) || 0; }
+  function fmtK(v) {
+    if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+    if (v >= 1000)    return (v / 1000).toFixed(1) + "K";
+    return String(Math.round(v));
+  }
+
+  // Parse agents — forward-fill agency name (col A is blank for rows after first in group)
+  var agents = [];
+  var lastAgency = "";
+  for (var row = 2; row <= range.e.r; row++) {
+    var agtNm = String(cellVal(1, row)).trim();  // col B
+    if (!agtNm) continue;
+    var agyCel = String(cellVal(0, row)).trim();  // col A
+    if (agyCel) lastAgency = agyCel;
+    agents.push({
+      agency:   lastAgency,
+      name:     agtNm,
+      mtdFyc:   toNum(cellVal(2, row)),
+      mtdCases: toNum(cellVal(3, row)),
+      ytdFyc:   toNum(cellVal(4, row)),
+      ytdFyp:   toNum(cellVal(5, row)),
+      ytdCases: toNum(cellVal(6, row)),
+      target:   toNum(cellVal(7, row)),
+      todo:     toNum(cellVal(8, row))
+    });
+  }
+
+  if (!agents.length) {
+    content.innerHTML = "<p class='prod-placeholder'>No agent rows found. Make sure data starts on row 3 with agent names in column B.</p>";
+    return;
+  }
+
+  // Build agency list for dropdown
+  var agencies = ["All"];
+  agents.forEach(function(r) {
+    if (r.agency && agencies.indexOf(r.agency) === -1) agencies.push(r.agency);
+  });
+
+  if (label) label.textContent = agents.length + " agents \u00b7 " + agencies.length - 1 + " agencies \u00b7 " + fileName;
+
+  // Render shell with dropdown
+  content.innerHTML =
+    "<div class='prod-toolbar'>" +
+      "<label class='prod-filter-label'>Agency</label>" +
+      "<select id='prod-agency-select' class='prod-agency-select'>" +
+        agencies.map(function(a) { return "<option value='" + a + "'>" + a + "</option>"; }).join("") +
+      "</select>" +
+    "</div>" +
+    "<div id='prod-viz-body'></div>";
+
+  function renderForAgency(selected) {
+    var filtered = selected === "All" ? agents : agents.filter(function(r) { return r.agency === selected; });
+    var body = document.getElementById("prod-viz-body");
+    if (!body) return;
+
+    var totalYtdFyc = filtered.reduce(function(s,r){ return s + r.ytdFyc; }, 0);
+    var totalMtdFyc = filtered.reduce(function(s,r){ return s + r.mtdFyc; }, 0);
+    var totalYtdCas = filtered.reduce(function(s,r){ return s + r.ytdCases; }, 0);
+    var totalMtdCas = filtered.reduce(function(s,r){ return s + r.mtdCases; }, 0);
+
+    var byFyc  = filtered.slice().sort(function(a,b){ return b.ytdFyc - a.ytdFyc; });
+    var byCas  = filtered.slice().sort(function(a,b){ return b.ytdCases - a.ytdCases; });
+    var maxFyc = byFyc.length ? (byFyc[0].ytdFyc || 1) : 1;
+    var maxCas = byCas.length ? (byCas[0].ytdCases || 1) : 1;
+
+    var colors = ["#a6192e","#c69a67","#4a4a4a","#e8a020","#38bdf8","#9b2f91"];
+
+    function hbar(sorted, getVal, maxVal, fmt) {
+      return sorted.map(function(r, i) {
+        var v   = getVal(r);
+        var pct = Math.max(4, Math.round((v / maxVal) * 100));
+        return "<div class='prod-hbar-row'>" +
+          "<span class='prod-hbar-label'>" + r.name + "</span>" +
+          "<div class='prod-hbar-track'><div class='prod-hbar-fill' style='width:" + pct + "%;background:" + colors[i % colors.length] + "'></div></div>" +
+          "<span class='prod-hbar-val'>" + fmt(v) + "</span>" +
+        "</div>";
+      }).join("");
+    }
+
+    var targetSection = "";
+    if (filtered.some(function(r){ return r.target > 0; })) {
+      targetSection =
+        "<div class='prod-chart-panel prod-target-panel'>" +
+          "<p class='prod-chart-title'>&#127919; Target Progress &mdash; YTD FYC vs Target</p>" +
+          filtered.map(function(r) {
+            var pct   = r.target > 0 ? Math.min(100, Math.round((r.ytdFyc / r.target) * 100)) : 0;
+            var color = pct >= 80 ? "#16a34a" : pct >= 50 ? "#e8a020" : "#a6192e";
+            return "<div class='prod-target-row'>" +
+              "<div class='prod-target-meta'>" +
+                "<span class='prod-target-name'>" + r.name + "</span>" +
+                "<span class='prod-target-nums'>" +
+                  fmtK(r.ytdFyc) + " / " + fmtK(r.target) +
+                  " &nbsp;&middot;&nbsp; <span style='color:" + color + "'>" + pct + "%</span>" +
+                  (r.todo > 0 ? " &nbsp;&middot;&nbsp; <span class='prod-todo'>To do: " + fmtK(r.todo) + "</span>" : "") +
+                "</span>" +
+              "</div>" +
+              "<div class='prod-hbar-track'><div class='prod-hbar-fill' style='width:" + pct + "%;background:" + color + "'></div></div>" +
+            "</div>";
+          }).join("") +
+        "</div>";
+    }
+
+    // When "All" is selected, also show per-agency summary cards
+    var agencySummary = "";
+    if (selected === "All") {
+      agencySummary = "<div class='prod-agency-summary'>" +
+        agencies.filter(function(a){ return a !== "All"; }).map(function(agency) {
+          var grp = agents.filter(function(r){ return r.agency === agency; });
+          var aFyc = grp.reduce(function(s,r){ return s + r.ytdFyc; }, 0);
+          var aCas = grp.reduce(function(s,r){ return s + r.ytdCases; }, 0);
+          var aTgt = grp.reduce(function(s,r){ return s + r.target; }, 0);
+          var aPct = aTgt > 0 ? Math.min(100, Math.round((aFyc / aTgt) * 100)) : 0;
+          var aColor = aPct >= 80 ? "#16a34a" : aPct >= 50 ? "#e8a020" : "#a6192e";
+          return "<div class='prod-agency-card'>" +
+            "<p class='prod-agency-card-name'>" + agency + "</p>" +
+            "<div class='prod-agency-card-stats'>" +
+              "<span><strong>" + fmtK(aFyc) + "</strong><small>YTD FYC</small></span>" +
+              "<span><strong>" + aCas + "</strong><small>Cases</small></span>" +
+              "<span><strong style='color:" + aColor + "'>" + aPct + "%</strong><small>vs Target</small></span>" +
+            "</div>" +
+            "<div class='prod-hbar-track' style='margin-top:0.5rem'><div class='prod-hbar-fill' style='width:" + aPct + "%;background:" + aColor + "'></div></div>" +
+          "</div>";
+        }).join("") +
+      "</div>";
+    }
+
+    body.innerHTML =
+      "<div class='prod-kpi-row'>" +
+        "<div class='prod-kpi'><span>YTD FYC</span><strong>" + fmtK(totalYtdFyc) + "</strong></div>" +
+        "<div class='prod-kpi'><span>MTD FYC (Apr)</span><strong>" + fmtK(totalMtdFyc) + "</strong></div>" +
+        "<div class='prod-kpi'><span>YTD Cases</span><strong>" + totalYtdCas + "</strong></div>" +
+        "<div class='prod-kpi'><span>MTD Cases (Apr)</span><strong>" + totalMtdCas + "</strong></div>" +
+      "</div>" +
+      agencySummary +
+      "<div class='prod-charts-grid'>" +
+        "<div class='prod-chart-panel'>" +
+          "<p class='prod-chart-title'>&#127942; Top YTD FYC</p>" +
+          hbar(byFyc, function(r){ return r.ytdFyc; }, maxFyc, fmtK) +
+        "</div>" +
+        "<div class='prod-chart-panel'>" +
+          "<p class='prod-chart-title'>&#128203; Top Cases Closed (YTD)</p>" +
+          hbar(byCas, function(r){ return r.ytdCases; }, maxCas, function(v){ return v; }) +
+        "</div>" +
+      "</div>" +
+      targetSection;
+  }
+
+  document.getElementById("prod-agency-select").addEventListener("change", function() {
+    renderForAgency(this.value);
+  });
+
+  renderForAgency("All");
+}
+
+if (isHomeDashboardPage()) {
+  wireProductionReport();
+}
