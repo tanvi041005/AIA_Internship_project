@@ -28,6 +28,13 @@
   </div>
 
   <main id="main">
+    <section class="overview-tabs-panel" aria-label="Overview scope">
+      <div>
+        <h1 class="page-title">Overview</h1>
+        <p class="page-lede" id="overview-scope-lede">District-wide performance across all agents, leads, and FYC activity.</p>
+      </div>
+    </section>
+
     <section class="kpi-grid performance-kpis" aria-label="Lead and FYC summary">
       <article class="kpi-card fyc-card">
         <div class="kpi-top">
@@ -41,16 +48,16 @@
 
       <article class="kpi-card fyc-card">
         <div class="kpi-top">
-          <p class="kpi-label">This Week FYC</p>
-          <span class="kpi-badge muted">Last week</span>
+          <p class="kpi-label">Month to Date FYC</p>
+          <span class="kpi-badge muted">MTD</span>
         </div>
         <p class="kpi-value" id="weekly-fyc-value">SGD 0</p>
-        <p class="kpi-subvalue"><span id="weekly-fyc-last">SGD 0 vs last week</span><strong id="weekly-fyc-change">0%</strong></p>
+        <p class="kpi-subvalue"><span id="weekly-fyc-last">SGD 0 vs previous MTD</span><strong id="weekly-fyc-change">0%</strong></p>
       </article>
 
-      <a class="kpi-card kpi-card-clickable kpi-card-link" id="total-leads-card" href="leads.html" aria-label="Open Total Leads page">
+      <a class="kpi-card kpi-card-clickable kpi-card-link" id="total-leads-card" href="leads.html" aria-label="Open Total Cases view">
         <div class="kpi-top">
-          <p class="kpi-label">Total Leads</p>
+          <p class="kpi-label">Total Cases</p>
           <span class="kpi-badge positive">This week</span>
         </div>
         <p class="kpi-value" id="total-leads-count">0</p>
@@ -59,9 +66,9 @@
     </section>
 
     <section class="performance-grid" aria-label="Performance overview">
-      <article class="panel leaderboard-panel">
+      <article class="panel leaderboard-panel" id="leaderboard-panel">
         <div class="panel-head">
-          <h2>Leaderboard</h2>
+          <h2>Leaderboard for YTD FYC</h2>
           <span class="summary-line">YTD FYC ranking</span>
         </div>
         <div class="table-wrap compact-table">
@@ -79,16 +86,16 @@
         </div>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="agent-fyc-panel">
         <div class="panel-head">
-          <h2>Year FYC by Agent</h2>
-          <span class="summary-line">Top producers</span>
+          <h2 id="agent-fyc-panel-title">Year FYC by Agent</h2>
+          <span class="summary-line" id="agent-fyc-panel-summary">Top producers</span>
         </div>
         <div class="bar-chart" id="agent-fyc-chart" aria-label="Year FYC by agent"></div>
         <p class="chart-insight" id="agent-fyc-insight">Select an agent bar to view FYC details.</p>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="monthly-ytd-panel">
         <div class="panel-head">
           <h2>Monthly YTD</h2>
           <span class="summary-line">Amounts in FYC</span>
@@ -97,7 +104,7 @@
         <p class="chart-insight" id="monthly-ytd-insight">Select a month to view YTD FYC.</p>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="mentee-list-panel">
         <div class="panel-head">
           <h2>Mentee List</h2>
           <span class="summary-line" id="mentee-count-label">0 total</span>
@@ -114,7 +121,7 @@
         <p class="chart-insight" id="sales-funnel-insight">Select a funnel stage to view lead count.</p>
       </article>
 
-      <article class="panel">
+      <article class="panel" id="weekly-fyc-case-panel">
         <div class="panel-head">
           <h2>Weekly FYC / Case Count</h2>
           <span class="summary-line">Current week</span>
@@ -123,9 +130,28 @@
         <p class="chart-insight" id="weekly-fyc-case-insight">Select a day to view FYC and case count.</p>
       </article>
     </section>
+
+    <section aria-label="Team production report">
+      <article class="panel" id="production-report-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Team Production Report</h2>
+            <span class="summary-line" id="production-report-label">Upload your Excel file to display agent performance</span>
+          </div>
+          <label class="upload-btn">
+            Upload Excel
+            <input type="file" id="production-file-input" accept=".xlsx,.xls" style="display:none" />
+          </label>
+        </div>
+        <div id="production-report-content">
+          <p class="prod-placeholder">No file loaded — click "Upload Excel" to import your production report.</p>
+        </div>
+      </article>
+    </section>
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="auth.js"></script>
   <script src="dashboard.js"></script>
 </body>

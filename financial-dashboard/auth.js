@@ -71,13 +71,85 @@
       sessionStorage.setItem("dashboardRole", detected.key);
       sessionStorage.setItem("dashboardUser", username || "User");
       localStorage.setItem("calendarRole", detected.key === "district" ? "district_manager" : "agent");
+      localStorage.setItem("overviewScope", "agency");
       window.location.assign("index.html");
     });
     return;
   }
 
-  const nav = document.querySelector(".nav-inner");
-  if (nav) {
+  function enhanceNav() {
+    const nav = document.querySelector(".nav-inner");
+    if (!nav) return;
+    const roleLabels = {
+      agent: "Agent",
+      leader: "Leader",
+      district: "District Manager"
+    };
+
+    const overviewLink = Array.from(nav.querySelectorAll("a")).find(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "index.html"
+    );
+
+    const setOverviewLabel = (link, label) => {
+      link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
+    };
+
+    if (overviewLink && !document.getElementById("overview-scope-menu")) {
+      const scopeLabels = {
+        district: "District Overview",
+        agency: "Agency Overview",
+        personal: "Personal Overview"
+      };
+      const initialOverviewScope = localStorage.getItem("overviewScope") || "agency";
+      const overviewMenu = document.createElement("div");
+      overviewMenu.className = "overview-nav-menu";
+      overviewLink.insertAdjacentElement("beforebegin", overviewMenu);
+      overviewMenu.appendChild(overviewLink);
+      setOverviewLabel(overviewLink, scopeLabels[initialOverviewScope] || scopeLabels.agency);
+      overviewMenu.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="overview-scope-menu" id="overview-scope-menu" role="menu" aria-label="Overview scope">
+            <button type="button" role="menuitem" data-overview-menu-scope="district">District Overview</button>
+            <button type="button" role="menuitem" data-overview-menu-scope="agency">Agency Overview</button>
+            <button type="button" role="menuitem" data-overview-menu-scope="personal">Personal Overview</button>
+          </div>
+        `
+      );
+
+      const setScope = (scope) => {
+        const normalizedScope = scopeLabels[scope] ? scope : "agency";
+        localStorage.setItem("overviewScope", normalizedScope);
+        setOverviewLabel(overviewLink, scopeLabels[normalizedScope]);
+        overviewMenu.classList.remove("is-open");
+        window.dispatchEvent(new CustomEvent("overviewScopeChanged", { detail: { scope: normalizedScope } }));
+        if (currentPage !== "index.html") {
+          window.location.assign("index.html");
+        }
+      };
+
+      overviewLink.setAttribute("aria-haspopup", "true");
+      overviewLink.setAttribute("aria-expanded", "false");
+      overviewLink.addEventListener("click", (event) => {
+        if (currentPage === "index.html") {
+          event.preventDefault();
+          const isOpen = overviewMenu.classList.toggle("is-open");
+          overviewLink.setAttribute("aria-expanded", String(isOpen));
+        }
+      });
+
+      overviewMenu.querySelectorAll("[data-overview-menu-scope]").forEach((button) => {
+        button.addEventListener("click", () => setScope(button.dataset.overviewMenuScope));
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!overviewMenu.contains(event.target)) {
+          overviewMenu.classList.remove("is-open");
+          overviewLink.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
     // Dynamic active tab highlighting based on the current page
     const navLinks = nav.querySelectorAll("a:not(#logout-link)");
     navLinks.forEach(link => {
@@ -93,25 +165,42 @@
       }
     });
 
-    if (!document.getElementById("logout-link")) {
-    if (loggedRole === "agent") {
-      const recruitmentLink = Array.from(nav.querySelectorAll("a")).find(
-        (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
-      );
-      if (recruitmentLink) {
-        recruitmentLink.remove();
-      }
+    if (loggedRole && !document.getElementById("nav-user-meta")) {
+      const userMeta = document.createElement("div");
+      userMeta.id = "nav-user-meta";
+      userMeta.className = "header-user-meta nav-user-meta";
+      userMeta.innerHTML = `
+        <span>${roleLabels[loggedRole] || "User"}</span>
+        <strong>${sessionStorage.getItem("dashboardUser") || "User"}</strong>
+      `;
+      nav.appendChild(userMeta);
     }
 
-    const logout = document.createElement("a");
-    logout.href = "login.html";
-    logout.id = "logout-link";
-    logout.textContent = "Logout";
-    logout.addEventListener("click", () => {
-      sessionStorage.removeItem("dashboardRole");
-      sessionStorage.removeItem("dashboardUser");
-    });
-    nav.appendChild(logout);
+    if (loggedRole && !document.getElementById("logout-link")) {
+      if (loggedRole === "agent") {
+        const recruitmentLink = Array.from(nav.querySelectorAll("a")).find(
+          (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
+        );
+        if (recruitmentLink) {
+          recruitmentLink.remove();
+        }
+      }
+
+      const logout = document.createElement("a");
+      logout.href = "login.html";
+      logout.id = "logout-link";
+      logout.textContent = "Logout";
+      logout.addEventListener("click", () => {
+        sessionStorage.removeItem("dashboardRole");
+        sessionStorage.removeItem("dashboardUser");
+      });
+      nav.appendChild(logout);
+    }
   }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", enhanceNav);
+  } else {
+    enhanceNav();
   }
 })();
