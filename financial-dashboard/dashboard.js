@@ -1082,6 +1082,8 @@ function renderCalendar(currentDate, role, viewOptions) {
   }
   grid.innerHTML = html;
 
+  const reminderList = document.getElementById("todo-reminder-list");
+  if (!reminderList) return;
   const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthlyEvents = events.filter((event) => event.date.startsWith(monthPrefix));
   reminderList.innerHTML = monthlyEvents

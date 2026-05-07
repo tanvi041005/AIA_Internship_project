@@ -1440,6 +1440,7 @@ table.data tr:last-child td {
   transform: translateX(0);
   transition: transform 0.2s ease;
   pointer-events: auto;
+  overflow-y: auto;
 }
 
 .todo-sidebar.is-collapsed .todo-sidebar-panel {
@@ -1457,6 +1458,12 @@ table.data tr:last-child td {
   gap: 1rem;
   padding-bottom: 0.85rem;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: -1rem;
+  background: #fff;
+  z-index: 1;
+  margin: -1rem -1rem 0;
+  padding: 1rem 1rem 0.85rem;
 }
 
 .todo-sidebar-head h2 {
@@ -1501,8 +1508,6 @@ table.data tr:last-child td {
 }
 
 .todo-sidebar .todo-list {
-  max-height: calc(100vh - 180px);
-  overflow: auto;
   margin-top: 1rem;
   padding: 0;
   list-style: none;
