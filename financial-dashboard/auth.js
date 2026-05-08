@@ -14,7 +14,7 @@
     return;
   }
 
-  if (currentPage === "team.html" && loggedRole === "agent") {
+  if (currentPage === "onboarding.html" && loggedRole === "agent") {
     window.location.replace("index.html");
     return;
   }
@@ -179,11 +179,11 @@
     }
 
     const hasTeamLink = Array.from(nav.querySelectorAll("a")).some(
-      (link) => (link.getAttribute("href") || "").toLowerCase() === "team.html"
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "onboarding.html"
     );
     if (!hasTeamLink && loggedRole && (loggedRole === "leader" || loggedRole === "district")) {
       const teamLink = document.createElement("a");
-      teamLink.href = "team.html";
+      teamLink.href = "onboarding.html";
       teamLink.textContent = "Onboarding";
       const announcementsLinkEl = Array.from(nav.querySelectorAll("a")).find(
         (link) => (link.getAttribute("href") || "").toLowerCase() === "announcements.html"
@@ -306,7 +306,7 @@
       const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
       const isRecruitmentPage = href === "recruitment.html" && currentPage === "recruitment.html";
       const isHelpdeskPage = href === "helpdesk.html" && currentPage === "helpdesk.html";
-      const isTeamPage = href === "team.html" && currentPage === "team.html";
+      const isTeamPage = href === "onboarding.html" && currentPage === "onboarding.html";
 
       if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isHelpdeskPage || isTeamPage) {
         link.classList.add("active");
