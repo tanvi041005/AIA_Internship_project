@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .team-form-grid {
+      display: grid;
+      gap: 1rem;
+      max-width: 520px;
+    }
+    .team-form-grid label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .team-form-grid input,
+    .team-form-grid textarea {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+    }
+    .team-form-grid textarea {
+      min-height: 72px;
+      resize: vertical;
+    }
+    .team-form-actions {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.25rem;
+    }
+    .team-table-wrap {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+    .team-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .team-table th,
+    .team-table td {
+      padding: 0.65rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .team-table th {
+      background: var(--surface-subtle);
+      font-weight: 600;
+    }
+    .team-remove-btn {
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      background: #fff;
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .team-remove-btn:hover {
+      border-color: var(--brand);
+      color: var(--brand);
+    }
+    .team-msg {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-weight: 600;
+      display: none;
+    }
+    .team-msg.error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .team-msg.success {
+      display: block;
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .team-empty {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Team roster</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="leads.html">Leads</a>
+      <div class="calendar-nav-menu">
+        <a href="calendar.html">Calendar</a>
+        <div class="calendar-section-menu">
+          <a href="calendar.html">Calendar</a>
+          <a href="room-booking.html">Room Booking</a>
+          <a href="attendance.html">Attendance</a>
+        </div>
+      </div>
+      <a href="sales-tracker.html">Sales Tracker</a>
+      <a href="training.html">Training</a>
+      <a href="cpf-calculator.html">CPF Calculator</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <h1 class="page-title">Team onboarding</h1>
+    <p class="page-lede">Add new joiners to your team roster. Agent IDs use the format A### (e.g. A128).</p>
+
+    <section class="panel" style="max-width: 720px;">
+      <div class="panel-head">
+        <h2>Add team member</h2>
+        <span class="summary-line">Saved per leader / district account</span>
+      </div>
+      <form id="team-add-form" class="team-form-grid">
+        <div>
+          <label for="team-agent-id">Agent ID <span aria-hidden="true">*</span></label>
+          <input type="text" id="team-agent-id" required maxlength="12" placeholder="e.g. A128" autocomplete="off" />
+        </div>
+        <div>
+          <label for="team-name">Full name <span aria-hidden="true">*</span></label>
+          <input type="text" id="team-name" required maxlength="120" placeholder="e.g. Alex Tan" />
+        </div>
+        <div>
+          <label for="team-notes">Notes (optional)</label>
+          <textarea id="team-notes" maxlength="300" placeholder="Start date, cohort, etc."></textarea>
+        </div>
+        <div class="team-form-actions">
+          <button type="submit" class="upload-btn" style="cursor:pointer;border:none;">Add to team</button>
+        </div>
+      </form>
+      <p id="team-form-msg" class="team-msg" role="status"></p>
+    </section>
+
+    <section class="panel" style="margin-top: 1.25rem;">
+      <div class="panel-head">
+        <h2>Current roster</h2>
+        <span class="summary-line" id="team-roster-count">0 members</span>
+      </div>
+      <div id="team-roster-empty" class="team-empty">No team members added yet.</div>
+      <div class="team-table-wrap">
+        <table class="team-table lead-table" id="team-roster-table" hidden>
+          <thead>
+            <tr>
+              <th>Agent ID</th>
+              <th>Name</th>
+              <th>Joined</th>
+              <th>Notes</th>
+              <th aria-label="Actions"></th>
+            </tr>
+          </thead>
+          <tbody id="team-roster-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      var role = (sessionStorage.getItem("dashboardRole") || "").toLowerCase();
+      if (role === "agent") {
+        window.location.replace("index.html");
+        return;
+      }
+
+      var STORAGE_KEY = "fm_team_members_v1";
+      var managerId = (sessionStorage.getItem("dashboardUser") || "").toUpperCase();
+
+      function readStore() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return {};
+          var parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function writeStore(obj) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+      }
+
+      function getList() {
+        var all = readStore();
+        var list = all[managerId];
+        return Array.isArray(list) ? list : [];
+      }
+
+      function setList(list) {
+        var all = readStore();
+        all[managerId] = list;
+        writeStore(all);
+      }
+
+      function esc(s) {
+        var n = document.createElement("div");
+        n.textContent = String(s || "");
+        return n.innerHTML;
+      }
+
+      function showMsg(el, type, text) {
+        el.className = "team-msg " + type;
+        el.textContent = text;
+        if (!text) {
+          el.className = "team-msg";
+          el.textContent = "";
+        }
+      }
+
+      function render() {
+        var list = getList().slice().sort(function (a, b) {
+          return String(a.agentId).localeCompare(String(b.agentId));
+        });
+        var tbody = document.getElementById("team-roster-body");
+        var table = document.getElementById("team-roster-table");
+        var empty = document.getElementById("team-roster-empty");
+        var countEl = document.getElementById("team-roster-count");
+
+        countEl.textContent = list.length + " member" + (list.length === 1 ? "" : "s");
+
+        if (list.length === 0) {
+          empty.hidden = false;
+          table.hidden = true;
+          tbody.innerHTML = "";
+          return;
+        }
+        empty.hidden = true;
+        table.hidden = false;
+        tbody.innerHTML = list
+          .map(function (m) {
+            var aid = String(m.agentId || "").toUpperCase();
+            return (
+              "<tr>" +
+              "<td><strong>" + esc(aid) + "</strong></td>" +
+              "<td>" + esc(m.name) + "</td>" +
+              "<td>" + esc(m.joined ? new Date(m.joined).toLocaleDateString() : "-") + "</td>" +
+              "<td>" + esc(m.notes || "") + "</td>" +
+              "<td><button type=\"button\" class=\"team-remove-btn\" data-agent-id=\"" + esc(aid) + "\">Remove</button></td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+
+        tbody.querySelectorAll(".team-remove-btn[data-agent-id]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var aid = (btn.getAttribute("data-agent-id") || "").toUpperCase();
+            var fresh = getList().filter(function (m) {
+              return String(m.agentId || "").toUpperCase() !== aid;
+            });
+            setList(fresh);
+            render();
+          });
+        });
+      }
+
+      document.getElementById("team-add-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var msgEl = document.getElementById("team-form-msg");
+        showMsg(msgEl, "", "");
+
+        var idRaw = document.getElementById("team-agent-id").value.trim().toUpperCase();
+        var name = document.getElementById("team-name").value.trim();
+        var notes = document.getElementById("team-notes").value.trim();
+
+        if (!/^A\d+$/i.test(idRaw)) {
+          showMsg(msgEl, "error", "Agent ID must match format A followed by digits (e.g. A128).");
+          return;
+        }
+        if (!name) {
+          showMsg(msgEl, "error", "Please enter the full name.");
+          return;
+        }
+
+        var list = getList();
+        if (list.some(function (m) { return String(m.agentId).toUpperCase() === idRaw; })) {
+          showMsg(msgEl, "error", "That Agent ID is already on your roster.");
+          return;
+        }
+
+        list.push({
+          agentId: idRaw,
+          name: name,
+          notes: notes,
+          joined: new Date().toISOString()
+        });
+        setList(list);
+        document.getElementById("team-add-form").reset();
+        showMsg(msgEl, "success", "Added " + idRaw + " to your team.");
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

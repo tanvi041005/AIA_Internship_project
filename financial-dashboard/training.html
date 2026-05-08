@@ -319,11 +319,28 @@
         return Math.round(points / total);
       }
 
+      function getRosterAgentIdsForManager(managerId) {
+        try {
+          var raw = localStorage.getItem("fm_team_members_v1");
+          if (!raw) return [];
+          var all = JSON.parse(raw);
+          if (!all || typeof all !== "object") return [];
+          var list = all[managerId] || [];
+          if (!Array.isArray(list)) return [];
+          return list
+            .map(function (m) { return String(m.agentId || "").toUpperCase(); })
+            .filter(function (id) { return /^A\d+$/i.test(id); });
+        } catch (e) {
+          return [];
+        }
+      }
+
       function getManagedAgents() {
         if (role !== "leader" && role !== "district") return [];
+        var rosterIds = getRosterAgentIdsForManager(user);
         var configured = TEAM_MAP[user] || [];
         var tracked = Object.keys(progressStore || {}).filter(function (id) { return /^A\d+$/i.test(id); });
-        var pool = configured.concat(tracked).concat(DEFAULT_AGENT_POOL);
+        var pool = rosterIds.concat(configured).concat(tracked).concat(DEFAULT_AGENT_POOL);
         var unique = pool.filter(function (id, index) { return pool.indexOf(id) === index; });
         return unique.sort();
       }

@@ -9,6 +9,16 @@
     return;
   }
 
+  if (currentPage === "recruitment.html" && loggedRole === "agent") {
+    window.location.replace("index.html");
+    return;
+  }
+
+  if (currentPage === "team.html" && loggedRole === "agent") {
+    window.location.replace("index.html");
+    return;
+  }
+
   if (currentPage === "login.html") {
     const form = document.getElementById("role-login-form");
     const usernameInput = document.getElementById("login-username");
@@ -168,6 +178,28 @@
       }
     }
 
+    const hasTeamLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "team.html"
+    );
+    if (!hasTeamLink && loggedRole && (loggedRole === "leader" || loggedRole === "district")) {
+      const teamLink = document.createElement("a");
+      teamLink.href = "team.html";
+      teamLink.textContent = "Onboarding";
+      const announcementsLinkEl = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "announcements.html"
+      );
+      const resourcesLinkEl = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
+      );
+      if (announcementsLinkEl) {
+        announcementsLinkEl.insertAdjacentElement("afterend", teamLink);
+      } else if (resourcesLinkEl) {
+        resourcesLinkEl.insertAdjacentElement("beforebegin", teamLink);
+      } else {
+        nav.appendChild(teamLink);
+      }
+    }
+
     const setOverviewLabel = (link, label) => {
       link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
     };
@@ -274,8 +306,9 @@
       const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
       const isRecruitmentPage = href === "recruitment.html" && currentPage === "recruitment.html";
       const isHelpdeskPage = href === "helpdesk.html" && currentPage === "helpdesk.html";
+      const isTeamPage = href === "team.html" && currentPage === "team.html";
 
-      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isHelpdeskPage) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isHelpdeskPage || isTeamPage) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
