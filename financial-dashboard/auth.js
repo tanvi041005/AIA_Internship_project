@@ -98,6 +98,23 @@
       (link) => (link.getAttribute("href") || "").toLowerCase() === "calendar.html"
     );
 
+    const hasCompareLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "agent-comparison.html"
+    );
+    if (!hasCompareLink) {
+      const compareLink = document.createElement("a");
+      compareLink.href = "agent-comparison.html";
+      compareLink.textContent = "Compare";
+      const leadsLink = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "leads.html"
+      );
+      if (leadsLink) {
+        leadsLink.insertAdjacentElement("afterend", compareLink);
+      } else {
+        nav.appendChild(compareLink);
+      }
+    }
+
     const hasAnnouncementsLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "announcements.html"
     );
@@ -216,9 +233,10 @@
       // Check if current link matches page or if we're in a lead-related sub-page
       const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
       const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
+      const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
       const isCalendarSection = href === "calendar.html" && currentPage === "attendance.html";
 
-      if (isCurrentPage || isLeadsSubPage || isCalendarSection) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
