@@ -9,7 +9,7 @@
     return;
   }
 
-  if (currentPage === "recruitment.html" && loggedRole === "agent") {
+  if (currentPage === "recruitment.html" && loggedRole !== "district") {
     window.location.replace("index.html");
     return;
   }
@@ -140,7 +140,7 @@
     const hasRecruitmentLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
     );
-    if (!hasRecruitmentLink) {
+    if (!hasRecruitmentLink && loggedRole === "district") {
       const recruitmentLink = document.createElement("a");
       recruitmentLink.href = "recruitment.html";
       recruitmentLink.textContent = "Recruitment";
