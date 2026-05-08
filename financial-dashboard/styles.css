@@ -147,7 +147,8 @@ a {
   border-color: #f4cbd2;
 }
 
-.overview-nav-menu {
+.overview-nav-menu,
+.calendar-nav-menu {
   position: relative;
   display: flex;
   align-items: center;
@@ -158,7 +159,8 @@ a {
   line-height: 1;
 }
 
-.overview-scope-menu {
+.overview-scope-menu,
+.calendar-section-menu {
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
@@ -177,13 +179,17 @@ a {
 
 .overview-nav-menu:hover .overview-scope-menu,
 .overview-nav-menu:focus-within .overview-scope-menu,
-.overview-nav-menu.is-open .overview-scope-menu {
+.overview-nav-menu.is-open .overview-scope-menu,
+.calendar-nav-menu:hover .calendar-section-menu,
+.calendar-nav-menu:focus-within .calendar-section-menu,
+.calendar-nav-menu.is-open .calendar-section-menu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
-.overview-scope-menu button {
+.overview-scope-menu button,
+.calendar-section-menu a {
   display: block;
   width: 100%;
   padding: 0.55rem 0.65rem;
@@ -198,7 +204,9 @@ a {
 }
 
 .overview-scope-menu button:hover,
-.overview-scope-menu button:focus-visible {
+.overview-scope-menu button:focus-visible,
+.calendar-section-menu a:hover,
+.calendar-section-menu a:focus-visible {
   background: var(--brand-light);
   color: var(--brand);
 }
@@ -984,6 +992,234 @@ main {
 .cpf-projection-table th:nth-child(4),
 .cpf-projection-table td:nth-child(4) {
   width: 31%;
+}
+
+.attendance-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.attendance-status-card {
+  border-top: 5px solid var(--brand);
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.attendance-grid.is-host-view,
+.attendance-grid.is-attendee-view {
+  grid-template-columns: 1fr;
+}
+
+.attendance-checkin-panel,
+.attendance-host-panel {
+  min-height: 100%;
+}
+
+.attendance-event-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  margin-bottom: 1rem;
+}
+
+.attendance-event-type {
+  margin: 0 0 0.25rem;
+  color: var(--brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.attendance-event-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.attendance-event-meta {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+}
+
+.attendance-event-meta div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+.attendance-event-meta dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.attendance-event-meta dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+.attendance-primary-btn {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.attendance-primary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.attendance-status-text {
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.attendance-select {
+  min-height: 38px;
+  max-width: 260px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.attendance-host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.attendance-host-qr {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.attendance-host-qr[hidden] {
+  display: none;
+}
+
+#attendance-host-qr-canvas {
+  width: 360px;
+  height: 360px;
+  max-width: 82vw;
+  max-height: 82vw;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.attendance-qr-fullscreen {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  background: #fff;
+}
+
+.attendance-qr-fullscreen-card {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.attendance-qr-fullscreen-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.attendance-qr-fullscreen-head h2 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.attendance-qr-fullscreen-head p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+}
+
+.attendance-qr-fullscreen-body {
+  display: grid;
+  place-items: center;
+  gap: 1.25rem;
+  align-content: center;
+  text-align: center;
+}
+
+.attendance-qr-fullscreen-copy {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+  max-width: 520px;
+}
+
+.attendance-kpis {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.attendance-kpis .kpi-card {
+  padding: 0.85rem;
+}
+
+.attendance-kpis .kpi-value {
+  font-size: 1.45rem;
+}
+
+.attendance-table {
+  min-width: 680px;
+}
+
+.attendance-qr-modal {
+  max-width: 620px;
+}
+
+.attendance-qr-shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: center;
+}
+
+#attendance-qr-canvas {
+  width: 228px;
+  height: 228px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
 }
 
 /* Two columns */
@@ -1900,7 +2136,8 @@ table.data tr:last-child td {
     flex-direction: column;
   }
 
-  .overview-nav-menu {
+  .overview-nav-menu,
+  .calendar-nav-menu {
     flex: 0 0 auto;
   }
 
@@ -1910,8 +2147,16 @@ table.data tr:last-child td {
   }
 
   .cpf-form-grid,
-  .cpf-result-grid {
+  .cpf-result-grid,
+  .attendance-hero,
+  .attendance-grid,
+  .attendance-qr-shell,
+  .attendance-host-qr {
     grid-template-columns: 1fr;
+  }
+
+  .attendance-kpis {
+    grid-template-columns: repeat(3, minmax(86px, 1fr));
   }
 
   .bar-chart,

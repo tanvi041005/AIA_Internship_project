@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="leads.html">Leads</a>
+      <a href="calendar.html" class="active">Calendar</a>
+      <a href="room-booking.html">Room Booking</a>
+      <a href="training.html">Training</a>
+      <a href="cpf-calculator.html">CPF Calculator</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <section class="attendance-hero">
+      <div>
+        <p class="tracker-kicker">Meeting and Training Attendance</p>
+        <h1 class="page-title">QR Check-in Mockup</h1>
+        <p class="page-lede">Hosts generate a QR from a calendar event. Attendees scan it, sign in with their dashboard account, and their attendance is recorded here.</p>
+      </div>
+      <article class="panel attendance-status-card">
+        <p class="kpi-label">Signed in as</p>
+        <p class="kpi-value" id="attendance-current-user">User</p>
+        <p class="summary-line" id="attendance-current-role">Role</p>
+      </article>
+    </section>
+
+    <section class="attendance-grid">
+      <article class="panel attendance-checkin-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Attendee Check-in</h2>
+            <span class="summary-line" id="attendance-event-label">Select an event or scan a QR code.</span>
+          </div>
+          <span class="status-pill non-urgent" id="attendance-status-pill">Ready</span>
+        </div>
+
+        <div class="attendance-event-card" id="attendance-event-card">
+          <p class="attendance-event-type" id="attendance-event-type">Calendar Event</p>
+          <h3 id="attendance-event-title">No event selected</h3>
+          <dl class="attendance-event-meta">
+            <div><dt>Date</dt><dd id="attendance-event-date">-</dd></div>
+            <div><dt>Time</dt><dd id="attendance-event-time">-</dd></div>
+            <div><dt>Location</dt><dd id="attendance-event-location">-</dd></div>
+          </dl>
+        </div>
+
+        <button type="button" class="attendance-primary-btn" id="attendance-checkin-btn">Check in now</button>
+        <p class="attendance-status-text" id="attendance-checkin-message">Open this page from a calendar QR link to record attendance.</p>
+      </article>
+
+      <article class="panel attendance-host-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Host View</h2>
+            <span class="summary-line" id="attendance-host-event-label">Current or next upcoming event is selected automatically.</span>
+          </div>
+          <div class="attendance-host-actions">
+            <button type="button" class="ghost-btn" id="attendance-generate-qr-btn">Generate QR</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid attendance-kpis">
+          <article class="kpi-card">
+            <p class="kpi-label">Checked In</p>
+            <p class="kpi-value" id="attendance-total-count">0</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">Present</p>
+            <p class="kpi-value" id="attendance-present-count">0</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">Late</p>
+            <p class="kpi-value" id="attendance-late-count">0</p>
+          </article>
+        </div>
+
+        <div class="table-wrap">
+          <table class="lead-table attendance-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Event</th>
+                <th>Check-in Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-records-body"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+
+  <dialog id="attendance-qr-fullscreen" class="attendance-qr-fullscreen">
+    <article class="attendance-qr-fullscreen-card">
+      <header class="attendance-qr-fullscreen-head">
+        <div>
+          <p class="attendance-event-type">Attendance QR</p>
+          <h2 id="attendance-host-qr-title">Attendance QR</h2>
+          <p id="attendance-host-qr-meta">Attendees must scan this QR and sign in to check in.</p>
+        </div>
+        <button type="button" id="attendance-close-qr-btn" class="ghost-btn">Close</button>
+      </header>
+      <div class="attendance-qr-fullscreen-body">
+        <canvas id="attendance-host-qr-canvas" width="360" height="360" aria-label="Mock attendance QR code"></canvas>
+        <a id="attendance-host-qr-link" class="is-hidden" href="attendance.html" aria-hidden="true" tabindex="-1">Check-in link</a>
+      </div>
+    </article>
+  </dialog>
+
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      var EVENTS_KEY = "attendanceEvents";
+      var RECORDS_KEY = "attendanceRecords";
+      var params = new URLSearchParams(window.location.search);
+      var eventId = params.get("eventId") || "";
+      var checkInToken = params.get("token") || "";
+      var openedFromQr = params.get("checkIn") === "qr" && !!eventId && !!checkInToken;
+      var signedInRole = sessionStorage.getItem("dashboardRole");
+      if (!signedInRole) return;
+      var user = (sessionStorage.getItem("dashboardUser") || "User").toUpperCase();
+      var role = signedInRole;
+      var isHostView = role === "district";
+      var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
+      var fallbackEvents = [
+        { id: "agency-1", title: "District Training Session", date: "2026-05-12", startTime: "09:00", endTime: "11:00", location: "District Training Room", type: "Training" },
+        { id: "agency-2", title: "District Sales Review", date: "2026-05-25", startTime: "14:00", endTime: "15:30", location: "Main Meeting Room", type: "Meeting" }
+      ];
+
+      function readList(key) {
+        try {
+          var parsed = JSON.parse(localStorage.getItem(key) || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function writeList(key, rows) {
+        localStorage.setItem(key, JSON.stringify(rows));
+      }
+
+      function normalizeCalendarEvent(item, prefix) {
+        if (!item || !item.id || !item.title) return null;
+        return {
+          id: item.id || prefix + "-" + item.date + "-" + item.title,
+          title: item.title,
+          date: item.date || "",
+          startTime: item.startTime || "",
+          endTime: item.endTime || "",
+          location: item.location || "",
+          type: item.type || "Calendar Event",
+          category: item.category || prefix
+        };
+      }
+
+      function calendarEventsFromStorage() {
+        var personal = readList("personalEvents").map(function (item) {
+          return normalizeCalendarEvent(item, "personal");
+        }).filter(Boolean);
+        var agency = readList("agencyEvents").map(function (item) {
+          return normalizeCalendarEvent(item, "agency");
+        }).filter(Boolean);
+        return agency.concat(personal);
+      }
+
+      function eventFromUrl() {
+        if (!eventId || !params.get("title")) return null;
+        return {
+          id: eventId,
+          title: params.get("title") || "Calendar Event",
+          date: params.get("date") || "",
+          startTime: params.get("startTime") || "",
+          endTime: params.get("endTime") || "",
+          location: params.get("location") || "",
+          type: params.get("type") || "Calendar Event",
+          attendanceToken: checkInToken
+        };
+      }
+
+      function getEvents() {
+        var stored = readList(EVENTS_KEY);
+        var urlEvent = eventFromUrl();
+        if (urlEvent && !stored.some(function (item) { return item.id === urlEvent.id; })) {
+          stored.unshift(urlEvent);
+          writeList(EVENTS_KEY, stored);
+        }
+        var merged = stored.concat(calendarEventsFromStorage()).concat(fallbackEvents);
+        var seen = {};
+        return merged.filter(function (item) {
+          if (!item || !item.id || seen[item.id]) return false;
+          seen[item.id] = true;
+          return true;
+        });
+      }
+
+      function getRecords() {
+        return readList(RECORDS_KEY);
+      }
+
+      function formatDate(value) {
+        if (!value) return "-";
+        var date = new Date(value + "T00:00:00");
+        return new Intl.DateTimeFormat("en-SG", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+      }
+
+      function formatDateTime(value) {
+        if (!value) return "-";
+        return new Intl.DateTimeFormat("en-SG", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(new Date(value));
+      }
+
+      function escapeHtml(value) {
+        var node = document.createElement("div");
+        node.textContent = String(value || "");
+        return node.innerHTML;
+      }
+
+      function selectedEvent() {
+        var events = getEvents();
+        return events.find(function (item) { return item.id === eventId; }) || getAutoSelectedEvent(events);
+      }
+
+      function eventWindow(eventItem) {
+        var date = eventItem && eventItem.date ? eventItem.date : new Date().toISOString().slice(0, 10);
+        var startTime = eventItem && eventItem.startTime ? eventItem.startTime : "09:00";
+        var start = new Date(date + "T" + startTime + ":00");
+        var end = eventItem && eventItem.endTime
+          ? new Date(date + "T" + eventItem.endTime + ":00")
+          : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+        return { start: start, end: end };
+      }
+
+      function getAutoSelectedEvent(events) {
+        var now = new Date();
+        var withWindows = events.map(function (item) {
+          var window = eventWindow(item);
+          return { event: item, start: window.start, end: window.end };
+        }).filter(function (item) {
+          return !isNaN(item.start.getTime());
+        });
+        var current = withWindows
+          .filter(function (item) { return item.start <= now && item.end >= now; })
+          .sort(function (a, b) { return a.start - b.start; })[0];
+        if (current) return current.event;
+        var upcoming = withWindows
+          .filter(function (item) { return item.start >= now; })
+          .sort(function (a, b) { return a.start - b.start; })[0];
+        if (upcoming) return upcoming.event;
+        return withWindows.sort(function (a, b) { return b.start - a.start; })[0]?.event || null;
+      }
+
+      function saveAttendanceEvent(eventItem) {
+        if (!eventItem) return null;
+        var stored = readList(EVENTS_KEY);
+        var existing = stored.find(function (item) { return item.id === eventItem.id; });
+        var normalized = {
+          id: eventItem.id,
+          title: eventItem.title || "Calendar Event",
+          date: eventItem.date || "",
+          startTime: eventItem.startTime || "",
+          endTime: eventItem.endTime || "",
+          location: eventItem.location || "",
+          type: eventItem.type || "Calendar Event",
+          category: eventItem.category || "calendar",
+          attendanceToken: (existing && existing.attendanceToken) || eventItem.attendanceToken || ("qr-" + Date.now() + "-" + Math.floor(Math.random() * 100000)),
+          createdBy: user
+        };
+        var next = existing
+          ? stored.map(function (item) { return item.id === normalized.id ? Object.assign({}, item, normalized) : item; })
+          : [normalized].concat(stored);
+        writeList(EVENTS_KEY, next);
+        return normalized;
+      }
+
+      function canCheckIn(eventItem) {
+        return !!(openedFromQr && eventItem && eventItem.id === eventId && eventItem.attendanceToken === checkInToken);
+      }
+
+      function statusForCheckIn(eventItem, checkedAt) {
+        if (!eventItem || !eventItem.date || !eventItem.startTime) return "Present";
+        var start = new Date(eventItem.date + "T" + eventItem.startTime + ":00");
+        return checkedAt > start ? "Late" : "Present";
+      }
+
+      function renderUserMeta() {
+        document.getElementById("attendance-current-user").textContent = user;
+        document.getElementById("attendance-current-role").textContent = roleLabels[role] || "User";
+      }
+
+      function renderRoleView() {
+        var attendeePanel = document.querySelector(".attendance-checkin-panel");
+        var hostPanel = document.querySelector(".attendance-host-panel");
+        var grid = document.querySelector(".attendance-grid");
+        var pageTitle = document.querySelector(".attendance-hero .page-title");
+        var pageLede = document.querySelector(".attendance-hero .page-lede");
+        if (attendeePanel) attendeePanel.hidden = isHostView;
+        if (hostPanel) hostPanel.hidden = !isHostView;
+        if (grid) {
+          grid.classList.toggle("is-host-view", isHostView);
+          grid.classList.toggle("is-attendee-view", !isHostView);
+        }
+        if (pageTitle) pageTitle.textContent = isHostView ? "Presenter Attendance View" : "Attendee Check-in";
+        if (pageLede) {
+          pageLede.textContent = isHostView
+            ? "The District host view automatically selects the current or next event and generates the attendance QR."
+            : "Agents can only check in after scanning the host QR and signing in.";
+        }
+      }
+
+      function renderEvent() {
+        var eventItem = selectedEvent();
+        var btn = document.getElementById("attendance-checkin-btn");
+        if (!eventItem) {
+          btn.disabled = true;
+          return;
+        }
+        document.getElementById("attendance-event-label").textContent = canCheckIn(eventItem) ? "Opened from attendance QR link." : "Scan the host QR code to check in.";
+        document.getElementById("attendance-event-type").textContent = eventItem.type || "Calendar Event";
+        document.getElementById("attendance-event-title").textContent = eventItem.title || "Calendar Event";
+        document.getElementById("attendance-event-date").textContent = formatDate(eventItem.date);
+        document.getElementById("attendance-event-time").textContent = eventItem.startTime ? (eventItem.startTime + (eventItem.endTime ? " - " + eventItem.endTime : "")) : "Time not set";
+        document.getElementById("attendance-event-location").textContent = eventItem.location || "Location not set";
+        btn.disabled = !canCheckIn(eventItem);
+        btn.textContent = canCheckIn(eventItem) ? "Check in now" : "Scan QR to check in";
+        var hostLabel = document.getElementById("attendance-host-event-label");
+        if (hostLabel) hostLabel.textContent = "Auto-selected: " + (eventItem.title || "Calendar Event") + " · " + formatDate(eventItem.date);
+      }
+
+      function buildCheckInUrl(eventItem) {
+        var params = new URLSearchParams({
+          eventId: eventItem.id,
+          title: eventItem.title || "Calendar Event",
+          date: eventItem.date || "",
+          startTime: eventItem.startTime || "",
+          endTime: eventItem.endTime || "",
+          location: eventItem.location || "",
+          type: eventItem.type || "Calendar Event",
+          checkIn: "qr",
+          token: eventItem.attendanceToken
+        });
+        return "attendance.html?" + params.toString();
+      }
+
+      function drawMockQr(canvas, value) {
+        var ctx = canvas.getContext("2d");
+        var size = canvas.width;
+        var cells = 29;
+        var cell = Math.floor(size / cells);
+        var offset = Math.floor((size - cell * cells) / 2);
+        var hash = 0;
+        for (var i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = "#111827";
+        function drawFinder(x, y) {
+          ctx.fillStyle = "#111827";
+          ctx.fillRect(offset + x * cell, offset + y * cell, cell * 7, cell * 7);
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(offset + (x + 1) * cell, offset + (y + 1) * cell, cell * 5, cell * 5);
+          ctx.fillStyle = "#111827";
+          ctx.fillRect(offset + (x + 2) * cell, offset + (y + 2) * cell, cell * 3, cell * 3);
+        }
+        drawFinder(1, 1);
+        drawFinder(cells - 8, 1);
+        drawFinder(1, cells - 8);
+        for (var y = 0; y < cells; y += 1) {
+          for (var x = 0; x < cells; x += 1) {
+            var inFinder = (x >= 1 && x <= 7 && y >= 1 && y <= 7) || (x >= cells - 8 && x <= cells - 2 && y >= 1 && y <= 7) || (x >= 1 && x <= 7 && y >= cells - 8 && y <= cells - 2);
+            if (inFinder) continue;
+            if (((hash + x * 17 + y * 29 + x * y * 7) % 5) < 2) {
+              ctx.fillRect(offset + x * cell, offset + y * cell, cell, cell);
+            }
+          }
+        }
+      }
+
+      function renderHostQr(eventItem) {
+        var dialog = document.getElementById("attendance-qr-fullscreen");
+        var canvas = document.getElementById("attendance-host-qr-canvas");
+        var title = document.getElementById("attendance-host-qr-title");
+        var meta = document.getElementById("attendance-host-qr-meta");
+        var link = document.getElementById("attendance-host-qr-link");
+        if (!dialog || !canvas || !title || !link || !eventItem) return;
+        var saved = saveAttendanceEvent(eventItem);
+        var url = buildCheckInUrl(saved);
+        title.textContent = saved.title + " · " + formatDate(saved.date);
+        link.href = url;
+        drawMockQr(canvas, window.location.href.replace(/[^/]+$/, "") + url);
+        dialog.showModal();
+      }
+
+      function renderSelector() {
+        var eventItem = selectedEvent();
+        if (eventItem && !eventId) eventId = eventItem.id;
+      }
+
+      function renderRecords() {
+        var eventItem = selectedEvent();
+        var eventFilter = eventItem ? eventItem.id : "";
+        var events = getEvents();
+        var eventMap = events.reduce(function (map, item) {
+          map[item.id] = item.title || item.id;
+          return map;
+        }, {});
+        var rows = getRecords().filter(function (record) { return !eventFilter || record.eventId === eventFilter; });
+        document.getElementById("attendance-total-count").textContent = String(rows.length);
+        document.getElementById("attendance-present-count").textContent = String(rows.filter(function (row) { return row.status === "Present"; }).length);
+        document.getElementById("attendance-late-count").textContent = String(rows.filter(function (row) { return row.status === "Late"; }).length);
+        document.getElementById("attendance-records-body").innerHTML = rows.length
+          ? rows.map(function (record) {
+              return "<tr>" +
+                "<td><strong>" + escapeHtml(record.userId) + "</strong></td>" +
+                "<td>" + escapeHtml(roleLabels[record.role] || record.role || "User") + "</td>" +
+                "<td>" + escapeHtml(eventMap[record.eventId] || record.eventTitle || record.eventId) + "</td>" +
+                "<td>" + formatDateTime(record.checkInTime) + "</td>" +
+                "<td><span class=\"status-pill " + (record.status === "Late" ? "urgent" : "non-urgent") + "\">" + escapeHtml(record.status) + "</span></td>" +
+              "</tr>";
+            }).join("")
+          : '<tr><td colspan="5" class="muted-text">No attendance recorded for this event yet.</td></tr>';
+      }
+
+      function checkIn() {
+        var eventItem = selectedEvent();
+        if (!eventItem) return;
+        if (!canCheckIn(eventItem)) {
+          document.getElementById("attendance-checkin-message").textContent = "Check-in is locked. Please scan the host's QR code for this event.";
+          return;
+        }
+        var records = getRecords();
+        var existing = records.find(function (record) {
+          return record.eventId === eventItem.id && record.userId === user;
+        });
+        var message = document.getElementById("attendance-checkin-message");
+        var pill = document.getElementById("attendance-status-pill");
+        if (existing) {
+          message.textContent = "Already checked in at " + formatDateTime(existing.checkInTime) + ".";
+          pill.textContent = existing.status;
+          pill.className = "status-pill " + (existing.status === "Late" ? "urgent" : "non-urgent");
+          renderRecords();
+          return;
+        }
+        var now = new Date();
+        var status = statusForCheckIn(eventItem, now);
+        records.unshift({
+          id: "att-" + Date.now(),
+          eventId: eventItem.id,
+          eventTitle: eventItem.title,
+          userId: user,
+          role: role,
+          checkInTime: now.toISOString(),
+          status: status
+        });
+        writeList(RECORDS_KEY, records);
+        message.textContent = "Attendance recorded for " + user + " at " + formatDateTime(now.toISOString()) + ".";
+        pill.textContent = status;
+        pill.className = "status-pill " + (status === "Late" ? "urgent" : "non-urgent");
+        renderRecords();
+      }
+
+      renderUserMeta();
+      renderRoleView();
+      renderSelector();
+      renderEvent();
+      renderRecords();
+      document.getElementById("attendance-checkin-btn").addEventListener("click", checkIn);
+      document.getElementById("attendance-generate-qr-btn").addEventListener("click", function () {
+        var eventItem = selectedEvent();
+        if (eventItem) renderHostQr(eventItem);
+      });
+      document.getElementById("attendance-close-qr-btn").addEventListener("click", function () {
+        document.getElementById("attendance-qr-fullscreen").close();
+      });
+      if (eventId && openedFromQr) checkIn();
+    })();
+  </script>
+</body>
+</html>

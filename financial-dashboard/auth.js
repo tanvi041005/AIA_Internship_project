@@ -4,7 +4,8 @@
   const loggedRole = sessionStorage.getItem("dashboardRole");
 
   if (!PUBLIC_PAGES.has(currentPage) && !loggedRole) {
-    window.location.replace("login.html");
+    const nextPath = `${currentPage}${window.location.search || ""}`;
+    window.location.replace(`login.html?next=${encodeURIComponent(nextPath)}`);
     return;
   }
 
@@ -72,7 +73,10 @@
       sessionStorage.setItem("dashboardUser", username || "User");
       localStorage.setItem("calendarRole", detected.key === "district" ? "district_manager" : "agent");
       localStorage.setItem("overviewScope", "agency");
-      window.location.assign("index.html");
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next") || "";
+      const safeNext = /^[a-z0-9-]+\.html(\?.*)?$/i.test(next) ? next : "index.html";
+      window.location.assign(safeNext);
     });
     return;
   }
@@ -88,6 +92,9 @@
 
     const overviewLink = Array.from(nav.querySelectorAll("a")).find(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "index.html"
+    );
+    const calendarLink = Array.from(nav.querySelectorAll("a")).find(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "calendar.html"
     );
 
     const setOverviewLabel = (link, label) => {
@@ -150,6 +157,40 @@
       });
     }
 
+    if (calendarLink && !document.getElementById("calendar-section-menu")) {
+      const calendarMenu = document.createElement("div");
+      calendarMenu.className = "calendar-nav-menu";
+      calendarLink.insertAdjacentElement("beforebegin", calendarMenu);
+      calendarMenu.appendChild(calendarLink);
+      calendarLink.innerHTML = `<span>Calendar</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
+      calendarLink.setAttribute("aria-haspopup", "true");
+      calendarLink.setAttribute("aria-expanded", "false");
+      calendarMenu.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="calendar-section-menu" id="calendar-section-menu" role="menu" aria-label="Calendar sections">
+            <a href="calendar.html" role="menuitem">Calendar</a>
+            <a href="attendance.html" role="menuitem">Attendance</a>
+          </div>
+        `
+      );
+
+      calendarLink.addEventListener("click", (event) => {
+        if (currentPage === "calendar.html" || currentPage === "attendance.html") {
+          event.preventDefault();
+          const isOpen = calendarMenu.classList.toggle("is-open");
+          calendarLink.setAttribute("aria-expanded", String(isOpen));
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!calendarMenu.contains(event.target)) {
+          calendarMenu.classList.remove("is-open");
+          calendarLink.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
     // Dynamic active tab highlighting based on the current page
     const navLinks = nav.querySelectorAll("a:not(#logout-link)");
     navLinks.forEach(link => {
@@ -157,8 +198,9 @@
       // Check if current link matches page or if we're in a lead-related sub-page
       const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
       const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
+      const isCalendarSection = href === "calendar.html" && currentPage === "attendance.html";
 
-      if (isCurrentPage || isLeadsSubPage) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
