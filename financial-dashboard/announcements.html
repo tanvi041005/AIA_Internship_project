@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIA Elite Academy | Announcements</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+    body { font-family: "Inter", sans-serif; background-color: #f8fafc; }
+    .aia-red { color: #d31145; }
+    .bg-aia-red { background-color: #d31145; }
+    .nav-strip { position: sticky; top: 64px; z-index: 40; background: rgba(255,255,255,.96); border-bottom: 1px solid #dedbd4; box-shadow: 0 1px 8px rgba(32,33,36,.08); backdrop-filter: blur(10px); }
+    .nav-inner { max-width: 1120px; margin: 0 auto; padding: .45rem 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+    .nav-inner a { display: inline-flex; align-items: center; min-height: 36px; padding: .45rem .75rem; border-radius: 7px; border: 1px solid transparent; font-size: .875rem; font-weight: 600; color: #69655e; text-decoration: none; transition: background .15s, color .15s, border-color .15s; }
+    .nav-inner a:hover { background: #faf9f7; color: #a6192e; }
+    .nav-inner a.active { background: #fff1f3; color: #a6192e; border-color: #f4cbd2; }
+    .overview-nav-menu, .calendar-nav-menu { position: relative; display: flex; align-items: center; }
+    .overview-caret { font-size: .78rem; line-height: 1; }
+    .overview-scope-menu, .calendar-section-menu { position: absolute; top: calc(100% + .35rem); left: 0; z-index: 60; min-width: 180px; padding: .35rem; border: 1px solid #dedbd4; border-radius: 8px; background: #fff; box-shadow: 0 10px 24px rgba(32,33,36,.14); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .15s, transform .15s, visibility .15s; }
+    .overview-nav-menu:hover .overview-scope-menu, .overview-nav-menu:focus-within .overview-scope-menu, .overview-nav-menu.is-open .overview-scope-menu, .calendar-nav-menu:hover .calendar-section-menu, .calendar-nav-menu:focus-within .calendar-section-menu, .calendar-nav-menu.is-open .calendar-section-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+    .overview-scope-menu button, .calendar-section-menu a { display: block; width: 100%; padding: .55rem .65rem; border: 0; border-radius: 6px; background: #fff; color: #202124; cursor: pointer; font: inherit; font-weight: 650; text-align: left; white-space: nowrap; }
+    .overview-scope-menu button:hover, .overview-scope-menu button:focus-visible, .calendar-section-menu a:hover, .calendar-section-menu a:focus-visible { background: #fff1f3; color: #a6192e; }
+    .header-user-meta { display: grid; gap: .12rem; justify-items: end; margin-left: auto; min-width: max-content; padding: .32rem .65rem; border: 1px solid #dedbd4; border-radius: 8px; background: #fff; color: #202124; }
+    .header-user-meta span { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #69655e; }
+    .header-user-meta strong { font-size: .92rem; }
+    .nav-user-meta { margin-left: auto; }
+    #logout-link { margin-left: 0; }
+    @media (max-width: 720px) {
+      .nav-inner { overflow-x: auto; flex-wrap: nowrap; gap: .35rem; scrollbar-width: thin; }
+      .nav-inner a { white-space: nowrap; }
+      .header-user-meta { margin-left: .25rem; justify-items: start; }
+    }
+  </style>
+</head>
+<body class="text-slate-800">
+  <script src="auth.js"></script>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Announcements</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="leads.html">Leads</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="room-booking.html">Room Booking</a>
+      <a href="training.html">Training</a>
+      <a href="cpf-calculator.html">CPF Calculator</a>
+      <a href="announcements.html" class="active">Announcements</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+
+  <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <section id="announcement-create-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden hidden"></section>
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-bullhorn aia-red"></i>
+          Team Announcements
+        </h2>
+        <p class="text-sm text-slate-500 mt-1">Leaders and district managers can publish announcements. Agents can respond directly below each one.</p>
+      </div>
+      <div id="announcement-list" class="p-6 space-y-5"></div>
+    </section>
+  </main>
+
+  <script>
+    (function announcementsPage() {
+      var role = (sessionStorage.getItem("dashboardRole") || "").toLowerCase();
+      var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
+      var canCreate = role === "leader" || role === "district";
+      var ANNOUNCEMENTS_KEY = "fm_announcements_v1";
+      var RESPONSES_KEY = "fm_announcement_responses_v1";
+
+      var defaultAnnouncements = [
+        {
+          id: "a1",
+          title: "Q2 Client Follow-up Compliance",
+          category: "Policy Update",
+          message: "All agents must complete follow-up notes for new leads within 24 hours and mark the status in the lead tracker.",
+          responseType: "acknowledge",
+          createdBy: "D123",
+          createdAt: "2026-05-08T01:00:00.000Z"
+        },
+        {
+          id: "a2",
+          title: "RSVP for This Event",
+          category: "Event Reminder",
+          message: "Please RSVP for the Monthly Sales Kickoff by Wednesday 5:00 PM so the admin team can confirm attendance and seating.",
+          responseType: "rsvp",
+          createdBy: "L123",
+          createdAt: "2026-05-08T01:30:00.000Z"
+        },
+        {
+          id: "a3",
+          title: "Portal Feature Testing Window",
+          category: "Testing Notice",
+          message: "This is a test announcement. Please open the Training and Leads modules, then report any issue to your team leader before end of day.",
+          responseType: "status",
+          createdBy: "L123",
+          createdAt: "2026-05-08T02:00:00.000Z"
+        }
+      ];
+
+      function readJson(key, fallback) {
+        try {
+          var raw = localStorage.getItem(key);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function saveJson(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+
+      function ensureAnnouncements() {
+        var records = readJson(ANNOUNCEMENTS_KEY, null);
+        if (!Array.isArray(records) || records.length === 0) {
+          saveJson(ANNOUNCEMENTS_KEY, defaultAnnouncements);
+          return defaultAnnouncements.slice();
+        }
+        return records;
+      }
+
+      function getResponsesStore() {
+        return readJson(RESPONSES_KEY, {});
+      }
+
+      function esc(value) {
+        var node = document.createElement("div");
+        node.textContent = String(value || "");
+        return node.innerHTML;
+      }
+
+      function responseChoices(type) {
+        if (type === "rsvp") {
+          return [
+            { id: "yes", label: "Yes, attending" },
+            { id: "maybe", label: "Maybe" },
+            { id: "no", label: "Unable to attend" }
+          ];
+        }
+        if (type === "status") {
+          return [
+            { id: "done", label: "Completed" },
+            { id: "in_progress", label: "In progress" },
+            { id: "blocked", label: "Blocked" }
+          ];
+        }
+        return [
+          { id: "ack", label: "Acknowledged" },
+          { id: "clarify", label: "Need clarification" }
+        ];
+      }
+
+      function typeLabel(type) {
+        if (type === "rsvp") return "RSVP";
+        if (type === "status") return "Progress Status";
+        return "Acknowledgement";
+      }
+
+      function formatWhen(isoDate) {
+        var date = new Date(isoDate);
+        if (isNaN(date.getTime())) return "";
+        return date.toLocaleString();
+      }
+
+      function renderCreatePanel() {
+        var panel = document.getElementById("announcement-create-panel");
+        if (!panel) return;
+        if (!canCreate) {
+          panel.classList.add("hidden");
+          panel.innerHTML = "";
+          return;
+        }
+        panel.classList.remove("hidden");
+        panel.innerHTML =
+          '<div class="px-6 py-5 border-b border-slate-100 bg-slate-50">' +
+          '<h2 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-pen-to-square aia-red"></i>Create Announcement</h2>' +
+          '<p class="text-sm text-slate-500 mt-1">Publish a new announcement and define how agents should respond.</p></div>' +
+          '<form id="announcement-create-form" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">' +
+          '<label class="flex flex-col gap-1 text-sm"><span class="font-semibold text-slate-700">Title</span><input required id="announcement-title" class="border border-slate-300 rounded-lg px-3 py-2" maxlength="100" placeholder="Enter title"></label>' +
+          '<label class="flex flex-col gap-1 text-sm"><span class="font-semibold text-slate-700">Category</span><input required id="announcement-category" class="border border-slate-300 rounded-lg px-3 py-2" maxlength="60" placeholder="Event / Policy / Alert"></label>' +
+          '<label class="flex flex-col gap-1 text-sm md:col-span-2"><span class="font-semibold text-slate-700">Message</span><textarea required id="announcement-message" class="border border-slate-300 rounded-lg px-3 py-2 min-h-[96px]" maxlength="600" placeholder="Write announcement details"></textarea></label>' +
+          '<label class="flex flex-col gap-1 text-sm"><span class="font-semibold text-slate-700">Response Type</span>' +
+          '<select id="announcement-response-type" class="border border-slate-300 rounded-lg px-3 py-2">' +
+          '<option value="acknowledge">Acknowledge / Clarification</option>' +
+          '<option value="rsvp">RSVP</option>' +
+          '<option value="status">Progress Status</option>' +
+          '</select></label>' +
+          '<div class="flex items-end"><button type="submit" class="bg-aia-red text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-700 transition-colors">Publish</button></div>' +
+          '</form>';
+
+        var form = document.getElementById("announcement-create-form");
+        if (!form) return;
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var title = document.getElementById("announcement-title").value.trim();
+          var category = document.getElementById("announcement-category").value.trim();
+          var message = document.getElementById("announcement-message").value.trim();
+          var responseType = document.getElementById("announcement-response-type").value;
+          if (!title || !category || !message) return;
+
+          var announcements = ensureAnnouncements();
+          announcements.unshift({
+            id: "a" + Date.now(),
+            title: title,
+            category: category,
+            message: message,
+            responseType: responseType,
+            createdBy: user,
+            createdAt: new Date().toISOString()
+          });
+          saveJson(ANNOUNCEMENTS_KEY, announcements);
+          form.reset();
+          renderAnnouncements();
+        });
+      }
+
+      function renderAgentResponse(announcement, existingResponse) {
+        var choices = responseChoices(announcement.responseType);
+        var name = "response-" + announcement.id;
+        var options = choices.map(function (choice) {
+          var checked = existingResponse && existingResponse.choice === choice.id ? "checked" : "";
+          return '<label class="inline-flex items-center gap-2 text-sm text-slate-700 mr-4 mb-2"><input type="radio" name="' + name + '" value="' + choice.id + '" ' + checked + '> ' + esc(choice.label) + "</label>";
+        }).join("");
+        var note = existingResponse && existingResponse.note ? existingResponse.note : "";
+        var buttonLabel = existingResponse ? "Update response" : "Submit response";
+        var updatedLabel = existingResponse ? '<p class="text-xs text-slate-500 mt-2">Last updated: ' + esc(formatWhen(existingResponse.at)) + "</p>" : "";
+        return (
+          '<form class="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50" data-agent-response-form="' + announcement.id + '">' +
+          '<p class="text-sm font-semibold text-slate-700 mb-2">Your response (' + esc(typeLabel(announcement.responseType)) + ")</p>" +
+          '<div class="mb-2">' + options + "</div>" +
+          '<textarea name="note" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" rows="2" maxlength="220" placeholder="Optional note for leader/district">' + esc(note) + "</textarea>" +
+          '<div class="mt-3 flex items-center justify-between"><button type="submit" class="bg-aia-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">' + buttonLabel + "</button>" + updatedLabel + "</div>" +
+          "</form>"
+        );
+      }
+
+      function summarizeResponses(announcement, responsesStore) {
+        var entries = responsesStore[announcement.id] || {};
+        var all = Object.keys(entries).map(function (agentId) {
+          return { agentId: agentId, data: entries[agentId] };
+        });
+        if (all.length === 0) {
+          return '<p class="text-sm text-slate-500 mt-3">No agent responses yet.</p>';
+        }
+        var choiceLabels = {};
+        responseChoices(announcement.responseType).forEach(function (option) {
+          choiceLabels[option.id] = option.label;
+        });
+        var counts = {};
+        all.forEach(function (item) {
+          var key = item.data.choice || "unknown";
+          counts[key] = (counts[key] || 0) + 1;
+        });
+        var chips = Object.keys(counts).map(function (key) {
+          var label = choiceLabels[key] || key;
+          return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 mr-2 mb-2">' + esc(label) + ": " + counts[key] + "</span>";
+        }).join("");
+        var rows = all.map(function (item) {
+          var note = item.data.note ? esc(item.data.note) : "-";
+          var status = choiceLabels[item.data.choice] || item.data.choice || "-";
+          return "<tr><td class='py-2 pr-3 font-medium'>" + esc(item.agentId) + "</td><td class='py-2 pr-3'>" + esc(status) + "</td><td class='py-2 pr-3'>" + note + "</td><td class='py-2 text-slate-500'>" + esc(formatWhen(item.data.at)) + "</td></tr>";
+        }).join("");
+        return (
+          '<div class="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50">' +
+          '<p class="text-sm font-semibold text-slate-700 mb-2">Agent responses summary</p>' +
+          "<div>" + chips + "</div>" +
+          '<div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead><tr class="text-left text-slate-500"><th class="py-1 pr-3">Agent</th><th class="py-1 pr-3">Response</th><th class="py-1 pr-3">Note</th><th class="py-1">Updated</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          "</div>"
+        );
+      }
+
+      function renderAnnouncements() {
+        var announcements = ensureAnnouncements();
+        var responsesStore = getResponsesStore();
+        var container = document.getElementById("announcement-list");
+        if (!container) return;
+        if (!announcements.length) {
+          container.innerHTML = '<p class="text-sm text-slate-500">No announcements published yet.</p>';
+          return;
+        }
+        container.innerHTML = announcements.map(function (announcement) {
+          var existing = responsesStore[announcement.id] && responsesStore[announcement.id][user];
+          var responseSection = role === "agent"
+            ? renderAgentResponse(announcement, existing)
+            : summarizeResponses(announcement, responsesStore);
+          return (
+            '<article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">' +
+            '<div class="flex items-center justify-between gap-3">' +
+            '<p class="text-xs uppercase tracking-wide font-semibold text-slate-500">' + esc(announcement.category || "Announcement") + "</p>" +
+            '<span class="text-xs px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-100 font-semibold">' + esc(typeLabel(announcement.responseType || "acknowledge")) + "</span>" +
+            "</div>" +
+            '<h3 class="font-bold text-lg mt-1">' + esc(announcement.title) + "</h3>" +
+            '<p class="text-sm text-slate-700 mt-2">' + esc(announcement.message) + "</p>" +
+            '<p class="text-xs text-slate-500 mt-3">Posted by ' + esc(announcement.createdBy || "System") + " on " + esc(formatWhen(announcement.createdAt)) + "</p>" +
+            responseSection +
+            "</article>"
+          );
+        }).join("");
+        bindAgentResponseForms();
+      }
+
+      function bindAgentResponseForms() {
+        if (role !== "agent") return;
+        var forms = document.querySelectorAll("[data-agent-response-form]");
+        forms.forEach(function (form) {
+          form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var announcementId = form.getAttribute("data-agent-response-form");
+            if (!announcementId) return;
+            var selected = form.querySelector('input[type="radio"]:checked');
+            if (!selected) return;
+            var noteField = form.querySelector('textarea[name="note"]');
+            var noteValue = noteField ? noteField.value.trim() : "";
+
+            var store = getResponsesStore();
+            if (!store[announcementId]) store[announcementId] = {};
+            store[announcementId][user] = {
+              choice: selected.value,
+              note: noteValue,
+              at: new Date().toISOString()
+            };
+            saveJson(RESPONSES_KEY, store);
+            renderAnnouncements();
+          });
+        });
+      }
+
+      renderCreatePanel();
+      renderAnnouncements();
+    })();
+  </script>
+</body>
+</html>
