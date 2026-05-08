@@ -9,11 +9,6 @@
     return;
   }
 
-  if (currentPage === "recruitment.html" && loggedRole === "agent") {
-    window.location.replace("index.html");
-    return;
-  }
-
   if (currentPage === "login.html") {
     const form = document.getElementById("role-login-form");
     const usernameInput = document.getElementById("login-username");
@@ -132,6 +127,47 @@
       }
     }
 
+    const hasRecruitmentLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
+    );
+    if (!hasRecruitmentLink) {
+      const recruitmentLink = document.createElement("a");
+      recruitmentLink.href = "recruitment.html";
+      recruitmentLink.textContent = "Recruitment";
+      const resourcesLink2 = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
+      );
+      if (resourcesLink2) {
+        resourcesLink2.insertAdjacentElement("afterend", recruitmentLink);
+      } else {
+        nav.appendChild(recruitmentLink);
+      }
+    }
+
+    const hasHelpdeskLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "helpdesk.html"
+    );
+    if (!hasHelpdeskLink) {
+      const helpdeskLink = document.createElement("a");
+      helpdeskLink.href = "helpdesk.html";
+      helpdeskLink.textContent = "Helpdesk";
+      const recruitmentLinkForInsert = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
+      );
+      if (recruitmentLinkForInsert) {
+        recruitmentLinkForInsert.insertAdjacentElement("afterend", helpdeskLink);
+      } else {
+        const resourcesLink3 = Array.from(nav.querySelectorAll("a")).find(
+          (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
+        );
+        if (resourcesLink3) {
+          resourcesLink3.insertAdjacentElement("afterend", helpdeskLink);
+        } else {
+          nav.appendChild(helpdeskLink);
+        }
+      }
+    }
+
     const setOverviewLabel = (link, label) => {
       link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
     };
@@ -205,13 +241,14 @@
         `
           <div class="calendar-section-menu" id="calendar-section-menu" role="menu" aria-label="Calendar sections">
             <a href="calendar.html" role="menuitem">Calendar</a>
+            <a href="room-booking.html" role="menuitem">Room Booking</a>
             <a href="attendance.html" role="menuitem">Attendance</a>
           </div>
         `
       );
 
       calendarLink.addEventListener("click", (event) => {
-        if (currentPage === "calendar.html" || currentPage === "attendance.html") {
+        if (currentPage === "calendar.html" || currentPage === "attendance.html" || currentPage === "room-booking.html") {
           event.preventDefault();
           const isOpen = calendarMenu.classList.toggle("is-open");
           calendarLink.setAttribute("aria-expanded", String(isOpen));
@@ -234,9 +271,11 @@
       const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
       const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
       const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
-      const isCalendarSection = href === "calendar.html" && currentPage === "attendance.html";
+      const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
+      const isRecruitmentPage = href === "recruitment.html" && currentPage === "recruitment.html";
+      const isHelpdeskPage = href === "helpdesk.html" && currentPage === "helpdesk.html";
 
-      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isHelpdeskPage) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
@@ -255,15 +294,6 @@
     }
 
     if (loggedRole && !document.getElementById("logout-link")) {
-      if (loggedRole === "agent") {
-        const recruitmentLink = Array.from(nav.querySelectorAll("a")).find(
-          (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
-        );
-        if (recruitmentLink) {
-          recruitmentLink.remove();
-        }
-      }
-
       const logout = document.createElement("a");
       logout.href = "login.html";
       logout.id = "logout-link";

@@ -5,7 +5,170 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Recruitment · Financial Agent Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="auth.js"></script>
+  <style>
+    /* ── Page header ─────────────────────────────────── */
+    .rp-eyebrow {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.35rem;
+    }
+    .rp-title   { font-size: 1.9rem; font-weight: 800; color: var(--text); margin: 0 0 0.35rem; line-height: 1.15; }
+    .rp-subtitle{ font-size: 0.875rem; color: var(--text-muted); margin: 0 0 0.75rem; }
+    .rp-meta    {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.4rem 0.85rem; font-size: 0.78rem; color: var(--text-muted);
+      margin-bottom: 1.25rem; background: var(--card); cursor: pointer;
+      user-select: none; transition: border-color 0.15s;
+    }
+    .rp-meta:hover { border-color: var(--brand); }
+    .rp-meta .caret { transition: transform 0.2s; }
+    .rp-meta.open .caret { transform: rotate(180deg); }
+    .rp-divider { border: none; border-top: 2px solid var(--brand); opacity: 0.2; margin: 0 0 1.5rem; }
+
+    /* ── Section titles ──────────────────────────────── */
+    .section-label {
+      font-size: 1.05rem; font-weight: 700; color: var(--text);
+      margin: 0 0 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── KPI grid ────────────────────────────────────── */
+    .rp-kpi-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .rp-kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .rp-kpi-lbl {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.4rem;
+    }
+    .rp-kpi-val { font-size: 1.85rem; font-weight: 800; color: var(--text); line-height: 1; margin: 0 0 0.3rem; }
+    .rp-kpi-delta { font-size: 0.78rem; }
+    .delta-up   { color: #059669; }
+    .delta-down { color: var(--brand); }
+    .delta-note { color: var(--text-muted); }
+
+    /* ── Funnel ──────────────────────────────────────── */
+    .funnel-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    }
+    .funnel-intake-tag {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.3rem;
+    }
+    .funnel-intake-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0 0 1rem;
+    }
+    .funnel-hr { border: none; border-top: 1px solid var(--border); margin: 0 0 1.1rem; }
+    .funnel-row {
+      display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.6rem; cursor: pointer;
+    }
+    .funnel-row:hover .funnel-lbl { color: var(--text); }
+    .funnel-lbl {
+      font-size: 0.82rem; color: var(--text-muted); width: 140px;
+      flex-shrink: 0; text-align: right; transition: color 0.15s;
+    }
+    .funnel-track {
+      flex: 1; height: 2.25rem; background: var(--bg-page);
+      border-radius: 4px; overflow: hidden;
+    }
+    .funnel-fill {
+      height: 100%; border-radius: 4px; display: flex; align-items: center;
+      padding: 0 0.75rem; font-size: 0.78rem; font-weight: 700; color: #fff;
+      width: 0; transition: width 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap; min-width: 0;
+    }
+    .funnel-count  { font-size: 1rem; font-weight: 700; color: var(--text); width: 36px; text-align: right; flex-shrink: 0; }
+    .funnel-detail {
+      display: none; background: var(--surface-subtle); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.75rem 1rem; margin: -0.25rem 0 0.6rem 9.8rem;
+      font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;
+    }
+    .funnel-detail.open { display: block; }
+
+    /* ── Two-col grid ────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .panel-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    }
+    .panel-card h3 { font-size: 0.88rem; font-weight: 700; color: var(--text); margin: 0 0 1rem; }
+
+    /* Source bars */
+    .src-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
+    .src-lbl  { font-size: 0.82rem; color: var(--text); width: 85px; flex-shrink: 0; }
+    .src-track{ flex: 1; height: 8px; background: var(--bg-page); border-radius: 999px; overflow: hidden; }
+    .src-fill {
+      height: 100%; border-radius: 999px; background: var(--brand);
+      width: 0; transition: width 0.85s ease;
+    }
+    .src-pct  { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); width: 34px; text-align: right; }
+
+    /* Programs table */
+    .prog-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .prog-table th {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-muted); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
+      text-align: left; background: var(--surface-subtle);
+    }
+    .prog-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    .prog-table tr:last-child td { border-bottom: none; }
+    .prog-table tr:hover td { background: var(--surface-subtle); }
+    .prog-bar-cell { width: 100px; }
+    .prog-mini-track { height: 6px; background: var(--bg-page); border-radius: 999px; overflow: hidden; }
+    .prog-mini-fill  { height: 100%; border-radius: 999px; background: var(--brand); }
+    .stage-pill {
+      display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .pill-open   { background: #fff3cd; color: #856404; }
+    .pill-active { background: var(--brand-light); color: var(--brand-dark); }
+    .pill-closed { background: #d1fae5; color: #065f46; }
+
+    /* ── Scope section ───────────────────────────────── */
+    .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .scope-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    }
+    .scope-eyebrow {
+      font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.25rem;
+    }
+    .scope-heading { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0 0 0.75rem; }
+    .scope-divider { border: none; border-top: 1px solid var(--brand); opacity: 0.2; margin: 0 0 0.75rem; }
+    .scope-item {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 0.45rem; font-size: 0.83rem; color: var(--text); transition: border-color 0.15s;
+    }
+    .scope-item:hover { border-color: var(--border-strong); }
+    .scope-item input[type="checkbox"] { flex-shrink: 0; margin-top: 2px; accent-color: var(--brand); cursor: pointer; }
+    .scope-item.out { color: var(--text-muted); }
+    .scope-item.out .scope-item-text { text-decoration: none; }
+
+    /* ── Build notes ─────────────────────────────────── */
+    .build-notes {
+      background: #fffbeb; border: 1px dashed #f0c050;
+      border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .build-notes-lbl {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #92650a; margin: 0 0 0.4rem;
+    }
+    .build-notes p  { font-size: 0.85rem; color: var(--text); margin: 0 0 0.5rem; }
+    .build-notes ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+    .build-notes li { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+    .build-notes em { color: var(--brand); font-style: italic; }
+
+    @media (max-width: 900px) {
+      .rp-kpi-grid { grid-template-columns: 1fr 1fr; }
+      .two-col, .scope-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -13,76 +176,197 @@
   <header class="site-header">
     <div class="site-header-inner">
       <h1 class="site-title">Financial Agent Dashboard</h1>
-      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
     </div>
   </header>
 
-  <div class="nav-strip">
-    <nav class="nav-inner" aria-label="Primary">
-      <a href="index.html">Overview</a>
-      <a href="leads.html">Leads</a>
-      <div class="calendar-nav-menu">
-        <a href="calendar.html">Calendar</a>
-        <div class="calendar-section-menu">
-          <a href="calendar.html">Calendar</a>
-          <a href="room-booking.html">Room Booking</a>
-          <a href="attendance.html">Attendance</a>
-        </div>
-      </div>
-      <a href="sales-tracker.html">Sales Tracker</a>
-      <a href="training.html">Training</a>
-      <a href="cpf-calculator.html">CPF Calculator</a>
-      <a href="resources.html">Resources</a>
-    </nav>
-  </div>
+  <div id="site-nav"></div>
 
   <main id="main">
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-start;">
-      <div>
-        <p style="margin:0;font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand);">Leaders & District</p>
-        <h1 class="page-title" style="margin-top:0.35rem;">Recruitment</h1>
-        <p class="page-lede" style="margin-bottom:0;">Pipeline snapshot — replace with live ATS data.</p>
+    <!-- ── Page header ── -->
+    <p class="rp-eyebrow">iRECRUIT+ · 2026 · Leaders &amp; District</p>
+    <h1 class="rp-title">iRECRUIT+ <span style="font-weight:400;font-size:1.1rem;color:var(--text-muted);vertical-align:middle;">Recruitment Pipeline</span></h1>
+    <p class="rp-subtitle">Applicant funnel from intake to active Financial Consultant — conversion analytics, source attribution, and programme breakdown.</p>
+    <div class="rp-meta" id="rp-meta-toggle" aria-expanded="false">
+      <span class="caret">▼</span>
+      <span>Programme Lead: District Manager &middot; Cycle: 2026 Intake &middot; Target: 10 Active FCs</span>
+    </div>
+    <hr class="rp-divider" />
+
+    <!-- ── KPI cards ── -->
+    <div class="rp-kpi-grid">
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Conversion Rate</p>
+        <p class="rp-kpi-val">4.0%</p>
+        <p class="rp-kpi-delta"><span class="delta-up">▲ +0.8%</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Time to Offer</p>
+        <p class="rp-kpi-val">19d</p>
+        <p class="rp-kpi-delta"><span class="delta-down">▼ -4d</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Offer Acceptance</p>
+        <p class="rp-kpi-val">67%</p>
+        <p class="rp-kpi-delta"><span class="delta-up">▲ +12%</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Source: Referral</p>
+        <p class="rp-kpi-val">42%</p>
+        <p class="rp-kpi-delta"><span class="delta-note">highest converter</span></p>
       </div>
     </div>
 
-    <div class="table-wrap" style="margin-top:1.5rem;">
-      <table class="data">
-        <thead>
-          <tr>
-            <th scope="col">Programme</th>
-            <th scope="col">Opens</th>
-            <th scope="col">Interviews</th>
-            <th scope="col">Offers</th>
-            <th scope="col">Owner</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Internship — Engineering</strong></td>
-            <td>58</td>
-            <td>22</td>
-            <td>6</td>
-            <td>Talent Ops</td>
-          </tr>
-          <tr>
-            <td><strong>Internship — Data</strong></td>
-            <td>41</td>
-            <td>17</td>
-            <td>5</td>
-            <td>Talent Ops</td>
-          </tr>
-          <tr>
-            <td><strong>Graduate Programme</strong></td>
-            <td>33</td>
-            <td>14</td>
-            <td>4</td>
-            <td>Campus</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- ── Funnel view ── -->
+    <p class="section-label">Funnel view</p>
+    <div class="funnel-card">
+      <p class="funnel-intake-tag">2026 INTAKE — 247 APPLICANTS — 10 ACTIVE FCs</p>
+      <p class="funnel-intake-title">From applicants to active Financial Consultants</p>
+      <hr class="funnel-hr" />
+      <div id="funnel-rows"></div>
     </div>
+
+    <!-- ── Source + Programs ── -->
+    <div class="two-col">
+      <div class="panel-card">
+        <h3>Source attribution</h3>
+        <div id="source-rows"></div>
+      </div>
+      <div class="panel-card">
+        <h3>Programmes</h3>
+        <table class="prog-table">
+          <thead>
+            <tr>
+              <th>Programme</th>
+              <th>Opens</th>
+              <th>Interviews</th>
+              <th>Offers</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody id="prog-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
-  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <footer class="site-footer">
+    <p>AIA Financial Agent Dashboard &mdash; Internal Use Only</p>
+  </footer>
+
+  <script src="nav.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // ─── Data ─────────────────────────────────────────────
+    const FUNNEL = [
+      { label: "Applicants",      count: 247, pct: 100, color: "#202124",
+        detail: "247 total applicants across all channels. Referral (42%), LinkedIn (28%), Walk-in (18%), Job portals (12%)." },
+      { label: "CV Review Pass",  count: 178, pct: 72,  color: "#374151",
+        detail: "178 CVs cleared initial screening. Top drop-off: incomplete applications (38%), mismatched experience (24%)." },
+      { label: "First Interview", count: 94,  pct: 38,  color: "#4b5563",
+        detail: "94 candidates attended first interview. Panel: Agency Leader + HR. Avg duration 35 min." },
+      { label: "Final Round",     count: 35,  pct: 14,  color: "#6b7280",
+        detail: "35 reached final assessment. Includes role-play, financial planning exercise, and culture fit review." },
+      { label: "Offer Extended",  count: 18,  pct: 7,   color: "#9ca3af",
+        detail: "18 offers sent. Avg time from first interview to offer: 19 days. Decline reasons: competing offers (3), relocation (2)." },
+      { label: "Active FC",       count: 10,  pct: 4,   color: "#a6192e",
+        detail: "10 active Financial Consultants from this intake. Target was 10. Onboarding completion: 80%." },
+    ];
+
+    const SOURCES = [
+      { label: "Referral",    pct: 42 },
+      { label: "LinkedIn",    pct: 28 },
+      { label: "Walk-in",     pct: 18 },
+      { label: "Job Portals", pct: 12 },
+    ];
+
+    const PROGRAMS = [
+      { name: "FC Graduate",       opens: 58, interviews: 22, offers: 6,  status: "active" },
+      { name: "Internship – Eng",  opens: 41, interviews: 17, offers: 5,  status: "open"   },
+      { name: "Internship – Data", opens: 33, interviews: 14, offers: 4,  status: "open"   },
+    ];
+
+    // ─── Render funnel ─────────────────────────────────────
+    function renderFunnel() {
+      const container = document.getElementById("funnel-rows");
+      container.innerHTML = FUNNEL.map((s, i) => `
+        <div class="funnel-row" data-idx="${i}" role="button" tabindex="0" aria-expanded="false"
+             aria-label="${s.label}: ${s.count} (${s.pct}%)">
+          <span class="funnel-lbl">${s.label}</span>
+          <div class="funnel-track">
+            <div class="funnel-fill" data-pct="${s.pct}" style="background:${s.color}">
+              ${s.pct}%
+            </div>
+          </div>
+          <span class="funnel-count">${s.count}</span>
+        </div>
+        <div class="funnel-detail" id="funnel-detail-${i}">${s.detail}</div>
+      `).join("");
+
+      // Animate on load
+      requestAnimationFrame(() => setTimeout(() => {
+        document.querySelectorAll(".funnel-fill").forEach(el => {
+          el.style.width = el.dataset.pct + "%";
+        });
+      }, 120));
+
+      // Toggle details on click / Enter
+      container.querySelectorAll(".funnel-row").forEach(row => {
+        const toggle = () => {
+          const idx    = row.dataset.idx;
+          const detail = document.getElementById(`funnel-detail-${idx}`);
+          const open   = detail.classList.toggle("open");
+          row.setAttribute("aria-expanded", String(open));
+        };
+        row.addEventListener("click",   toggle);
+        row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+      });
+    }
+
+    // ─── Render source attribution ─────────────────────────
+    function renderSources() {
+      document.getElementById("source-rows").innerHTML = SOURCES.map(s => `
+        <div class="src-row">
+          <span class="src-lbl">${s.label}</span>
+          <div class="src-track"><div class="src-fill" data-pct="${s.pct}"></div></div>
+          <span class="src-pct">${s.pct}%</span>
+        </div>
+      `).join("");
+
+      requestAnimationFrame(() => setTimeout(() => {
+        document.querySelectorAll(".src-fill").forEach(el => {
+          el.style.width = el.dataset.pct + "%";
+        });
+      }, 200));
+    }
+
+    // ─── Render programs ───────────────────────────────────
+    function renderPrograms() {
+      const statusPill = s => {
+        if (s === "active")  return `<span class="stage-pill pill-active">Active</span>`;
+        if (s === "closed")  return `<span class="stage-pill pill-closed">Closed</span>`;
+        return `<span class="stage-pill pill-open">Open</span>`;
+      };
+      document.getElementById("prog-tbody").innerHTML = PROGRAMS.map(p => {
+        const pct = Math.round((p.offers / p.opens) * 100);
+        return `<tr>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.opens}</td>
+          <td>${p.interviews}</td>
+          <td>${p.offers}</td>
+          <td class="prog-bar-cell">
+            <div class="prog-mini-track">
+              <div class="prog-mini-fill" style="width:${pct}%"></div>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    renderFunnel();
+    renderSources();
+    renderPrograms();
+  </script>
 </body>
 </html>

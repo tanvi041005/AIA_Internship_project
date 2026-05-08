@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helpdesk · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── KPI grid ─────────────────────────────────────── */
+    .hd-kpi-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .hd-kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .hd-kpi-lbl {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.35rem;
+    }
+    .hd-kpi-val  { font-size: 1.85rem; font-weight: 800; color: var(--text); line-height: 1; margin: 0 0 0.3rem; }
+    .hd-kpi-sub  { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* ── Controls bar ─────────────────────────────────── */
+    .hd-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .hd-filters { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .hd-filter-btn {
+      background: none; border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.3rem 0.8rem; font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+      cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .hd-filter-btn:hover     { border-color: var(--brand); color: var(--brand); }
+    .hd-filter-btn.active    { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .hd-filter-count {
+      background: rgba(255,255,255,0.25); border-radius: 999px;
+      padding: 0 5px; font-size: 0.7rem; font-weight: 700; line-height: 1.4;
+    }
+    .hd-filter-btn:not(.active) .hd-filter-count {
+      background: var(--bg-page); color: var(--text-muted);
+    }
+    .hd-right { display: flex; align-items: center; gap: 0.6rem; }
+    .hd-search {
+      padding: 0.4rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 0.84rem; color: var(--text); background: var(--card); font-family: inherit;
+      outline: none; width: 200px; transition: border-color 0.15s;
+    }
+    .hd-search:focus { border-color: var(--brand); }
+    .hd-new-btn {
+      background: var(--brand); color: #fff; border: none; border-radius: var(--radius);
+      padding: 0.42rem 1rem; font-size: 0.84rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: background 0.15s; white-space: nowrap;
+    }
+    .hd-new-btn:hover { background: var(--brand-dark); }
+
+    /* ── Ticket list ──────────────────────────────────── */
+    .hd-list-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .hd-ticket {
+      display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.25rem;
+      border-left: 3px solid transparent; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.12s;
+    }
+    .hd-ticket:last-child { border-bottom: none; }
+    .hd-ticket:hover      { background: var(--surface-subtle); }
+    .hd-ticket.priority-high   { border-left-color: #dc2626; }
+    .hd-ticket.priority-medium { border-left-color: #f59e0b; }
+    .hd-ticket.priority-low    { border-left-color: #6b7280; }
+    .hd-ticket.status-done     { opacity: 0.65; }
+
+    .hd-ticket-id {
+      font-size: 0.75rem; font-weight: 700; color: var(--brand);
+      width: 52px; flex-shrink: 0;
+    }
+    .hd-ticket-body { flex: 1; min-width: 0; }
+    .hd-ticket-title {
+      font-size: 0.875rem; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin: 0 0 0.18rem;
+    }
+    .hd-ticket-meta { font-size: 0.75rem; color: var(--text-muted); }
+    .hd-ticket-priority {
+      font-size: 0.72rem; color: var(--text-muted);
+      width: 60px; flex-shrink: 0; text-align: right;
+    }
+    .hd-badge {
+      display: inline-block; padding: 0.22rem 0.7rem; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em;
+      flex-shrink: 0; width: 72px; text-align: center;
+    }
+    .badge-urgent { background: #dc2626; color: #fff; }
+    .badge-open   { background: #f59e0b; color: #fff; }
+    .badge-progress { background: #2563eb; color: #fff; }
+    .badge-done   { background: #059669; color: #fff; }
+
+    .hd-empty {
+      padding: 3rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;
+    }
+
+    /* ── Drawer ───────────────────────────────────────── */
+    .hd-overlay {
+      position: fixed; inset: 0; background: rgba(32,33,36,0.35);
+      z-index: 400; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .hd-overlay.open { opacity: 1; pointer-events: auto; }
+    .hd-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw);
+      background: var(--card); border-left: 1px solid var(--border);
+      z-index: 500; transform: translateX(100%); transition: transform 0.25s ease;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .hd-drawer.open { transform: translateX(0); }
+    .drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .drawer-header h2 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin: 0; }
+    .drawer-close {
+      background: none; border: none; cursor: pointer; font-size: 1.2rem;
+      color: var(--text-muted); padding: 0; line-height: 1; transition: color 0.15s;
+    }
+    .drawer-close:hover { color: var(--brand); }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+    .drawer-field { margin-bottom: 1rem; }
+    .drawer-field-lbl {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.3rem; display: block;
+    }
+    .drawer-field-val { font-size: 0.875rem; color: var(--text); line-height: 1.5; }
+    .drawer-actions {
+      display: flex; gap: 0.5rem; padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+    }
+    .action-btn {
+      flex: 1; padding: 0.5rem 0.75rem; border-radius: var(--radius);
+      font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit;
+      border: 1px solid var(--border); background: var(--card); color: var(--text);
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .action-btn:hover         { border-color: var(--brand); color: var(--brand); }
+    .action-btn.primary       { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .action-btn.primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+    .action-btn.danger        { color: #dc2626; border-color: #fca5a5; }
+    .action-btn.danger:hover  { background: #fef2f2; }
+
+    /* ── New ticket modal ─────────────────────────────── */
+    .hd-modal-bg {
+      position: fixed; inset: 0; background: rgba(32,33,36,0.45);
+      z-index: 600; display: flex; align-items: center; justify-content: center;
+      padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .hd-modal-bg.open { opacity: 1; pointer-events: auto; }
+    .hd-modal {
+      background: var(--card); border-radius: var(--radius);
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 48px rgba(32,33,36,0.2);
+      transform: translateY(16px); transition: transform 0.2s;
+    }
+    .hd-modal-bg.open .hd-modal { transform: translateY(0); }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
+    .modal-body    { padding: 1.25rem; }
+    .modal-footer  {
+      display: flex; justify-content: flex-end; gap: 0.5rem;
+      padding: 1rem 1.25rem; border-top: 1px solid var(--border);
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text); margin-bottom: 0.35rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.875rem; color: var(--text);
+      background: var(--card); font-family: inherit; outline: none; box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--brand); }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .modal-cancel {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.45rem 1rem; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      color: var(--text); font-family: inherit; transition: background 0.15s;
+    }
+    .modal-cancel:hover { background: var(--surface-subtle); }
+    .modal-submit {
+      background: var(--brand); color: #fff; border: none; border-radius: var(--radius);
+      padding: 0.45rem 1.25rem; font-size: 0.84rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
+    .modal-submit:hover { background: var(--brand-dark); }
+
+    @media (max-width: 768px) {
+      .hd-kpi-grid { grid-template-columns: 1fr 1fr; }
+      .hd-controls { flex-direction: column; align-items: flex-start; }
+      .hd-right { width: 100%; }
+      .hd-search { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
+    </div>
+  </header>
+
+  <div id="site-nav"></div>
+
+  <main id="main">
+    <h1 class="page-title">Helpdesk</h1>
+    <p class="page-lede">Submit, track, and resolve technical issues and access requests across the team.</p>
+
+    <!-- KPI cards -->
+    <div class="hd-kpi-grid">
+      <div class="hd-kpi">
+        <p class="hd-kpi-lbl">Open Tickets</p>
+        <p class="hd-kpi-val" id="kpi-open">—</p>
+        <p class="hd-kpi-sub">awaiting resolution</p>
+      </div>
+      <div class="hd-kpi">
+        <p class="hd-kpi-lbl">Avg Resolution Time</p>
+        <p class="hd-kpi-val">4.2h</p>
+        <p class="hd-kpi-sub">last 30 days</p>
+      </div>
+      <div class="hd-kpi">
+        <p class="hd-kpi-lbl">Resolved This Week</p>
+        <p class="hd-kpi-val" id="kpi-resolved">—</p>
+        <p class="hd-kpi-sub">tickets closed</p>
+      </div>
+      <div class="hd-kpi">
+        <p class="hd-kpi-lbl">High Priority</p>
+        <p class="hd-kpi-val" id="kpi-high">—</p>
+        <p class="hd-kpi-sub">urgent or critical</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="hd-controls">
+      <div class="hd-filters" id="filter-tabs" role="group" aria-label="Filter tickets">
+        <button class="hd-filter-btn active" data-filter="all">All <span class="hd-filter-count" id="cnt-all">0</span></button>
+        <button class="hd-filter-btn" data-filter="open">Open <span class="hd-filter-count" id="cnt-open">0</span></button>
+        <button class="hd-filter-btn" data-filter="progress">In Progress <span class="hd-filter-count" id="cnt-progress">0</span></button>
+        <button class="hd-filter-btn" data-filter="done">Done <span class="hd-filter-count" id="cnt-done">0</span></button>
+        <button class="hd-filter-btn" data-filter="high">Urgent <span class="hd-filter-count" id="cnt-high">0</span></button>
+      </div>
+      <div class="hd-right">
+        <input type="text" class="hd-search" id="hd-search" placeholder="Search tickets…" autocomplete="off" />
+        <button class="hd-new-btn" id="new-ticket-btn">+ New ticket</button>
+      </div>
+    </div>
+
+    <!-- Ticket list -->
+    <div class="hd-list-wrap" id="hd-list"></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>AIA Financial Agent Dashboard &mdash; Internal Use Only</p>
+  </footer>
+
+  <!-- Overlay -->
+  <div class="hd-overlay" id="hd-overlay"></div>
+
+  <!-- Ticket detail drawer -->
+  <aside class="hd-drawer" id="hd-drawer" role="dialog" aria-modal="true" aria-label="Ticket details">
+    <div class="drawer-header">
+      <h2 id="drawer-title">Ticket</h2>
+      <button class="drawer-close" id="drawer-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+    <div class="drawer-actions" id="drawer-actions"></div>
+  </aside>
+
+  <!-- New ticket modal -->
+  <div class="hd-modal-bg" id="modal-bg" role="dialog" aria-modal="true" aria-label="New ticket">
+    <div class="hd-modal">
+      <div class="modal-header">
+        <h2>New ticket</h2>
+        <button class="drawer-close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="f-title">Title <span style="color:var(--brand)">*</span></label>
+          <input type="text" id="f-title" placeholder="Brief description of the issue" />
+        </div>
+        <div class="form-group">
+          <label for="f-desc">Description</label>
+          <textarea id="f-desc" placeholder="Steps to reproduce, error message, affected users…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-category">Category</label>
+            <select id="f-category">
+              <option value="Bug">Bug</option>
+              <option value="Access">Access Request</option>
+              <option value="Performance">Performance</option>
+              <option value="Feature">Feature Request</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="f-priority">Priority</label>
+            <select id="f-priority">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-reporter">Your name <span style="color:var(--brand)">*</span></label>
+          <input type="text" id="f-reporter" placeholder="Full name" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-submit" id="modal-submit">Submit ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // ─── Default tickets ──────────────────────────────────
+    const TICKETS_KEY = "fm_helpdesk_v1";
+
+    const SEED = [
+      { id: 247, title: "SharePoint access denied on Resources tab",
+        desc: "Agent cannot access the SharePoint resource links. Getting 403 Forbidden error when clicking any document link.",
+        reporter: "Charvelle Tan", reportedAt: "2026-05-08T10:48:00",
+        priority: "high", status: "open", category: "Access" },
+      { id: 246, title: "CPF Calculator not saving inputs on Safari",
+        desc: "When using Safari browser, the CPF calculator fields reset when switching between browser tabs. Affects iOS and macOS users.",
+        reporter: "Qistinah Bte Rashid", reportedAt: "2026-05-08T08:30:00",
+        priority: "medium", status: "open", category: "Bug" },
+      { id: 245, title: "Need access to AIA iSmart for client demos",
+        desc: "Requesting access to the AIA iSmart financial planning tool for use during client meetings and product presentations.",
+        reporter: "Soon Chuan Lim", reportedAt: "2026-05-07T16:20:00",
+        priority: "low", status: "progress", category: "Access" },
+      { id: 244, title: "Calendar sync timeout on district events",
+        desc: "District calendar events take over 10 seconds to load. Suspected issue with the SG holiday API fallback logic.",
+        reporter: "Kristen Ng", reportedAt: "2026-05-07T14:00:00",
+        priority: "low", status: "done", category: "Performance" },
+      { id: 243, title: "Leads module table overflows on mobile",
+        desc: "The leads table scrolls horizontally on mobile screen widths and the detail drawer doesn't open properly on touch devices.",
+        reporter: "Brandon Lee", reportedAt: "2026-05-06T09:15:00",
+        priority: "medium", status: "open", category: "Bug" },
+      { id: 242, title: "Training video playback fails on Edge browser",
+        desc: "Module 1 YouTube video shows 'Video unavailable' on Microsoft Edge. Works correctly on Chrome and Firefox.",
+        reporter: "Alicia Tan", reportedAt: "2026-05-05T11:30:00",
+        priority: "low", status: "done", category: "Bug" },
+    ];
+
+    // ─── Load / save ──────────────────────────────────────
+    function loadTickets() {
+      try {
+        const raw = localStorage.getItem(TICKETS_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch(e) {}
+      return JSON.parse(JSON.stringify(SEED));
+    }
+    function saveTickets(t) { localStorage.setItem(TICKETS_KEY, JSON.stringify(t)); }
+
+    let tickets  = loadTickets();
+    let filter   = "all";
+    let query    = "";
+    let openId   = null;
+
+    // ─── Helpers ──────────────────────────────────────────
+    function relTime(iso) {
+      const diff = (Date.now() - new Date(iso)) / 1000;
+      if (diff < 60)   return "just now";
+      if (diff < 3600) return Math.floor(diff / 60) + " min ago";
+      if (diff < 86400)return Math.floor(diff / 3600) + " hr ago";
+      return Math.floor(diff / 86400) + " day" + (Math.floor(diff / 86400) > 1 ? "s" : "") + " ago";
+    }
+    function badgeClass(s) {
+      return { open: "badge-open", progress: "badge-progress", done: "badge-done", urgent: "badge-urgent" }[s]
+        || (s === "open" ? "badge-open" : "badge-done");
+    }
+    function badgeLabel(t) {
+      if (t.priority === "high" && t.status === "open") return "URGENT";
+      if (t.status === "progress") return "IN PROGRESS";
+      if (t.status === "done")     return "DONE";
+      return "OPEN";
+    }
+    function priorityLabel(p) {
+      return { high: "High priority", medium: "Medium", low: "Low" }[p] || p;
+    }
+    function nextStatus(current) {
+      if (current === "open")     return "progress";
+      if (current === "progress") return "done";
+      return "open";
+    }
+    function nextStatusLabel(current) {
+      if (current === "open")     return "Mark In Progress";
+      if (current === "progress") return "Mark Done";
+      return "Reopen";
+    }
+
+    // ─── Filter & render list ─────────────────────────────
+    function filteredTickets() {
+      return tickets.filter(t => {
+        const matchFilter =
+          filter === "all"      ||
+          (filter === "open"     && t.status === "open")     ||
+          (filter === "progress" && t.status === "progress") ||
+          (filter === "done"     && t.status === "done")     ||
+          (filter === "high"     && t.priority === "high" && t.status !== "done");
+        const matchQuery = !query ||
+          t.title.toLowerCase().includes(query) ||
+          t.reporter.toLowerCase().includes(query) ||
+          t.category.toLowerCase().includes(query) ||
+          String(t.id).includes(query);
+        return matchFilter && matchQuery;
+      });
+    }
+
+    function updateCounts() {
+      const open     = tickets.filter(t => t.status === "open").length;
+      const progress = tickets.filter(t => t.status === "progress").length;
+      const done     = tickets.filter(t => t.status === "done").length;
+      const high     = tickets.filter(t => t.priority === "high" && t.status !== "done").length;
+
+      document.getElementById("cnt-all").textContent      = tickets.length;
+      document.getElementById("cnt-open").textContent     = open;
+      document.getElementById("cnt-progress").textContent = progress;
+      document.getElementById("cnt-done").textContent     = done;
+      document.getElementById("cnt-high").textContent     = high;
+
+      document.getElementById("kpi-open").textContent     = open + progress;
+      document.getElementById("kpi-resolved").textContent = done;
+      document.getElementById("kpi-high").textContent     = high;
+    }
+
+    function renderList() {
+      updateCounts();
+      const list    = document.getElementById("hd-list");
+      const visible = filteredTickets();
+      if (visible.length === 0) {
+        list.innerHTML = `<div class="hd-empty">No tickets match this filter.</div>`;
+        return;
+      }
+      list.innerHTML = visible.map(t => {
+        const bl = t.priority === "high" && t.status !== "done" ? "badge-urgent"
+                 : t.status === "progress" ? "badge-progress"
+                 : t.status === "done"     ? "badge-done" : "badge-open";
+        const bl2 = t.priority === "high" && t.status === "open" ? "URGENT"
+                  : t.status === "progress" ? "IN PROGRESS"
+                  : t.status === "done"     ? "DONE" : "OPEN";
+        return `<div class="hd-ticket priority-${t.priority} status-${t.status}"
+                     data-id="${t.id}" role="button" tabindex="0"
+                     aria-label="Ticket #${t.id}: ${t.title}">
+          <span class="hd-ticket-id">#${String(t.id).padStart(4, "0")}</span>
+          <div class="hd-ticket-body">
+            <p class="hd-ticket-title">${t.title}</p>
+            <p class="hd-ticket-meta">Reported ${relTime(t.reportedAt)} &middot; ${t.reporter} &middot; ${t.category}</p>
+          </div>
+          <span class="hd-ticket-priority">${priorityLabel(t.priority)}</span>
+          <span class="hd-badge ${bl}">${bl2}</span>
+        </div>`;
+      }).join("");
+
+      list.querySelectorAll(".hd-ticket").forEach(row => {
+        const open = () => openDrawer(+row.dataset.id);
+        row.addEventListener("click", open);
+        row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      });
+    }
+
+    // ─── Drawer ───────────────────────────────────────────
+    function openDrawer(id) {
+      openId = id;
+      const t = tickets.find(x => x.id === id);
+      if (!t) return;
+
+      document.getElementById("drawer-title").textContent = `#${String(t.id).padStart(4, "0")} · ${t.category}`;
+      document.getElementById("drawer-body").innerHTML = `
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Title</span>
+          <span class="drawer-field-val" style="font-weight:600">${t.title}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Description</span>
+          <span class="drawer-field-val">${t.desc || "No description provided."}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Reporter</span>
+          <span class="drawer-field-val">${t.reporter}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Reported</span>
+          <span class="drawer-field-val">${relTime(t.reportedAt)}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Category</span>
+          <span class="drawer-field-val">${t.category}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Priority</span>
+          <span class="drawer-field-val">${priorityLabel(t.priority)}</span>
+        </div>
+        <div class="drawer-field">
+          <span class="drawer-field-lbl">Status</span>
+          <span class="hd-badge ${badgeClass(t.status === "open" && t.priority === "high" ? "urgent" : t.status)}"
+                style="display:inline-block">
+            ${badgeLabel(t)}
+          </span>
+        </div>
+      `;
+
+      document.getElementById("drawer-actions").innerHTML = `
+        <button class="action-btn primary" id="drawer-status-btn">${nextStatusLabel(t.status)}</button>
+        <button class="action-btn danger"  id="drawer-delete-btn">Delete</button>
+      `;
+
+      document.getElementById("drawer-status-btn").addEventListener("click", () => {
+        t.status = nextStatus(t.status);
+        saveTickets(tickets);
+        renderList();
+        openDrawer(id);
+      });
+      document.getElementById("drawer-delete-btn").addEventListener("click", () => {
+        if (confirm(`Delete ticket #${String(t.id).padStart(4,"0")}?`)) {
+          tickets = tickets.filter(x => x.id !== id);
+          saveTickets(tickets);
+          closeDrawer();
+          renderList();
+        }
+      });
+
+      document.getElementById("hd-overlay").classList.add("open");
+      document.getElementById("hd-drawer").classList.add("open");
+      document.getElementById("drawer-close").focus();
+    }
+
+    function closeDrawer() {
+      document.getElementById("hd-overlay").classList.remove("open");
+      document.getElementById("hd-drawer").classList.remove("open");
+      openId = null;
+    }
+
+    document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+    document.getElementById("hd-overlay").addEventListener("click", closeDrawer);
+    document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDrawer(); closeModal(); } });
+
+    // ─── New ticket modal ─────────────────────────────────
+    function openModal() {
+      document.getElementById("f-title").value    = "";
+      document.getElementById("f-desc").value     = "";
+      document.getElementById("f-reporter").value = sessionStorage.getItem("dashboardUser") || "";
+      document.getElementById("hd-modal-bg") || 0;
+      document.getElementById("modal-bg").classList.add("open");
+      document.getElementById("f-title").focus();
+    }
+    function closeModal() {
+      document.getElementById("modal-bg").classList.remove("open");
+    }
+
+    document.getElementById("new-ticket-btn").addEventListener("click", openModal);
+    document.getElementById("modal-close").addEventListener("click",  closeModal);
+    document.getElementById("modal-cancel").addEventListener("click", closeModal);
+
+    document.getElementById("modal-submit").addEventListener("click", () => {
+      const title    = document.getElementById("f-title").value.trim();
+      const reporter = document.getElementById("f-reporter").value.trim();
+      if (!title)    { document.getElementById("f-title").focus();    return; }
+      if (!reporter) { document.getElementById("f-reporter").focus(); return; }
+
+      const newId = Math.max(...tickets.map(t => t.id), 247) + 1;
+      tickets.unshift({
+        id:         newId,
+        title,
+        desc:       document.getElementById("f-desc").value.trim(),
+        reporter,
+        reportedAt: new Date().toISOString(),
+        priority:   document.getElementById("f-priority").value,
+        status:     "open",
+        category:   document.getElementById("f-category").value,
+      });
+      saveTickets(tickets);
+      closeModal();
+      renderList();
+    });
+
+    // ─── Filters ──────────────────────────────────────────
+    document.getElementById("filter-tabs").addEventListener("click", e => {
+      const btn = e.target.closest(".hd-filter-btn");
+      if (!btn) return;
+      document.querySelectorAll(".hd-filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      filter = btn.dataset.filter;
+      renderList();
+    });
+
+    document.getElementById("hd-search").addEventListener("input", e => {
+      query = e.target.value.trim().toLowerCase();
+      renderList();
+    });
+
+    renderList();
+  </script>
+</body>
+</html>
