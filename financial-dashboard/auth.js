@@ -71,6 +71,7 @@
 
       sessionStorage.setItem("dashboardRole", detected.key);
       sessionStorage.setItem("dashboardUser", username || "User");
+      sessionStorage.setItem("announcementPromptPending", "1");
       localStorage.setItem("calendarRole", detected.key === "district" ? "district_manager" : "agent");
       localStorage.setItem("overviewScope", "agency");
       const params = new URLSearchParams(window.location.search);
@@ -96,6 +97,23 @@
     const calendarLink = Array.from(nav.querySelectorAll("a")).find(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "calendar.html"
     );
+
+    const hasAnnouncementsLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "announcements.html"
+    );
+    if (!hasAnnouncementsLink) {
+      const announcementsLink = document.createElement("a");
+      announcementsLink.href = "announcements.html";
+      announcementsLink.textContent = "Announcements";
+      const resourcesLink = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
+      );
+      if (resourcesLink) {
+        resourcesLink.insertAdjacentElement("beforebegin", announcementsLink);
+      } else {
+        nav.appendChild(announcementsLink);
+      }
+    }
 
     const setOverviewLabel = (link, label) => {
       link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
@@ -238,6 +256,86 @@
       });
       nav.appendChild(logout);
     }
+
+    showAnnouncementPrompt();
+  }
+
+  function showAnnouncementPrompt() {
+    if (!loggedRole) return;
+    if (currentPage === "announcements.html") {
+      sessionStorage.removeItem("announcementPromptPending");
+      return;
+    }
+    if (sessionStorage.getItem("announcementPromptPending") !== "1") return;
+    if (document.getElementById("announcement-login-prompt")) return;
+    const announcements = readAnnouncements();
+    const latest = Array.isArray(announcements) && announcements.length ? announcements[0] : null;
+
+    const panel = document.createElement("aside");
+    panel.id = "announcement-login-prompt";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-live", "polite");
+    panel.style.position = "fixed";
+    panel.style.top = "86px";
+    panel.style.right = "16px";
+    panel.style.zIndex = "1200";
+    panel.style.width = "min(360px, calc(100vw - 24px))";
+    panel.style.background = "#ffffff";
+    panel.style.border = "1px solid #dedbd4";
+    panel.style.borderRadius = "12px";
+    panel.style.boxShadow = "0 12px 26px rgba(32,33,36,.18)";
+    panel.style.padding = "14px";
+    panel.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <i class="fa-solid fa-bullhorn" style="margin-top:2px;color:#d31145;"></i>
+        <div style="flex:1;">
+          <p style="margin:0 0 4px 0;font-weight:700;color:#202124;">${latest ? escapeHtml(latest.title || "New Announcement") : "New Announcement"}</p>
+          ${latest ? `<p style="margin:0 0 6px 0;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#a6192e;">${escapeHtml(latest.category || "Announcement")}</p>` : ""}
+          <p style="margin:0;color:#69655e;font-size:13px;line-height:1.4;">${latest ? escapeHtml(latest.message || "") : "Would you like to open the Announcements page now?"}</p>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+            <button type="button" id="announcement-cancel-btn" style="border:1px solid #d0d7de;background:#fff;color:#202124;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;">Cancel</button>
+            <button type="button" id="announcement-ok-btn" style="border:0;background:#d31145;color:#fff;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;">OK</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    const dismissPrompt = () => {
+      sessionStorage.removeItem("announcementPromptPending");
+      panel.remove();
+    };
+
+    const cancelBtn = panel.querySelector("#announcement-cancel-btn");
+    const okBtn = panel.querySelector("#announcement-ok-btn");
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", dismissPrompt);
+    }
+    if (okBtn) {
+      okBtn.addEventListener("click", () => {
+        sessionStorage.removeItem("announcementPromptPending");
+        window.location.assign("announcements.html");
+      });
+    }
+  }
+
+  function readAnnouncements() {
+    try {
+      const raw = localStorage.getItem("fm_announcements_v1");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function escapeHtml(value) {
+    const node = document.createElement("div");
+    node.textContent = String(value || "");
+    return node.innerHTML;
   }
 
   if (document.readyState === "loading") {
