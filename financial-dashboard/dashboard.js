@@ -2183,8 +2183,19 @@ if (isOverviewPage()) {
   wireFloatingTodo();
 }
 
+function wireOverviewPdfExport() {
+  const btn = document.getElementById("overview-download-pdf-btn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    // Use native browser print flow for a simple, reliable Save-to-PDF action.
+    window.print();
+  });
+}
+
 if (isHomeDashboardPage()) {
   wireOverviewTabs();
+  wireOverviewPdfExport();
   wireRoleControl();
   wirePersonalTodo();
   wireFloatingTodo();

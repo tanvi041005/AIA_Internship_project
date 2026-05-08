@@ -291,6 +291,40 @@ main {
   margin-bottom: 1rem;
 }
 
+.overview-tabs-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.overview-download-pdf-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.overview-download-pdf-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+.overview-download-pdf-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .overview-tabs-panel .page-lede {
   margin-bottom: 0;
 }
