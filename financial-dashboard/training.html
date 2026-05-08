@@ -18,7 +18,7 @@
     .quiz-option:checked + label { border-color: #d31145; background-color: #fff1f3; }
     .topic-row { transition: 0.2s ease; }
     .topic-row:not(.locked):hover { background: #fff7f8; }
-    .nav-strip { position: sticky; top: 64px; z-index: 40; background: rgba(255,255,255,.96); border-bottom: 1px solid #dedbd4; box-shadow: 0 1px 8px rgba(32,33,36,.08); backdrop-filter: blur(10px); }
+    .nav-strip { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.96); border-bottom: 1px solid #dedbd4; box-shadow: 0 1px 8px rgba(32,33,36,.08); backdrop-filter: blur(10px); }
     .nav-inner { max-width: 1120px; margin: 0 auto; padding: .45rem 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
     .nav-inner a { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; padding: .45rem .75rem; border-radius: 7px; border: 1px solid transparent; font-size: .875rem; font-weight: 600; color: #69655e; text-decoration: none; transition: background .15s, color .15s, border-color .15s; }
     .nav-inner a:hover { background: #faf9f7; color: #a6192e; }
@@ -42,7 +42,6 @@
   </style>
 </head>
 <body class="text-slate-800">
-  <script src="nav.js"></script>
   <script src="auth.js"></script>
   <header class="site-header">
     <div class="site-header-inner">
@@ -82,6 +81,7 @@
     </div>
   </footer>
 
+  <script src="nav.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
     (function () {

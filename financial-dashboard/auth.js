@@ -177,7 +177,7 @@
     }
 
     const setOverviewLabel = (link, label) => {
-      link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
+      link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
     };
 
     if (overviewLink && !document.getElementById("overview-scope-menu")) {
@@ -237,38 +237,47 @@
     }
 
     if (calendarLink && !document.getElementById("calendar-section-menu")) {
-      const calendarMenu = document.createElement("div");
-      calendarMenu.className = "calendar-nav-menu";
-      calendarLink.insertAdjacentElement("beforebegin", calendarMenu);
-      calendarMenu.appendChild(calendarLink);
-      calendarLink.innerHTML = `<span>Calendar</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
-      calendarLink.setAttribute("aria-haspopup", "true");
-      calendarLink.setAttribute("aria-expanded", "false");
-      calendarMenu.insertAdjacentHTML(
-        "beforeend",
-        `
-          <div class="calendar-section-menu" id="calendar-section-menu" role="menu" aria-label="Calendar sections">
-            <a href="calendar.html" role="menuitem">Calendar</a>
-            <a href="room-booking.html" role="menuitem">Room Booking</a>
-            <a href="attendance.html" role="menuitem">Attendance</a>
-          </div>
-        `
-      );
+      const existingCalendarMenu = calendarLink.closest(".calendar-nav-menu");
+      const existingCalendarSection = existingCalendarMenu ? existingCalendarMenu.querySelector(".calendar-section-menu") : null;
+      if (existingCalendarMenu && existingCalendarSection) {
+        existingCalendarSection.id = "calendar-section-menu";
+        calendarLink.innerHTML = `<span>Calendar</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
+        calendarLink.setAttribute("aria-haspopup", "true");
+        calendarLink.setAttribute("aria-expanded", "false");
+      } else {
+        const calendarMenu = document.createElement("div");
+        calendarMenu.className = "calendar-nav-menu";
+        calendarLink.insertAdjacentElement("beforebegin", calendarMenu);
+        calendarMenu.appendChild(calendarLink);
+        calendarLink.innerHTML = `<span>Calendar</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
+        calendarLink.setAttribute("aria-haspopup", "true");
+        calendarLink.setAttribute("aria-expanded", "false");
+        calendarMenu.insertAdjacentHTML(
+          "beforeend",
+          `
+            <div class="calendar-section-menu" id="calendar-section-menu" role="menu" aria-label="Calendar sections">
+              <a href="calendar.html" role="menuitem">Calendar</a>
+              <a href="room-booking.html" role="menuitem">Room Booking</a>
+              <a href="attendance.html" role="menuitem">Attendance</a>
+            </div>
+          `
+        );
 
-      calendarLink.addEventListener("click", (event) => {
-        if (currentPage === "calendar.html" || currentPage === "attendance.html" || currentPage === "room-booking.html") {
-          event.preventDefault();
-          const isOpen = calendarMenu.classList.toggle("is-open");
-          calendarLink.setAttribute("aria-expanded", String(isOpen));
-        }
-      });
+        calendarLink.addEventListener("click", (event) => {
+          if (currentPage === "calendar.html" || currentPage === "attendance.html" || currentPage === "room-booking.html") {
+            event.preventDefault();
+            const isOpen = calendarMenu.classList.toggle("is-open");
+            calendarLink.setAttribute("aria-expanded", String(isOpen));
+          }
+        });
 
-      document.addEventListener("click", (event) => {
-        if (!calendarMenu.contains(event.target)) {
-          calendarMenu.classList.remove("is-open");
-          calendarLink.setAttribute("aria-expanded", "false");
-        }
-      });
+        document.addEventListener("click", (event) => {
+          if (!calendarMenu.contains(event.target)) {
+            calendarMenu.classList.remove("is-open");
+            calendarLink.setAttribute("aria-expanded", "false");
+          }
+        });
+      }
     }
 
     const toolsMenu = document.querySelector(".tools-nav-menu");
