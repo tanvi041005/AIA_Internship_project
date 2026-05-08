@@ -2,7 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const root = __dirname;
+const root = path.resolve(__dirname, "..");
 const port = Number(process.env.PORT) || 8080;
 
 const mime = {
@@ -20,7 +20,14 @@ const mime = {
 
 http
   .createServer((req, res) => {
-    let p = path.join(root, decodeURIComponent(new URL(req.url, "http://x").pathname));
+    const pathname = decodeURIComponent(new URL(req.url, "http://x").pathname);
+
+    if (pathname === "/" || pathname === "/index.html") {
+      res.writeHead(302, { Location: "/frontend/index.html" });
+      return res.end();
+    }
+
+    let p = path.join(root, pathname);
     if (!p.startsWith(root)) {
       res.writeHead(403);
       return res.end();
@@ -39,5 +46,5 @@ http
     });
   })
   .listen(port, () => {
-    console.log("Serving", root, "at http://127.0.0.1:" + port);
+    console.log("Serving at http://127.0.0.1:" + port + "/frontend/");
   });

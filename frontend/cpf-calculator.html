@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPF Calculator · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
+    </div>
+  </header>
+
+  <div id="site-nav"></div>
+
+  <main id="main">
+    <h1 class="page-title">CPF Calculator</h1>
+    <p class="page-lede">Estimate basic CPF accumulation across OA, SA/RA, and MA using CPF contribution rates, allocation rates, wage ceiling, salary growth, and account interest assumptions.</p>
+
+    <section class="cpf-layout">
+      <form class="panel cpf-form" id="cpf-calculator-form">
+        <div class="panel-head">
+          <h2>Assumptions</h2>
+          <span class="summary-line">Based on CPF Accumulation worksheet</span>
+        </div>
+        <p class="cpf-panel-note">Edit the client profile assumptions below. Results update automatically as values change.</p>
+
+        <div class="cpf-form-grid">
+          <label>
+            Current age
+            <input type="number" id="cpf-current-age" value="30" min="18" max="75" />
+          </label>
+          <label>
+            Target age
+            <input type="number" id="cpf-target-age" value="55" min="19" max="80" />
+          </label>
+          <label>
+            Starting CPF balance
+            <input type="number" id="cpf-starting-balance" value="90000" min="0" step="1000" />
+          </label>
+          <label>
+            Monthly salary
+            <input type="number" id="cpf-monthly-salary" value="5367" min="0" step="100" />
+          </label>
+          <label>
+            Salary growth p.a. (%)
+            <input type="number" id="cpf-salary-growth" value="4.3" min="0" max="20" step="0.1" />
+          </label>
+          <label>
+            Ordinary wage ceiling
+            <input type="number" id="cpf-wage-ceiling" value="7400" min="0" step="100" />
+          </label>
+          <label>
+            MA cap / Basic Healthcare Sum
+            <input type="number" id="cpf-ma-cap" value="79000" min="0" step="1000" />
+          </label>
+          <label class="cpf-check-row">
+            <input type="checkbox" id="cpf-apply-ma-cap" />
+            <span>Apply MA cap</span>
+          </label>
+        </div>
+
+        <div class="event-dialog-actions cpf-actions">
+          <button type="reset" class="ghost-btn">Reset</button>
+          <button type="submit">Calculate</button>
+        </div>
+      </form>
+
+      <section class="panel cpf-results-panel">
+        <div class="panel-head">
+          <h2>Projected CPF at Target Age</h2>
+          <span class="summary-line" id="cpf-projection-label">Age 55</span>
+        </div>
+        <p class="cpf-panel-note">Projection excludes spending, withdrawals, housing deductions, and healthcare costs.</p>
+
+        <div class="kpi-grid cpf-result-grid">
+          <article class="kpi-card">
+            <p class="kpi-label">Ordinary Account</p>
+            <p class="kpi-value" id="cpf-oa-result">SGD 0</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">SA / RA</p>
+            <p class="kpi-value" id="cpf-sa-result">SGD 0</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-label">Medisave</p>
+            <p class="kpi-value" id="cpf-ma-result">SGD 0</p>
+          </article>
+          <article class="kpi-card cpf-total-card">
+            <p class="kpi-label">Total CPF</p>
+            <p class="kpi-value" id="cpf-total-result">SGD 0</p>
+          </article>
+        </div>
+
+        <ul class="activity-list cpf-summary-list" id="cpf-summary-list"></ul>
+      </section>
+    </section>
+
+    <section class="performance-grid cpf-detail-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Yearly Projection</h2>
+          <span class="summary-line">Last 8 projected years</span>
+        </div>
+        <div class="table-wrap compact-table">
+          <table class="lead-table leaderboard-table cpf-projection-table">
+            <thead>
+              <tr>
+                <th>Age</th>
+                <th>Salary</th>
+                <th>Contribution</th>
+                <th>Total CPF</th>
+              </tr>
+            </thead>
+            <tbody id="cpf-projection-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Reference Rates</h2>
+          <span class="summary-line">CPF worksheet assumptions</span>
+        </div>
+        <ul class="activity-list">
+          <li><span class="dot blue"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">CPF contribution rate</span><span class="activity-time">37% up to age 55</span></div><p class="activity-desc">Uses employer and employee CPF contribution rates, then tapers for older ages.</p></div></li>
+          <li><span class="dot orange"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">Allocation rates</span><span class="activity-time">OA / SA / MA</span></div><p class="activity-desc">Allocation follows the workbook bands, e.g. age <= 35: 62.17% OA, 16.21% SA, 21.62% MA.</p></div></li>
+          <li><span class="dot red"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">Account interest</span><span class="activity-time">2.5% / 4% / 4%</span></div><p class="activity-desc">OA is projected at 2.5% p.a.; SA/RA and MA are projected at 4% p.a.</p></div></li>
+          <li><span class="dot blue"></span><div class="activity-body"><div class="activity-row"><span class="activity-name">MA cap</span><span class="activity-time">Optional BHS setting</span></div><p class="activity-desc">Turn this on only when you want MA overflow redirected to SA/RA. It is off by default to match the Excel base projection.</p></div></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+
+  <script src="../backend/nav.js"></script>
+  <script src="../backend/auth.js"></script>
+  <script src="../backend/cpf-calculator.js"></script>
+</body>
+</html>
