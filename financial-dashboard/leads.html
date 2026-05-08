@@ -300,50 +300,6 @@
   </div>
 </main>
 
-<!-- Email Modal -->
-<div class="email-modal-overlay" id="email-modal-overlay">
-  <div class="email-modal">
-    <button class="em-close" id="em-close-btn" aria-label="Close">✕</button>
-    <h2>Draft follow-up email</h2>
-    <p class="em-subtitle">Fill in the details, generate with AI, then open in your email app.</p>
-
-    <div class="em-section-label">Recipient</div>
-    <div class="em-row2">
-      <div class="em-field"><label>Their name</label><input type="text" id="em-name" placeholder="e.g. Sarah"></div>
-      <div class="em-field"><label>Email address</label><input type="email" id="em-to" placeholder="sarah@example.com"></div>
-    </div>
-    <div class="em-row2">
-      <div class="em-field"><label>Company / role (optional)</label><input type="text" id="em-company" placeholder="e.g. Acme, VP Sales"></div>
-      <div class="em-field"><label>Context / reason to follow up</label><input type="text" id="em-context" placeholder="e.g. demo call last Tuesday"></div>
-    </div>
-
-    <div class="em-section-label">Subject &amp; body</div>
-    <div class="em-field"><label>Subject</label><input type="text" id="em-subject" placeholder="Subject line"></div>
-    <div class="em-field"><label>Body</label><textarea id="em-body" placeholder="Your email body will appear here — or type your own."></textarea></div>
-
-    <div class="em-section-label">Open in your email app</div>
-    <div class="em-provider-grid">
-      <a class="em-pbtn gmail" id="em-link-gmail" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><path d="M6 12.5A2.5 2.5 0 0 1 8.5 10h31A2.5 2.5 0 0 1 42 12.5V35a2.5 2.5 0 0 1-2.5 2.5h-31A2.5 2.5 0 0 1 6 35V12.5z" fill="#fff4f4" stroke="#EA4335" stroke-width="1.5"/><path d="M6 13l18 13L42 13" stroke="#EA4335" stroke-width="2" stroke-linecap="round"/></svg>
-        Gmail
-      </a>
-      <a class="em-pbtn outlook" id="em-link-outlook" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f0f6fd" stroke="#0078D4" stroke-width="1.5"/><path d="M6 17h36" stroke="#0078D4" stroke-width="1.5"/><rect x="10" y="22" width="10" height="10" rx="2" fill="#0078D4"/><path d="M24 24h14M24 28h10M24 32h12" stroke="#0078D4" stroke-width="1.2" stroke-linecap="round"/></svg>
-        Outlook
-      </a>
-      <a class="em-pbtn yahoo" id="em-link-yahoo" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f5f0ff" stroke="#6001D2" stroke-width="1.5"/><text x="24" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#6001D2" font-family="sans-serif">Y!</text></svg>
-        Yahoo
-      </a>
-      <button class="em-pbtn copy" id="em-copy-btn" onclick="emCopy()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy
-      </button>
-    </div>
-
-  </div>
-</div>
-
 <!-- Drawer -->
 <div class="drawer-overlay" id="overlay"></div>
 <aside class="drawer" id="detail-drawer" aria-label="Lead details">
@@ -413,8 +369,7 @@
       </ul>
     </div></div>
   <div class="drawer-actions">
-    <button class="btn-brand" id="btn-draft-email">Draft Follow-up Email</button>
-    <button class="btn-ghost" id="btn-edit-lead">Edit Profile</button>
+    <button class="btn-ghost" id="btn-edit-lead">Open Portfolio</button>
   </div>
 </aside>
 

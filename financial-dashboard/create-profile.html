@@ -178,7 +178,7 @@
 
         <div class="form-actions">
           <button type="submit" class="btn-primary" id="submit-btn">Save Profile</button>
-          <a href="leads.html" class="ghost-btn">Cancel</a>
+          <a href="leads.html" class="ghost-btn" id="cancel-link">Cancel</a>
         </div>
 
         <p id="form-success" class="form-success" aria-live="polite">Profile saved! Redirecting…</p>
@@ -199,6 +199,7 @@
     const params = new URLSearchParams(location.search);
     const editId = params.get("edit") ? Number(params.get("edit")) : null;
     const editingLead = editId ? getCustomLeads().find((l) => l.id === editId) : null;
+    const returnUrl = editId ? `client-profile.html?id=${editId}` : "leads.html";
 
     if (editingLead) {
       document.getElementById("page-heading").textContent = "Edit Lead Profile";
@@ -222,6 +223,8 @@
       document.getElementById("cp-referred").value = editingLead.referredBy || "";
       document.getElementById("cp-remarks").value = editingLead.remarks;
     }
+
+    document.getElementById("cancel-link").href = returnUrl;
 
     document.getElementById("create-profile-form").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -276,7 +279,7 @@
       const successMsg = document.getElementById("form-success");
       successMsg.textContent = editId ? "Profile updated! Redirecting…" : "Profile saved! Redirecting…";
       successMsg.style.display = "block";
-      setTimeout(() => { window.location.href = "leads.html"; }, 1200);
+      setTimeout(() => { window.location.href = returnUrl; }, 1200);
     });
   </script>
 </body>

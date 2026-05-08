@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Profile · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f3f0 0%, #fef9f7 100%);
+      font-family: 'Inter', sans-serif;
+      color: #202124;
+      min-height: 100vh;
+    }
+
+    :root {
+      --brand: #a6192e;
+      --brand-dark: #7d1122;
+      --brand-light: #fff1f3;
+      --gold: #c69a67;
+      --gold-light: #f5e6d3;
+      --text: #202124;
+      --text-muted: #69655e;
+      --border: #dedbd4;
+      --surface: #ffffff;
+      --shadow: 0 4px 20px rgba(166, 25, 46, 0.08);
+    }
+
+    .header-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--brand);
+    }
+
+    .back-btn {
+      padding: 0.5rem 1rem;
+      background: var(--brand-light);
+      color: var(--brand);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--brand);
+      color: white;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .profile-header {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 8px 24px rgba(166, 25, 46, 0.15);
+    }
+
+    .profile-info h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .profile-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .profile-meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+
+    .meta-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: white;
+      border: none;
+      padding: 0.7rem 1.4rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(166, 25, 46, 0.2);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--brand);
+      border: 1.5px solid var(--brand);
+      padding: 0.7rem 1.4rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--brand-light);
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+      margin-bottom: 1.5rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .info-item {
+      border-left: 3px solid var(--gold);
+      padding-left: 1rem;
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+
+    .info-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .risk-score-card {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      grid-column: span 2;
+      text-align: center;
+      color: white;
+    }
+
+    .risk-score-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+
+    .risk-score-value {
+      font-size: 4rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--gold);
+    }
+
+    .risk-score-desc {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1rem;
+    }
+
+    .risk-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .risk-detail {
+      text-align: center;
+    }
+
+    .risk-detail-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .risk-detail-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 0.3rem;
+    }
+
+    .timeline-section {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      grid-column: span 2;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--gold) 0%, transparent 100%);
+    }
+
+    .timeline-item {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -11px;
+      top: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 3px solid var(--surface);
+    }
+
+    .timeline-item.done .timeline-dot {
+      background: #10b981;
+    }
+
+    .timeline-item.pending .timeline-dot {
+      background: #f59e0b;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+    }
+
+    .timeline-date {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .timeline-status {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
+
+    .timeline-status.completed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .timeline-status.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .risk-score-card,
+      .timeline-section {
+        grid-column: span 1;
+      }
+
+      .profile-header {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .profile-actions {
+        justify-content: center;
+      }
+
+      .risk-details {
+        grid-template-columns: 1fr;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      margin: 2rem auto;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <h1 class="header-title">Client Profile</h1>
+    <button class="back-btn" onclick="window.location.href='leads.html'">← Back to Leads</button>
+  </div>
+
+  <div class="container">
+    <div id="profileContent"></div>
+  </div>
+
+  <script>
+    const LEADS_STORAGE_KEY = "financial_leads_data";
+    const DEFAULT_LEADS = [
+      {
+        id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
+        meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Proposal Sent",
+        remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
+        planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
+        occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
+        followUps:[
+          {label:"Initial meeting",date:"2025-04-30",done:true},
+          {label:"Proposal sent",date:"2025-05-05",done:true},
+          {label:"Follow-up call",date:"2025-05-14",done:false},
+          {label:"Closing",date:"2025-05-20",done:false}
+        ]
+      },
+      {
+        id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
+        meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact-Find",
+        remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
+        planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
+        occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
+        followUps:[
+          {label:"Intro call",date:"2025-05-10",done:true},
+          {label:"Fact-find session",date:"2025-05-15",done:false},
+          {label:"Needs analysis",date:"2025-05-22",done:false}
+        ]
+      },
+      {
+        id:3,name:"Chen Jia Hao",age:42,contact:"9345-6789",email:"jiahao.chen@corp.sg",
+        meetDate:"2025-05-08",location:"Raffles Place (Client Office)",meetType:"Physical",urgency:"urgent",stage:"Closing",
+        remarks:"Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
+        planType:"CI + Keyman",premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
+        occupation:"Company Director",income:"SGD 22,000/mo",referredBy:"Existing client (Peter Goh)",
+        followUps:[
+          {label:"Discovery",date:"2025-04-22",done:true},
+          {label:"Proposal",date:"2025-05-02",done:true},
+          {label:"Negotiation",date:"2025-05-08",done:true},
+          {label:"Closing sign-off",date:"2025-05-15",done:false}
+        ]
+      },
+      {
+        id:4,name:"Priya Nair",age:31,contact:"9456-7890",email:"priya.nair@gmail.com",
+        meetDate:"2025-05-20",location:"Jurong East CC",meetType:"Hybrid",urgency:"non-urgent",stage:"Prospecting",
+        remarks:"Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
+        planType:"ILP",premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
+        occupation:"Secondary School Teacher",income:"SGD 4,500/mo",referredBy:"Colleague referral",
+        followUps:[
+          {label:"WhatsApp intro",date:"2025-05-17",done:true},
+          {label:"Meet-up",date:"2025-05-20",done:false},
+          {label:"Proposal",date:"2025-05-28",done:false}
+        ]
+      },
+      {
+        id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
+        meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Needs Analysis",
+        remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
+        planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
+        occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
+        followUps:[
+          {label:"Zoom intro",date:"2025-05-01",done:true},
+          {label:"Needs analysis",date:"2025-05-06",done:true},
+          {label:"Solutioning",date:"2025-05-12",done:false},
+          {label:"Proposal",date:"2025-05-19",done:false}
+        ]
+      },
+      {
+        id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
+        meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact-Find",
+        remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
+        planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
+        occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
+        followUps:[
+          {label:"Phone call",date:"2025-05-20",done:true},
+          {label:"Fact-find",date:"2025-05-25",done:false}
+        ]
+      }
+    ];
+
+    const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
+
+    function getLeads() {
+      try {
+        return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || DEFAULT_LEADS;
+      } catch {
+        return DEFAULT_LEADS;
+      }
+    }
+
+    function initials(name) {
+      return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+    }
+
+    function formatDate(d) {
+      if(!d) return "—";
+      const [y,m,dd] = d.split("-");
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${parseInt(dd)} ${months[parseInt(m)-1]} ${y}`;
+    }
+
+    function renderProfile(leadId) {
+      const leads = getLeads();
+      const lead = leads.find(l => l.id === leadId);
+      
+      if (!lead) {
+        document.getElementById('profileContent').innerHTML = '<div class="error-message">Lead not found</div>';
+        return;
+      }
+
+      const avatarColor = AVATAR_COLORS[(lead.id-1) % AVATAR_COLORS.length];
+      const urgencyColor = lead.urgency === 'urgent' ? '#ef4444' : lead.urgency === 'medium' ? '#f59e0b' : '#6b7280';
+
+      const html = `
+        <div class="profile-header" style="background: linear-gradient(135deg, ${avatarColor}15 0%, ${avatarColor}08 100%);">
+          <div class="profile-avatar" style="background: linear-gradient(135deg, ${avatarColor} 0%, ${avatarColor}dd 100%);">
+            ${initials(lead.name)}
+          </div>
+          <div class="profile-info">
+            <h1>${lead.name}</h1>
+            <p class="profile-subtitle">${lead.occupation} • ${lead.income}</p>
+            <div class="profile-meta">
+              <div class="meta-item">
+                <span class="meta-label">Referred By</span>
+                <span class="meta-value">${lead.referredBy}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Stage</span>
+                <span class="meta-value">${lead.stage}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Urgency</span>
+                <span class="meta-value" style="color: ${urgencyColor};">${lead.urgency.toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn-primary" onclick="window.location.href='create-profile.html?edit=${lead.id}'">Edit Profile</button>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">Client Details</h2>
+            <div class="section-divider"></div>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Age</div>
+                <div class="info-value">${lead.age} years</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Contact</div>
+                <div class="info-value">${lead.contact}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value" style="font-size: 0.95rem;">${lead.email}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Meeting Type</div>
+                <div class="info-value">${lead.meetType}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">First Appointment</div>
+                <div class="info-value">${formatDate(lead.meetDate)}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Location</div>
+                <div class="info-value">${lead.location}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Stage</div>
+                <div class="info-value">${lead.stage}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Urgency</div>
+                <div class="info-value" style="color:${urgencyColor}">${lead.urgency.toUpperCase()}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Financial Portfolio</h2>
+            <div class="section-divider"></div>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">CPF OA Balance</div>
+                <div class="info-value">SGD ${lead.cpfOA.toLocaleString()}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">CPF SA Balance</div>
+                <div class="info-value">SGD ${lead.cpfSA.toLocaleString()}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Recommended Plan</div>
+                <div class="info-value">${lead.planType}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Est. Premium / yr</div>
+                <div class="info-value" style="color: var(--brand);">SGD ${lead.premium.toLocaleString()}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Commission Type</div>
+                <div class="info-value">${lead.commission}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline-section">
+          <h2 class="card-title">Follow-up Timeline</h2>
+          <div class="section-divider"></div>
+          <div class="timeline">
+            ${(lead.followUps || []).map(f => `
+              <div class="timeline-item ${f.done ? 'done' : 'pending'}">
+                <div class="timeline-dot"></div>
+                <div class="timeline-title">${f.label}</div>
+                <div class="timeline-date">
+                  ${formatDate(f.date)}
+                  <span class="timeline-status ${f.done ? 'completed' : 'pending'}">
+                    ${f.done ? '✓ Completed' : '◌ Pending'}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 2; margin-top: 0;">
+          <h2 class="card-title">Remarks</h2>
+          <div class="section-divider"></div>
+          <p style="font-size: 1rem; line-height: 1.6; color: var(--text);">${lead.remarks}</p>
+        </div>
+      `;
+
+      document.getElementById('profileContent').innerHTML = html;
+    }
+
+    // Get lead ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const leadId = parseInt(params.get('id'));
+    
+    if (leadId) {
+      renderProfile(leadId);
+    } else {
+      document.getElementById('profileContent').innerHTML = '<div class="error-message">No lead ID provided</div>';
+    }
+  </script>
+</body>
+</html>

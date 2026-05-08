@@ -309,40 +309,20 @@ function bindEvents(){
   });
   document.getElementById("drawer-close-btn").addEventListener("click", closeDrawer);
   document.getElementById("overlay").addEventListener("click", closeDrawer);
-  document.getElementById("btn-draft-email").addEventListener("click", () => {
-    const lead = LEADS.find(l => l.id === activeId);
-    if(!lead) return;
-    const firstName = lead.name.split(" ")[0];
-    document.getElementById("em-name").value = firstName;
-    document.getElementById("em-to").value = lead.email;
-    document.getElementById("em-company").value = lead.occupation;
-    document.getElementById("em-context").value = `${lead.stage} — ${lead.planType}`;
-    document.getElementById("em-subject").value = `Following up on your ${lead.planType} plan`;
-    document.getElementById("em-body").value = `Hi ${firstName},\n\nThank you for taking the time to meet with me. I wanted to follow up on our discussion regarding the ${lead.planType} plan and check if you have any questions or would like to move forward.\n\nBased on your current stage (${lead.stage}), I believe the next step would be to ${lead.stage === 'Closing' ? 'finalise the paperwork and get you covered' : lead.stage === 'Proposal Sent' ? 'review the proposal together and address any concerns' : lead.stage === 'Needs Analysis' ? 'go through the solutioning and tailor the right plan for you' : 'schedule our next meeting to continue the conversation'}.\n\nPlease let me know a time that works for you — I am happy to meet in person or over a call.\n\nBest regards`;
-    document.getElementById("email-modal-overlay").classList.add("open");
-    emUpdateLinks();
-  });
-  document.getElementById("em-close-btn").addEventListener("click", () =>
-    document.getElementById("email-modal-overlay").classList.remove("open")
-  );
-  document.getElementById("email-modal-overlay").addEventListener("click", e => {
-    if(e.target === document.getElementById("email-modal-overlay"))
-      document.getElementById("email-modal-overlay").classList.remove("open");
-  });
   document.getElementById("btn-edit-lead").addEventListener("click", () => {
-    if(activeId) window.location.href = `create-profile.html?edit=${activeId}`;
+    if(activeId) window.location.href = `client-profile.html?id=${activeId}`;
   });
   document.getElementById("lead-tbody").addEventListener("click", e => {
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
-    openDrawer(Number(row.dataset.id));
+    window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.getElementById("lead-tbody").addEventListener("keydown", e => {
     if(e.key !== "Enter" && e.key !== " ") return;
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
     e.preventDefault();
-    openDrawer(Number(row.dataset.id));
+    window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
     th.addEventListener("click", () => {
@@ -357,20 +337,3 @@ function bindEvents(){
 }
 
 init();
-
-function emGetFields(){ return { to:document.getElementById("em-to").value.trim(), subject:document.getElementById("em-subject").value.trim(), body:document.getElementById("em-body").value.trim() }; }
-function emUpdateLinks(){
-  const {to,subject,body}=emGetFields();
-  document.getElementById("em-link-gmail").href=`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  document.getElementById("em-link-outlook").href=`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  document.getElementById("em-link-yahoo").href=`https://compose.mail.yahoo.com/?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-function emCopy(){
-  const {to,subject,body}=emGetFields();
-  navigator.clipboard.writeText(`To: ${to}\nSubject: ${subject}\n\n${body}`).then(()=>{
-    const btn=document.getElementById('em-copy-btn');
-    const orig=btn.innerHTML;
-    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    setTimeout(()=>btn.innerHTML=orig,1500);
-  });
-}
