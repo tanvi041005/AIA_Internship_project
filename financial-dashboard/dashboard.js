@@ -237,6 +237,7 @@ const overviewScopeCopy = {
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
 const PERSONAL_TASKS_STORAGE_KEY = "personalTasks";
+const ATTENDANCE_EVENTS_STORAGE_KEY = "attendanceEvents";
 
 function isOverviewPage() {
   return document.getElementById("lead-table-body") !== null;
@@ -312,6 +313,40 @@ function getPersonalTasks() {
 function savePersonalTasks(tasks) {
   localStorage.setItem(PERSONAL_TASKS_STORAGE_KEY, JSON.stringify(tasks));
   window.dispatchEvent(new CustomEvent("personalTasksUpdated"));
+}
+
+function getAttendanceEvents() {
+  try {
+    const raw = localStorage.getItem(ATTENDANCE_EVENTS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return parsed;
+  } catch (error) {
+    // Fall back to an empty list if storage is invalid.
+  }
+  return [];
+}
+
+function saveAttendanceEvent(eventItem) {
+  if (!eventItem || !eventItem.id) return null;
+  const stored = getAttendanceEvents();
+  const existing = stored.find((item) => item.id === eventItem.id);
+  const normalized = {
+    id: eventItem.id,
+    title: eventItem.title || "Calendar Event",
+    date: eventItem.date || "",
+    startTime: eventItem.startTime || "",
+    endTime: eventItem.endTime || "",
+    location: eventItem.location || "",
+    type: eventItem.type || "Calendar Event",
+    category: eventItem.category || "personal",
+    attendanceToken: eventItem.attendanceToken || (existing && existing.attendanceToken) || `qr-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    createdBy: sessionStorage.getItem("dashboardUser") || "Host"
+  };
+  const next = stored.some((item) => item.id === normalized.id)
+    ? stored.map((item) => (item.id === normalized.id ? { ...item, ...normalized } : item))
+    : [normalized, ...stored];
+  localStorage.setItem(ATTENDANCE_EVENTS_STORAGE_KEY, JSON.stringify(next));
+  return normalized;
 }
 
 function addPersonalTask(payload) {
@@ -393,6 +428,8 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
   const personalLeads = leadData
     .filter((lead) => (role === "district_manager" ? lead.owner === "district" : lead.owner === "agent"))
     .map((lead) => ({
+      id: `lead-${lead.id}`,
+      leadId: lead.id,
       date: lead.meetupDate,
       title: `${lead.name} Â· ${lead.meetingType} Meet-up`,
       location: lead.meetupLocation,
@@ -1488,9 +1525,11 @@ function openCalendarEventDialog(date, events) {
   const title = document.getElementById("calendar-event-dialog-title");
   const list = document.getElementById("calendar-event-dialog-list");
   const addButton = document.getElementById("calendar-add-personal-from-detail");
+  const qrButton = document.getElementById("calendar-show-attendance-qr");
   if (!dialog || !title || !list || !addButton) return;
 
   const dotColor = (cat) => (cat === "personal" ? "blue" : cat === "holiday" ? "green" : "orange");
+  const attendanceEvent = events.find((event) => event.category !== "holiday") || events[0];
 
   title.textContent = `Scheduled Events · ${date}`;
   list.innerHTML = events
@@ -1555,6 +1594,15 @@ function openCalendarEventDialog(date, events) {
     dialog.close();
     openPersonalEventDialog(date);
   };
+
+  if (qrButton) {
+    const canTakeAttendance = attendanceEvent && attendanceEvent.category !== "holiday";
+    qrButton.hidden = !canTakeAttendance;
+    qrButton.onclick = () => {
+      if (!canTakeAttendance) return;
+      openAttendanceQrDialog(attendanceEvent);
+    };
+  }
   dialog.showModal();
 }
 
@@ -1563,6 +1611,86 @@ function wireCalendarEventDialog() {
   const closeBtn = document.getElementById("close-calendar-event-dialog");
   if (!dialog || !closeBtn) return;
   closeBtn.addEventListener("click", () => dialog.close());
+
+  const qrDialog = document.getElementById("attendance-qr-dialog");
+  const qrClose = document.getElementById("close-attendance-qr-dialog");
+  if (qrDialog && qrClose) {
+    qrClose.addEventListener("click", () => qrDialog.close());
+  }
+}
+
+function openAttendanceQrDialog(eventItem) {
+  const dialog = document.getElementById("attendance-qr-dialog");
+  const canvas = document.getElementById("attendance-qr-canvas");
+  const title = document.getElementById("attendance-qr-event");
+  const link = document.getElementById("attendance-qr-link");
+  if (!dialog || !canvas || !link || !eventItem) return;
+
+  const storedEvent = saveAttendanceEvent({
+    ...eventItem,
+    id: eventItem.id || `event-${eventItem.date}-${String(eventItem.title || "attendance").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+  });
+  if (!storedEvent) return;
+
+  const checkInParams = new URLSearchParams({
+    eventId: storedEvent.id,
+    title: storedEvent.title,
+    date: storedEvent.date,
+    startTime: storedEvent.startTime,
+    endTime: storedEvent.endTime,
+    location: storedEvent.location,
+    type: storedEvent.type,
+    checkIn: "qr",
+    token: storedEvent.attendanceToken
+  });
+  const checkInUrl = `attendance.html?${checkInParams.toString()}`;
+  if (title) title.textContent = `${storedEvent.title} · ${storedEvent.date}`;
+  link.href = checkInUrl;
+  drawMockQr(canvas, `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}${checkInUrl}`);
+  dialog.showModal();
+}
+
+function drawMockQr(canvas, value) {
+  const ctx = canvas.getContext("2d");
+  const size = canvas.width;
+  const cells = 29;
+  const cell = Math.floor(size / cells);
+  const offset = Math.floor((size - cell * cells) / 2);
+  let hash = 0;
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#111827";
+
+  const drawCell = (x, y) => ctx.fillRect(offset + x * cell, offset + y * cell, cell, cell);
+  const drawFinder = (x, y) => {
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(offset + x * cell, offset + y * cell, cell * 7, cell * 7);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(offset + (x + 1) * cell, offset + (y + 1) * cell, cell * 5, cell * 5);
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(offset + (x + 2) * cell, offset + (y + 2) * cell, cell * 3, cell * 3);
+  };
+
+  drawFinder(1, 1);
+  drawFinder(cells - 8, 1);
+  drawFinder(1, cells - 8);
+
+  for (let y = 0; y < cells; y += 1) {
+    for (let x = 0; x < cells; x += 1) {
+      const inFinder =
+        (x >= 1 && x <= 7 && y >= 1 && y <= 7) ||
+        (x >= cells - 8 && x <= cells - 2 && y >= 1 && y <= 7) ||
+        (x >= 1 && x <= 7 && y >= cells - 8 && y <= cells - 2);
+      if (inFinder) continue;
+      const bit = ((hash + x * 17 + y * 29 + x * y * 7) % 5) < 2;
+      if (bit) drawCell(x, y);
+    }
+  }
 }
 
 function openAgencyEventEditDialog(ev) {
