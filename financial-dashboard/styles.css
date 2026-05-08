@@ -148,7 +148,8 @@ a {
 }
 
 .overview-nav-menu,
-.calendar-nav-menu {
+.calendar-nav-menu,
+.tools-nav-menu {
   position: relative;
   display: flex;
   align-items: center;
@@ -160,7 +161,8 @@ a {
 }
 
 .overview-scope-menu,
-.calendar-section-menu {
+.calendar-section-menu,
+.tools-section-menu {
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
@@ -182,14 +184,18 @@ a {
 .overview-nav-menu.is-open .overview-scope-menu,
 .calendar-nav-menu:hover .calendar-section-menu,
 .calendar-nav-menu:focus-within .calendar-section-menu,
-.calendar-nav-menu.is-open .calendar-section-menu {
+.calendar-nav-menu.is-open .calendar-section-menu,
+.tools-nav-menu:hover .tools-section-menu,
+.tools-nav-menu:focus-within .tools-section-menu,
+.tools-nav-menu.is-open .tools-section-menu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
 .overview-scope-menu button,
-.calendar-section-menu a {
+.calendar-section-menu a,
+.tools-section-menu a {
   display: block;
   width: 100%;
   padding: 0.55rem 0.65rem;
@@ -206,7 +212,9 @@ a {
 .overview-scope-menu button:hover,
 .overview-scope-menu button:focus-visible,
 .calendar-section-menu a:hover,
-.calendar-section-menu a:focus-visible {
+.calendar-section-menu a:focus-visible,
+.tools-section-menu a:hover,
+.tools-section-menu a:focus-visible {
   background: var(--brand-light);
   color: var(--brand);
 }
@@ -2499,7 +2507,8 @@ table.data tr:last-child td {
   }
 
   .overview-nav-menu,
-  .calendar-nav-menu {
+  .calendar-nav-menu,
+  .tools-nav-menu {
     flex: 0 0 auto;
   }
 

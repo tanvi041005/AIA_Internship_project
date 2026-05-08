@@ -154,30 +154,6 @@
       }
     }
 
-    const hasHelpdeskLink = Array.from(nav.querySelectorAll("a")).some(
-      (link) => (link.getAttribute("href") || "").toLowerCase() === "helpdesk.html"
-    );
-    if (!hasHelpdeskLink) {
-      const helpdeskLink = document.createElement("a");
-      helpdeskLink.href = "helpdesk.html";
-      helpdeskLink.textContent = "Helpdesk";
-      const recruitmentLinkForInsert = Array.from(nav.querySelectorAll("a")).find(
-        (link) => (link.getAttribute("href") || "").toLowerCase() === "recruitment.html"
-      );
-      if (recruitmentLinkForInsert) {
-        recruitmentLinkForInsert.insertAdjacentElement("afterend", helpdeskLink);
-      } else {
-        const resourcesLink3 = Array.from(nav.querySelectorAll("a")).find(
-          (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
-        );
-        if (resourcesLink3) {
-          resourcesLink3.insertAdjacentElement("afterend", helpdeskLink);
-        } else {
-          nav.appendChild(helpdeskLink);
-        }
-      }
-    }
-
     const hasTeamLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "onboarding.html"
     );
@@ -295,6 +271,22 @@
       });
     }
 
+    const toolsMenu = document.querySelector(".tools-nav-menu");
+    const toolsTrigger = document.getElementById("tools-nav-trigger");
+    if (toolsMenu && toolsTrigger) {
+      toolsTrigger.addEventListener("click", (event) => {
+        event.preventDefault();
+        const isOpen = toolsMenu.classList.toggle("is-open");
+        toolsTrigger.setAttribute("aria-expanded", String(isOpen));
+      });
+      document.addEventListener("click", (event) => {
+        if (!toolsMenu.contains(event.target)) {
+          toolsMenu.classList.remove("is-open");
+          toolsTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
     // Dynamic active tab highlighting based on the current page
     const navLinks = nav.querySelectorAll("a:not(#logout-link)");
     navLinks.forEach(link => {
@@ -314,6 +306,16 @@
         link.classList.remove("active");
       }
     });
+
+    const toolsTriggerEl = document.getElementById("tools-nav-trigger");
+    if (toolsTriggerEl) {
+      const toolsPages = ["sales-tracker.html", "cpf-calculator.html", "helpdesk.html"];
+      if (toolsPages.includes(currentPage)) {
+        toolsTriggerEl.classList.add("active");
+      } else {
+        toolsTriggerEl.classList.remove("active");
+      }
+    }
 
     if (loggedRole && !document.getElementById("nav-user-meta")) {
       const userMeta = document.createElement("div");
