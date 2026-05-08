@@ -19,8 +19,14 @@
   <nav class="nav-inner" aria-label="Primary">
     <a href="index.html">Overview</a>
     <a href="leads.html" class="active">Leads</a>
-    <a href="calendar.html">Calendar</a>
-    <a href="room-booking.html">Room Booking</a>
+    <div class="calendar-nav-menu">
+      <a href="calendar.html">Calendar</a>
+      <div class="calendar-section-menu">
+        <a href="calendar.html">Calendar</a>
+        <a href="room-booking.html">Room Booking</a>
+        <a href="attendance.html">Attendance</a>
+      </div>
+    </div>
     <a href="training.html">Training</a>
     <a href="cpf-calculator.html">CPF Calculator</a>
     <a href="announcements.html">Announcements</a>
@@ -114,7 +120,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="CBD (Zoom)">CBD (Zoom)</td>
       <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Needs Analysis</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#8b5cf6;color:#fff">Opening</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.">Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.</td>
     </tr>
     <tr class="lead-row" data-id="3">
@@ -136,7 +142,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Toa Payoh HDB">Toa Payoh HDB</td>
       <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Proposal Sent</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#8b5cf6;color:#fff">Opening</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Interested in term life; wife expecting. Has existing GE policy expiring soon.">Interested in term life; wife expecting. Has existing GE policy expiring soon.</td>
     </tr>
     <tr class="lead-row" data-id="2">
@@ -147,7 +153,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Tampines Mall">Tampines Mall</td>
       <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill medium">Medium</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Self-employed, irregular income. Keen on savings plan for rainy day fund.">Self-employed, irregular income. Keen on savings plan for rainy day fund.</td>
     </tr>
     <tr class="lead-row" data-id="4">
@@ -158,7 +164,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Jurong East CC">Jurong East CC</td>
       <td><span class="badge-text">Hybrid</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Prospecting</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#d4a574;color:#fff">Prospecting</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.">Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.</td>
     </tr>
     <tr class="lead-row" data-id="6">
@@ -169,7 +175,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Woodlands Civic Centre">Woodlands Civic Centre</td>
       <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.">Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.</td>
     </tr></tbody>
       </table>
@@ -302,57 +308,13 @@
   </div>
 </main>
 
-<!-- Email Modal -->
-<div class="email-modal-overlay" id="email-modal-overlay">
-  <div class="email-modal">
-    <button class="em-close" id="em-close-btn" aria-label="Close">✕</button>
-    <h2>Draft follow-up email</h2>
-    <p class="em-subtitle">Fill in the details, generate with AI, then open in your email app.</p>
-
-    <div class="em-section-label">Recipient</div>
-    <div class="em-row2">
-      <div class="em-field"><label>Their name</label><input type="text" id="em-name" placeholder="e.g. Sarah"></div>
-      <div class="em-field"><label>Email address</label><input type="email" id="em-to" placeholder="sarah@example.com"></div>
-    </div>
-    <div class="em-row2">
-      <div class="em-field"><label>Company / role (optional)</label><input type="text" id="em-company" placeholder="e.g. Acme, VP Sales"></div>
-      <div class="em-field"><label>Context / reason to follow up</label><input type="text" id="em-context" placeholder="e.g. demo call last Tuesday"></div>
-    </div>
-
-    <div class="em-section-label">Subject &amp; body</div>
-    <div class="em-field"><label>Subject</label><input type="text" id="em-subject" placeholder="Subject line"></div>
-    <div class="em-field"><label>Body</label><textarea id="em-body" placeholder="Your email body will appear here — or type your own."></textarea></div>
-
-    <div class="em-section-label">Open in your email app</div>
-    <div class="em-provider-grid">
-      <a class="em-pbtn gmail" id="em-link-gmail" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><path d="M6 12.5A2.5 2.5 0 0 1 8.5 10h31A2.5 2.5 0 0 1 42 12.5V35a2.5 2.5 0 0 1-2.5 2.5h-31A2.5 2.5 0 0 1 6 35V12.5z" fill="#fff4f4" stroke="#EA4335" stroke-width="1.5"/><path d="M6 13l18 13L42 13" stroke="#EA4335" stroke-width="2" stroke-linecap="round"/></svg>
-        Gmail
-      </a>
-      <a class="em-pbtn outlook" id="em-link-outlook" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f0f6fd" stroke="#0078D4" stroke-width="1.5"/><path d="M6 17h36" stroke="#0078D4" stroke-width="1.5"/><rect x="10" y="22" width="10" height="10" rx="2" fill="#0078D4"/><path d="M24 24h14M24 28h10M24 32h12" stroke="#0078D4" stroke-width="1.2" stroke-linecap="round"/></svg>
-        Outlook
-      </a>
-      <a class="em-pbtn yahoo" id="em-link-yahoo" href="#" target="_blank" onclick="emUpdateLinks()">
-        <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="3" fill="#f5f0ff" stroke="#6001D2" stroke-width="1.5"/><text x="24" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#6001D2" font-family="sans-serif">Y!</text></svg>
-        Yahoo
-      </a>
-      <button class="em-pbtn copy" id="em-copy-btn" onclick="emCopy()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy
-      </button>
-    </div>
-
-  </div>
-</div>
-
 <!-- Drawer -->
 <div class="drawer-overlay" id="overlay"></div>
 <aside class="drawer" id="detail-drawer" aria-label="Lead details">
   <div class="drawer-header">
     <div>
       <h2 id="drawer-name">Marcus Tan Boon Kiat</h2>
-      <p id="drawer-sub">38 yrs · VP Finance · Needs Analysis</p>
+      <p id="drawer-sub">38 yrs · VP Finance · Opening</p>
     </div>
     <button class="drawer-close" id="drawer-close-btn" aria-label="Close">✕</button>
   </div>
@@ -385,7 +347,7 @@
         <div class="detail-item"><label>Recommended Plan</label><strong>Whole Life + Trust</strong></div>
         <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD 24,000</strong></div>
         <div class="detail-item"><label>Commission Type</label><strong>FYC + Trail</strong></div>
-        <div class="detail-item"><label>Pipeline Stage</label><strong>Needs Analysis</strong></div>
+        <div class="detail-item"><label>Pipeline Stage</label><strong>Opening</strong></div>
       </div>
     </div>
     <div class="detail-section">
@@ -415,8 +377,7 @@
       </ul>
     </div></div>
   <div class="drawer-actions">
-    <button class="btn-brand" id="btn-draft-email">Draft Follow-up Email</button>
-    <button class="btn-ghost" id="btn-edit-lead">Edit Profile</button>
+    <button class="btn-ghost" id="btn-edit-lead">Open Portfolio</button>
   </div>
 </aside>
 

@@ -3,7 +3,7 @@ const STORAGE_KEY = "financial_leads_data";
 const DEFAULT_LEADS = [
   {
     id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
-    meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Proposal Sent",
+    meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Opening",
     remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
     planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
     occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
@@ -16,7 +16,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
-    meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact-Find",
+    meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact Find",
     remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
     planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
     occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
@@ -53,7 +53,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
-    meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Needs Analysis",
+    meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Opening",
     remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
     planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
     occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
@@ -66,7 +66,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
-    meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact-Find",
+    meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact Find",
     remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
     planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
     occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
@@ -77,12 +77,25 @@ const DEFAULT_LEADS = [
   }
 ];
 
-const STAGES = ["Prospecting","Fact-Find","Needs Analysis","Proposal Sent","Closing"];
-const STAGE_COLORS = ["#6b7280","#3b82f6","#f59e0b","#a855f7","#a6192e"];
+const STAGES = ["Prospecting","Fact Find","Opening","Closing"];
+const STAGE_COLORS = ["#d4a574","#a6192e","#8b5cf6","#1e3a8a"];
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
 const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
 
 let LEADS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_LEADS;
+
+// Migrate old stage names to new ones
+LEADS = LEADS.map(lead => {
+  const stageMap = {
+    "Needs Analysis": "Opening",
+    "Proposal Sent": "Opening",
+    "Fact-Find": "Fact Find"
+  };
+  return { ...lead, stage: stageMap[lead.stage] || lead.stage };
+});
+
+localStorage.setItem(STORAGE_KEY, JSON.stringify(LEADS));
+
 let filtered = [...LEADS];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 
@@ -309,40 +322,20 @@ function bindEvents(){
   });
   document.getElementById("drawer-close-btn").addEventListener("click", closeDrawer);
   document.getElementById("overlay").addEventListener("click", closeDrawer);
-  document.getElementById("btn-draft-email").addEventListener("click", () => {
-    const lead = LEADS.find(l => l.id === activeId);
-    if(!lead) return;
-    const firstName = lead.name.split(" ")[0];
-    document.getElementById("em-name").value = firstName;
-    document.getElementById("em-to").value = lead.email;
-    document.getElementById("em-company").value = lead.occupation;
-    document.getElementById("em-context").value = `${lead.stage} — ${lead.planType}`;
-    document.getElementById("em-subject").value = `Following up on your ${lead.planType} plan`;
-    document.getElementById("em-body").value = `Hi ${firstName},\n\nThank you for taking the time to meet with me. I wanted to follow up on our discussion regarding the ${lead.planType} plan and check if you have any questions or would like to move forward.\n\nBased on your current stage (${lead.stage}), I believe the next step would be to ${lead.stage === 'Closing' ? 'finalise the paperwork and get you covered' : lead.stage === 'Proposal Sent' ? 'review the proposal together and address any concerns' : lead.stage === 'Needs Analysis' ? 'go through the solutioning and tailor the right plan for you' : 'schedule our next meeting to continue the conversation'}.\n\nPlease let me know a time that works for you — I am happy to meet in person or over a call.\n\nBest regards`;
-    document.getElementById("email-modal-overlay").classList.add("open");
-    emUpdateLinks();
-  });
-  document.getElementById("em-close-btn").addEventListener("click", () =>
-    document.getElementById("email-modal-overlay").classList.remove("open")
-  );
-  document.getElementById("email-modal-overlay").addEventListener("click", e => {
-    if(e.target === document.getElementById("email-modal-overlay"))
-      document.getElementById("email-modal-overlay").classList.remove("open");
-  });
   document.getElementById("btn-edit-lead").addEventListener("click", () => {
-    if(activeId) window.location.href = `create-profile.html?edit=${activeId}`;
+    if(activeId) window.location.href = `client-profile.html?id=${activeId}`;
   });
   document.getElementById("lead-tbody").addEventListener("click", e => {
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
-    openDrawer(Number(row.dataset.id));
+    window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.getElementById("lead-tbody").addEventListener("keydown", e => {
     if(e.key !== "Enter" && e.key !== " ") return;
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
     e.preventDefault();
-    openDrawer(Number(row.dataset.id));
+    window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
     th.addEventListener("click", () => {
@@ -357,20 +350,3 @@ function bindEvents(){
 }
 
 init();
-
-function emGetFields(){ return { to:document.getElementById("em-to").value.trim(), subject:document.getElementById("em-subject").value.trim(), body:document.getElementById("em-body").value.trim() }; }
-function emUpdateLinks(){
-  const {to,subject,body}=emGetFields();
-  document.getElementById("em-link-gmail").href=`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  document.getElementById("em-link-outlook").href=`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  document.getElementById("em-link-yahoo").href=`https://compose.mail.yahoo.com/?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-function emCopy(){
-  const {to,subject,body}=emGetFields();
-  navigator.clipboard.writeText(`To: ${to}\nSubject: ${subject}\n\n${body}`).then(()=>{
-    const btn=document.getElementById('em-copy-btn');
-    const orig=btn.innerHTML;
-    btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    setTimeout(()=>btn.innerHTML=orig,1500);
-  });
-}

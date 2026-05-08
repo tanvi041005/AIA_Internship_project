@@ -745,8 +745,14 @@
     <nav class="nav-inner" aria-label="Primary">
       <a href="index.html">Overview</a>
       <a href="leads.html">Leads</a>
-      <a href="calendar.html">Calendar</a>
-      <a href="room-booking.html" class="active">Room Booking</a>
+      <div class="calendar-nav-menu">
+        <a href="calendar.html">Calendar</a>
+        <div class="calendar-section-menu">
+          <a href="calendar.html">Calendar</a>
+          <a href="room-booking.html" class="active">Room Booking</a>
+          <a href="attendance.html">Attendance</a>
+        </div>
+      </div>
       <a href="training.html">Training</a>
       <a href="cpf-calculator.html">CPF Calculator</a>
       <a href="announcements.html">Announcements</a>
@@ -841,6 +847,20 @@
           <label>End time</label>
           <input type="time" id="fEnd" />
         </div>
+      </div>
+      <div class="form-group">
+        <label>Recurring Booking</label>
+        <select id="fRecurrence">
+          <option value="none">None (one-time)</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div class="form-group" id="recurrenceEndGroup" style="display:none;">
+        <label>Recurrence End Date (optional)</label>
+        <input type="date" id="fRecurrenceEnd" />
       </div>
       <div class="form-group">
         <label>Notes (optional)</label>
@@ -1227,6 +1247,9 @@
       document.getElementById('fEnd').value = prefill.end || '10:00';
       document.getElementById('fBy').value = '';
       document.getElementById('fNotes').value = '';
+      document.getElementById('fRecurrence').value = 'none';
+      document.getElementById('fRecurrenceEnd').value = '';
+      document.getElementById('recurrenceEndGroup').style.display = 'none';
       document.getElementById('bookingModal').showModal();
     }
 
@@ -1242,6 +1265,9 @@
       document.getElementById('fEnd').value = b.end;
       document.getElementById('fBy').value = b.by || '';
       document.getElementById('fNotes').value = b.notes || '';
+      document.getElementById('fRecurrence').value = b.recurrence || 'none';
+      document.getElementById('fRecurrenceEnd').value = b.recurrenceEnd || '';
+      document.getElementById('recurrenceEndGroup').style.display = b.recurrence && b.recurrence !== 'none' ? 'block' : 'none';
       closeDetail();
       document.getElementById('bookingModal').showModal();
     }
@@ -1258,6 +1284,8 @@
       const end = document.getElementById('fEnd').value;
       const by = document.getElementById('fBy').value.trim();
       const notes = document.getElementById('fNotes').value.trim();
+      const recurrence = document.getElementById('fRecurrence').value;
+      const recurrenceEnd = document.getElementById('fRecurrenceEnd').value;
       if (!title || !date || !start || !end) {
         alert('Please fill in title, date and times.');
         return;
@@ -1266,20 +1294,52 @@
         alert('End time must be after start time.');
         return;
       }
-      const hasConflict = bookings.some((b) => {
-        if (editingId && b.id === editingId) return false;
-        if (b.room !== room || b.date !== date) return false;
-        return start < b.end && end > b.start;
-      });
-      if (hasConflict) {
-        alert('This room already has a booking during that time. Please choose another room or time.');
-        return;
+      
+      // Generate all booking dates based on recurrence
+      const datesToBook = [date];
+      if (recurrence !== 'none') {
+        const startDate = parseDate(date);
+        const endDate = recurrenceEnd ? parseDate(recurrenceEnd) : new Date(startDate.getFullYear() + 2, startDate.getMonth(), startDate.getDate());
+        let currentBookDate = new Date(startDate);
+        
+        while (currentBookDate < endDate) {
+          if (recurrence === 'daily') currentBookDate.setDate(currentBookDate.getDate() + 1);
+          else if (recurrence === 'weekly') currentBookDate.setDate(currentBookDate.getDate() + 7);
+          else if (recurrence === 'biweekly') currentBookDate.setDate(currentBookDate.getDate() + 14);
+          else if (recurrence === 'monthly') currentBookDate.setMonth(currentBookDate.getMonth() + 1);
+          
+          if (currentBookDate < endDate) datesToBook.push(fmtDate(currentBookDate));
+        }
       }
+      
+      // Check conflicts for all dates
+      for (let checkDate of datesToBook) {
+        const hasConflict = bookings.some((b) => {
+          if (editingId && b.id === editingId) return false;
+          if (b.room !== room || b.date !== checkDate) return false;
+          return start < b.end && end > b.start;
+        });
+        if (hasConflict) {
+          alert(`This room already has a booking during that time on ${checkDate}. Please choose another room or time.`);
+          return;
+        }
+      }
+      
       if (editingId) {
         const idx = bookings.findIndex((b) => b.id === editingId);
-        if (idx > -1) bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes };
+        if (idx > -1) {
+          bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null };
+        }
       } else {
-        bookings.push({ id: nextId++, title, room, date, start, end, by, notes });
+        // Add single booking or first recurring booking
+        bookings.push({ id: nextId++, title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null });
+        
+        // Add subsequent recurring bookings
+        if (recurrence !== 'none') {
+          for (let i = 1; i < datesToBook.length; i++) {
+            bookings.push({ id: nextId++, title, room, date: datesToBook[i], start, end, by, notes, recurrence, recurrenceEnd });
+          }
+        }
       }
       closeModal();
       render();
@@ -1329,6 +1389,16 @@
     document.addEventListener('click', (e) => {
       const popup = document.getElementById('detailPopup');
       if (!popup.contains(e.target)) closeDetail();
+    });
+
+    // Add event listener for recurrence select
+    document.getElementById('fRecurrence').addEventListener('change', (e) => {
+      const endDateGroup = document.getElementById('recurrenceEndGroup');
+      if (e.target.value !== 'none') {
+        endDateGroup.style.display = 'block';
+      } else {
+        endDateGroup.style.display = 'none';
+      }
     });
 
     // ── Init ──────────────────────────────────────────────────────────────────────
