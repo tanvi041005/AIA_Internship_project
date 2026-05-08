@@ -19,8 +19,14 @@
   <nav class="nav-inner" aria-label="Primary">
     <a href="index.html">Overview</a>
     <a href="leads.html" class="active">Leads</a>
-    <a href="calendar.html">Calendar</a>
-    <a href="room-booking.html">Room Booking</a>
+    <div class="calendar-nav-menu">
+      <a href="calendar.html">Calendar</a>
+      <div class="calendar-section-menu">
+        <a href="calendar.html">Calendar</a>
+        <a href="room-booking.html">Room Booking</a>
+        <a href="attendance.html">Attendance</a>
+      </div>
+    </div>
     <a href="training.html">Training</a>
     <a href="cpf-calculator.html">CPF Calculator</a>
     <a href="resources.html">Resources</a>
@@ -113,7 +119,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="CBD (Zoom)">CBD (Zoom)</td>
       <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Needs Analysis</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#8b5cf6;color:#fff">Opening</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.">Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.</td>
     </tr>
     <tr class="lead-row" data-id="3">
@@ -135,7 +141,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Toa Payoh HDB">Toa Payoh HDB</td>
       <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill urgent">Urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Proposal Sent</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#8b5cf6;color:#fff">Opening</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Interested in term life; wife expecting. Has existing GE policy expiring soon.">Interested in term life; wife expecting. Has existing GE policy expiring soon.</td>
     </tr>
     <tr class="lead-row" data-id="2">
@@ -146,7 +152,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Tampines Mall">Tampines Mall</td>
       <td><span class="badge-text">Online</span></td>
       <td><span class="status-pill medium">Medium</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Self-employed, irregular income. Keen on savings plan for rainy day fund.">Self-employed, irregular income. Keen on savings plan for rainy day fund.</td>
     </tr>
     <tr class="lead-row" data-id="4">
@@ -157,7 +163,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Jurong East CC">Jurong East CC</td>
       <td><span class="badge-text">Hybrid</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Prospecting</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#d4a574;color:#fff">Prospecting</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.">Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.</td>
     </tr>
     <tr class="lead-row" data-id="6">
@@ -168,7 +174,7 @@
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Woodlands Civic Centre">Woodlands Civic Centre</td>
       <td><span class="badge-text">Physical</span></td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
-      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Fact-Find</span></td>
+      <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
       <td style="max-width:150px;font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.">Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.</td>
     </tr></tbody>
       </table>
@@ -307,7 +313,7 @@
   <div class="drawer-header">
     <div>
       <h2 id="drawer-name">Marcus Tan Boon Kiat</h2>
-      <p id="drawer-sub">38 yrs · VP Finance · Needs Analysis</p>
+      <p id="drawer-sub">38 yrs · VP Finance · Opening</p>
     </div>
     <button class="drawer-close" id="drawer-close-btn" aria-label="Close">✕</button>
   </div>
@@ -340,7 +346,7 @@
         <div class="detail-item"><label>Recommended Plan</label><strong>Whole Life + Trust</strong></div>
         <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD 24,000</strong></div>
         <div class="detail-item"><label>Commission Type</label><strong>FYC + Trail</strong></div>
-        <div class="detail-item"><label>Pipeline Stage</label><strong>Needs Analysis</strong></div>
+        <div class="detail-item"><label>Pipeline Stage</label><strong>Opening</strong></div>
       </div>
     </div>
     <div class="detail-section">

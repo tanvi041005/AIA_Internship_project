@@ -295,13 +295,13 @@
 
     .timeline {
       position: relative;
-      padding-left: 2rem;
+      padding-left: 2.5rem;
     }
 
     .timeline::before {
       content: '';
       position: absolute;
-      left: 0;
+      left: 8px;
       top: 0;
       bottom: 0;
       width: 2px;
@@ -309,16 +309,17 @@
     }
 
     .timeline-item {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
       position: relative;
+      padding-left: 1rem;
     }
 
     .timeline-dot {
       position: absolute;
-      left: -11px;
-      top: 4px;
-      width: 18px;
-      height: 18px;
+      left: -15px;
+      top: 2px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: var(--gold);
       border: 3px solid var(--surface);
@@ -334,13 +335,15 @@
 
     .timeline-title {
       font-weight: 600;
+      font-size: 0.95rem;
       color: var(--text);
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.35rem;
     }
 
     .timeline-date {
       font-size: 0.85rem;
       color: var(--text-muted);
+      line-height: 1.4;
     }
 
     .timeline-status {
@@ -407,6 +410,31 @@
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+    </div>
+  </header>
+
+  <div class="nav-strip">
+    <nav class="nav-inner" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <a href="leads.html" class="active">Leads</a>
+      <div class="calendar-nav-menu">
+        <a href="calendar.html">Calendar</a>
+        <div class="calendar-section-menu">
+          <a href="calendar.html">Calendar</a>
+          <a href="room-booking.html">Room Booking</a>
+          <a href="attendance.html">Attendance</a>
+        </div>
+      </div>
+      <a href="training.html">Training</a>
+      <a href="cpf-calculator.html">CPF Calculator</a>
+      <a href="resources.html">Resources</a>
+    </nav>
+  </div>
+
   <div class="header-bar">
     <h1 class="header-title">Client Profile</h1>
     <button class="back-btn" onclick="window.location.href='leads.html'">← Back to Leads</button>

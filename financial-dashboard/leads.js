@@ -3,7 +3,7 @@ const STORAGE_KEY = "financial_leads_data";
 const DEFAULT_LEADS = [
   {
     id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
-    meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Proposal Sent",
+    meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Opening",
     remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
     planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
     occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
@@ -16,7 +16,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
-    meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact-Find",
+    meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact Find",
     remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
     planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
     occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
@@ -53,7 +53,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
-    meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Needs Analysis",
+    meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Opening",
     remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
     planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
     occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
@@ -66,7 +66,7 @@ const DEFAULT_LEADS = [
   },
   {
     id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
-    meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact-Find",
+    meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact Find",
     remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
     planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
     occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
@@ -77,12 +77,25 @@ const DEFAULT_LEADS = [
   }
 ];
 
-const STAGES = ["Prospecting","Fact-Find","Needs Analysis","Proposal Sent","Closing"];
-const STAGE_COLORS = ["#6b7280","#3b82f6","#f59e0b","#a855f7","#a6192e"];
+const STAGES = ["Prospecting","Fact Find","Opening","Closing"];
+const STAGE_COLORS = ["#d4a574","#a6192e","#8b5cf6","#1e3a8a"];
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
 const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
 
 let LEADS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_LEADS;
+
+// Migrate old stage names to new ones
+LEADS = LEADS.map(lead => {
+  const stageMap = {
+    "Needs Analysis": "Opening",
+    "Proposal Sent": "Opening",
+    "Fact-Find": "Fact Find"
+  };
+  return { ...lead, stage: stageMap[lead.stage] || lead.stage };
+});
+
+localStorage.setItem(STORAGE_KEY, JSON.stringify(LEADS));
+
 let filtered = [...LEADS];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 
