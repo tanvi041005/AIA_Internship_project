@@ -257,7 +257,7 @@
         <button class="hd-filter-btn active" data-filter="all">All <span class="hd-filter-count" id="cnt-all">0</span></button>
         <button class="hd-filter-btn" data-filter="open">Open <span class="hd-filter-count" id="cnt-open">0</span></button>
         <button class="hd-filter-btn" data-filter="progress">In Progress <span class="hd-filter-count" id="cnt-progress">0</span></button>
-        <button class="hd-filter-btn" data-filter="done">Done <span class="hd-filter-count" id="cnt-done">0</span></button>
+        <button class="hd-filter-btn" data-filter="closed">Closed <span class="hd-filter-count" id="cnt-done">0</span></button>
         <button class="hd-filter-btn" data-filter="high">Urgent <span class="hd-filter-count" id="cnt-high">0</span></button>
       </div>
       <div class="hd-right">
@@ -422,8 +422,8 @@
           filter === "all"      ||
           (filter === "open"     && t.status === "open")     ||
           (filter === "progress" && t.status === "progress") ||
-          (filter === "done"     && t.status === "done")     ||
-          (filter === "high"     && t.priority === "high" && t.status !== "done");
+          (filter === "closed"   && t.status === "closed")   ||
+          (filter === "high"     && t.priority === "high" && t.status !== "closed");
         const matchQuery = !query ||
           t.title.toLowerCase().includes(query) ||
           t.reporter.toLowerCase().includes(query) ||
@@ -436,17 +436,17 @@
     function updateCounts() {
       const open     = tickets.filter(t => t.status === "open").length;
       const progress = tickets.filter(t => t.status === "progress").length;
-      const done     = tickets.filter(t => t.status === "done").length;
-      const high     = tickets.filter(t => t.priority === "high" && t.status !== "done").length;
+      const closed   = tickets.filter(t => t.status === "closed").length;
+      const high     = tickets.filter(t => t.priority === "high" && t.status !== "closed").length;
 
       document.getElementById("cnt-all").textContent      = tickets.length;
       document.getElementById("cnt-open").textContent     = open;
       document.getElementById("cnt-progress").textContent = progress;
-      document.getElementById("cnt-done").textContent     = done;
+      document.getElementById("cnt-done").textContent     = closed;
       document.getElementById("cnt-high").textContent     = high;
 
       document.getElementById("kpi-open").textContent     = open + progress;
-      document.getElementById("kpi-resolved").textContent = done;
+      document.getElementById("kpi-resolved").textContent = closed;
       document.getElementById("kpi-high").textContent     = high;
     }
 

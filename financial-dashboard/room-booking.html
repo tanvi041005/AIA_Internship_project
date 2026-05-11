@@ -998,8 +998,8 @@
         const ds = fmtDate(d);
         const dayBookings = visibleBookingsForDate(ds);
         let colHtml = `<div class="day-col" data-date="${ds}" onclick="slotClick(event,'${ds}')">`;
-        HOURS.forEach(() => {
-          colHtml += `<div class="hour-cell"></div>`;
+        HOURS.forEach((h) => {
+          colHtml += `<div class="hour-cell" data-hour="${h}"></div>`;
         });
         dayBookings.forEach((b) => {
           const top = (timeToMins(b.start) / 60) * 48;
@@ -1043,8 +1043,8 @@
       const dayBookings = visibleBookingsForDate(ds);
       let html = `<div class="time-col">${HOURS.map((h) => `<div class="time-slot">${h}:00</div>`).join('')}</div>`;
       let col = `<div class="day-col" data-date="${ds}" onclick="slotClick(event,'${ds}')">`;
-      HOURS.forEach(() => {
-        col += `<div class="hour-cell"></div>`;
+      HOURS.forEach((h) => {
+        col += `<div class="hour-cell" data-hour="${h}"></div>`;
       });
       dayBookings.forEach((b) => {
         const top = (timeToMins(b.start) / 60) * 48;
@@ -1143,6 +1143,10 @@
       });
     }
 
+
+    function syncMiniDateToCurrent() {
+      miniDate = new Date(currentDate);
+    }
     // ── Interaction ───────────────────────────────────────────────────────────────
     function setView(v) {
       currentView = v;
@@ -1157,29 +1161,26 @@
       if (currentView === 'week') currentDate = offsetDate(currentDate, dir * 7);
       else if (currentView === 'day') currentDate = offsetDate(currentDate, dir);
       else currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1);
-      if (currentView === 'month') miniDate = new Date(currentDate);
+      syncMiniDateToCurrent();
       render();
     }
 
     function goToday() {
       currentDate = new Date(today);
-      miniDate = new Date(today);
+      syncMiniDateToCurrent();
       render();
     }
 
     function miniNav(dir) {
       miniDate = new Date(miniDate.getFullYear(), miniDate.getMonth() + dir, 1);
-      renderMiniCal();
+      currentDate = new Date(miniDate);
+      render();
     }
 
     function miniSelect(ds) {
       currentDate = parseDate(ds);
-      if (currentView === 'month') miniDate = new Date(currentDate);
-      renderToolbar();
-      if (currentView === 'week') renderWeek();
-      else if (currentView === 'day') renderDay();
-      else renderMonth();
-      renderMiniCal();
+      syncMiniDateToCurrent();
+      render();
     }
 
     function toggleRoom(id, on) {
@@ -1210,10 +1211,21 @@
 
     function slotClick(e, ds) {
       if (e.target.closest('.booking-block')) return;
-      const col = e.currentTarget;
-      const rect = col.getBoundingClientRect();
-      const relY = e.clientY - rect.top + col.closest('.week-body').scrollTop;
-      const mins = Math.round((relY / 48) * 60 / 15) * 15;
+      const cell = e.target.closest('.hour-cell');
+      let mins = timeToMins('09:00');
+
+      if (cell && cell.dataset.hour !== undefined) {
+        const hour = Number(cell.dataset.hour);
+        const rect = cell.getBoundingClientRect();
+        const withinCell = Math.min(Math.max(e.clientY - rect.top, 0), rect.height - 1);
+        mins = hour * 60 + Math.round((withinCell / rect.height) * 60 / 15) * 15;
+      } else {
+        const col = e.currentTarget;
+        const rect = col.getBoundingClientRect();
+        const relY = e.clientY - rect.top + col.closest('.week-body').scrollTop;
+        mins = Math.round((relY / 48) * 60 / 15) * 15;
+      }
+
       const start = minsToTime(Math.min(mins, 23 * 60));
       const end = minsToTime(Math.min(mins + 60, 24 * 60 - 1));
       openModal({ date: ds, start, end });
