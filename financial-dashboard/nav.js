@@ -17,7 +17,6 @@
     '      <div class="tools-section-menu" id="tools-section-menu" role="menu" aria-label="Tools">',
     '        <a href="sales-tracker.html" role="menuitem">Sales Tracker</a>',
     '        <a href="cpf-calculator.html" role="menuitem">CPF Calculator</a>',
-    '        <a href="helpdesk.html" role="menuitem">Helpdesk</a>',
     '      </div>',
     '    </div>',
     '    <a href="training.html">Training</a>',

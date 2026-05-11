@@ -24,12 +24,15 @@
       document.getElementById("cp-stage").value = editingLead.stage;
       document.getElementById("cp-occupation").value = editingLead.occupation || "";
       document.getElementById("cp-income").value = editingLead.income || "";
+      document.getElementById("cp-general-expense").value = editingLead.generalExpense || "";
+      document.getElementById("cp-surplus").value = editingLead.surplus || "";
       document.getElementById("cp-cpf-oa").value = editingLead.cpfOA || "";
       document.getElementById("cp-cpf-sa").value = editingLead.cpfSA || "";
       document.getElementById("cp-plan-type").value = editingLead.planType;
       document.getElementById("cp-premium").value = editingLead.premium;
       document.getElementById("cp-commission").value = editingLead.commission;
       document.getElementById("cp-referred").value = editingLead.referredBy || "";
+      document.getElementById("cp-existing-plans").value = editingLead.existingPlans || "";
       document.getElementById("cp-remarks").value = editingLead.remarks;
     }
 
@@ -63,12 +66,15 @@
         stage: document.getElementById("cp-stage").value,
         occupation: document.getElementById("cp-occupation").value.trim(),
         income: document.getElementById("cp-income").value.trim(),
+        generalExpense: document.getElementById("cp-general-expense").value.trim(),
+        surplus: document.getElementById("cp-surplus").value.trim(),
         cpfOA: parseInt(document.getElementById("cp-cpf-oa").value, 10) || 0,
         cpfSA: parseInt(document.getElementById("cp-cpf-sa").value, 10) || 0,
         planType: document.getElementById("cp-plan-type").value.trim(),
         premium: parseInt(document.getElementById("cp-premium").value, 10) || 0,
         commission: document.getElementById("cp-commission").value,
         referredBy: document.getElementById("cp-referred").value.trim(),
+        existingPlans: document.getElementById("cp-existing-plans").value.trim(),
         remarks: document.getElementById("cp-remarks").value.trim(),
         owner: "agent",
         followUps: editingLead ? editingLead.followUps : [

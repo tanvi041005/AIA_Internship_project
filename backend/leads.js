@@ -6,7 +6,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Opening",
     remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
     planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
-    occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
+    occupation:"Software Engineer",income:"SGD 7,200/mo",generalExpense:"SGD 3,600/mo",surplus:"SGD 3,600/mo",referredBy:"John Tan",
+    existingPlans:"Existing GE policy expiring soon",
     followUps:[
       {label:"Initial meeting",date:"2025-04-30",done:true},
       {label:"Proposal sent",date:"2025-05-05",done:true},
@@ -19,7 +20,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact Find",
     remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
     planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
-    occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
+    occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",generalExpense:"SGD 2,100/mo",surplus:"SGD 1,700/mo",referredBy:"Self (Instagram)",
+    existingPlans:"No current plan on record",
     followUps:[
       {label:"Intro call",date:"2025-05-10",done:true},
       {label:"Fact-find session",date:"2025-05-15",done:false},
@@ -31,7 +33,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-08",location:"Raffles Place (Client Office)",meetType:"Physical",urgency:"urgent",stage:"Closing",
     remarks:"Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
     planType:"CI + Keyman",premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
-    occupation:"Company Director",income:"SGD 22,000/mo",referredBy:"Existing client (Peter Goh)",
+    occupation:"Company Director",income:"SGD 22,000/mo",generalExpense:"SGD 9,000/mo",surplus:"SGD 13,000/mo",referredBy:"Existing client (Peter Goh)",
+    existingPlans:"Existing personal CI cover; looking at keyman and additional protection",
     followUps:[
       {label:"Discovery",date:"2025-04-22",done:true},
       {label:"Proposal",date:"2025-05-02",done:true},
@@ -44,7 +47,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-20",location:"Jurong East CC",meetType:"Hybrid",urgency:"non-urgent",stage:"Prospecting",
     remarks:"Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
     planType:"ILP",premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
-    occupation:"Secondary School Teacher",income:"SGD 4,500/mo",referredBy:"Colleague referral",
+    occupation:"Secondary School Teacher",income:"SGD 4,500/mo",generalExpense:"SGD 2,500/mo",surplus:"SGD 2,000/mo",referredBy:"Colleague referral",
+    existingPlans:"No active insurance plan yet",
     followUps:[
       {label:"WhatsApp intro",date:"2025-05-17",done:true},
       {label:"Meet-up",date:"2025-05-20",done:false},
@@ -56,7 +60,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Opening",
     remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
     planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
-    occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
+    occupation:"VP Finance",income:"SGD 18,000/mo",generalExpense:"SGD 8,000/mo",surplus:"SGD 10,000/mo",referredBy:"Wealth manager partner",
+    existingPlans:"Corporate coverage only; reviewing personal wealth and legacy plans",
     followUps:[
       {label:"Zoom intro",date:"2025-05-01",done:true},
       {label:"Needs analysis",date:"2025-05-06",done:true},
@@ -69,7 +74,8 @@ const DEFAULT_LEADS = [
     meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact Find",
     remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
     planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
-    occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
+    occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",generalExpense:"SGD 2,000/mo",surplus:"SGD 1,200/mo",referredBy:"Daughter's recommendation",
+    existingPlans:"Reviewing existing Prudential policies",
     followUps:[
       {label:"Phone call",date:"2025-05-20",done:true},
       {label:"Fact-find",date:"2025-05-25",done:false}
@@ -238,6 +244,10 @@ function openDrawer(id){
     <div class="detail-section">
       <p class="detail-section-title">Financial Profile</p>
       <div class="detail-grid">
+        <div class="detail-item"><label>Monthly Income</label><strong>${lead.income || "—"}</strong></div>
+        <div class="detail-item"><label>General Expense</label><strong>${lead.generalExpense || "—"}</strong></div>
+        <div class="detail-item"><label>Surplus</label><strong>${lead.surplus || "—"}</strong></div>
+        <div class="detail-item" style="grid-column:1/-1"><label>Existing Plans</label><strong>${lead.existingPlans || "No existing plans recorded"}</strong></div>
         <div class="detail-item"><label>CPF OA Balance</label><strong>SGD ${lead.cpfOA.toLocaleString()}</strong></div>
         <div class="detail-item"><label>CPF SA Balance</label><strong>SGD ${lead.cpfSA.toLocaleString()}</strong></div>
         <div class="detail-item"><label>Recommended Plan</label><strong>${lead.planType}</strong></div>

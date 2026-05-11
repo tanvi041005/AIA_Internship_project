@@ -306,10 +306,9 @@
       const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
       const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
       const isRecruitmentPage = href === "recruitment.html" && currentPage === "recruitment.html";
-      const isHelpdeskPage = href === "helpdesk.html" && currentPage === "helpdesk.html";
       const isTeamPage = href === "onboarding.html" && currentPage === "onboarding.html";
 
-      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isHelpdeskPage || isTeamPage) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isRecruitmentPage || isTeamPage) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");
@@ -318,7 +317,7 @@
 
     const toolsTriggerEl = document.getElementById("tools-nav-trigger");
     if (toolsTriggerEl) {
-      const toolsPages = ["sales-tracker.html", "cpf-calculator.html", "helpdesk.html"];
+      const toolsPages = ["sales-tracker.html", "cpf-calculator.html"];
       if (toolsPages.includes(currentPage)) {
         toolsTriggerEl.classList.add("active");
       } else {

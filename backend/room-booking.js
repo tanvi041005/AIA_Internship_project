@@ -60,6 +60,28 @@
     function minsToTime(n) {
       return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
     }
+    function nextRecurringDate(current, recurrence, anchorDay) {
+      const next = new Date(current);
+      if (recurrence === 'daily') {
+        next.setDate(next.getDate() + 1);
+        return next;
+      }
+      if (recurrence === 'weekly') {
+        next.setDate(next.getDate() + 7);
+        return next;
+      }
+      if (recurrence === 'biweekly') {
+        next.setDate(next.getDate() + 14);
+        return next;
+      }
+      if (recurrence === 'monthly') {
+        const monthStart = new Date(next.getFullYear(), next.getMonth() + 1, 1);
+        const monthLastDay = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+        monthStart.setDate(Math.min(anchorDay, monthLastDay));
+        return monthStart;
+      }
+      return null;
+    }
     function roomById(id) {
       return ROOMS.find((r) => r.id === id);
     }
@@ -429,16 +451,21 @@
       const datesToBook = [date];
       if (recurrence !== 'none') {
         const startDate = parseDate(date);
-        const endDate = recurrenceEnd ? parseDate(recurrenceEnd) : new Date(startDate.getFullYear() + 2, startDate.getMonth(), startDate.getDate());
+        const limitDate = recurrenceEnd ? parseDate(recurrenceEnd) : new Date(startDate.getFullYear() + 2, startDate.getMonth(), startDate.getDate());
+        const anchorDay = startDate.getDate();
+        const maxOccurrences = 730;
         let currentBookDate = new Date(startDate);
-        
-        while (currentBookDate < endDate) {
-          if (recurrence === 'daily') currentBookDate.setDate(currentBookDate.getDate() + 1);
-          else if (recurrence === 'weekly') currentBookDate.setDate(currentBookDate.getDate() + 7);
-          else if (recurrence === 'biweekly') currentBookDate.setDate(currentBookDate.getDate() + 14);
-          else if (recurrence === 'monthly') currentBookDate.setMonth(currentBookDate.getMonth() + 1);
-          
-          if (currentBookDate < endDate) datesToBook.push(fmtDate(currentBookDate));
+
+        if (recurrenceEnd && limitDate < startDate) {
+          alert('Repeat until date must be the same as or after the booking date.');
+          return;
+        }
+
+        for (let i = 0; i < maxOccurrences; i++) {
+          const nextDate = nextRecurringDate(currentBookDate, recurrence, anchorDay);
+          if (!nextDate || nextDate > limitDate) break;
+          datesToBook.push(fmtDate(nextDate));
+          currentBookDate = nextDate;
         }
       }
       
