@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -51,28 +51,7 @@
 
   <footer class="site-footer">Financial Agent Dashboard · Demo gate uses browser sessionStorage only</footer>
 
-  <script src="auth.js"></script>
-  <script>
-    (function () {
-      var ACCESS_CODE = "changeme";
-      var params = new URLSearchParams(location.search);
-      var next = params.get("next") || "recruitment.html";
-      if (!/^recruitment\.html$/i.test(next)) next = "recruitment.html";
-
-      document.getElementById("login-form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        var input = document.getElementById("code");
-        var err = document.getElementById("login-error");
-        err.hidden = true;
-        if (input.value === ACCESS_CODE) {
-          sessionStorage.setItem("fm_leader_auth", "1");
-          location.href = next;
-        } else {
-          err.textContent = "Incorrect code.";
-          err.hidden = false;
-        }
-      });
-    })();
-  </script>
+  <script src="../backend/auth.js"></script>
+  <script src="../backend/recruitment-login.js"></script>
 </body>
 </html>

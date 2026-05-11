@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Tracker · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1 class="site-title">Financial Agent Dashboard</h1>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
+    </div>
+  </header>
+
+  <div id="site-nav"></div>
+
+  <main id="main">
+    <section class="sales-tracker-hero">
+      <div>
+        <p class="tracker-kicker">15 Point Card</p>
+        <h1 class="page-title">Sales Activity Tracker</h1>
+        <p class="page-lede" id="sales-tracker-lede">Log daily sales actions, track points against target, and review weekly performance.</p>
+      </div>
+      <div class="sales-tracker-action-card" id="sales-entry-panel">
+        <button type="button" class="attendance-primary-btn sales-open-entry-btn" id="sales-open-entry-btn">Add Activity</button>
+      </div>
+    </section>
+
+    <dialog id="sales-entry-dialog">
+      <article class="modal-card">
+        <header class="panel-head">
+          <div>
+            <h3>Log Sales Activity</h3>
+            <span class="summary-line">Based on the Excel point-card categories.</span>
+          </div>
+          <button type="button" class="ghost-btn" id="sales-close-entry-btn">Close</button>
+        </header>
+        <form id="sales-entry-form" class="sales-entry-form">
+          <label>
+            Date
+            <input type="date" id="sales-entry-date" required />
+          </label>
+          <label>
+            Activity
+            <select id="sales-entry-activity" required></select>
+          </label>
+          <label>
+            Count
+            <input type="number" id="sales-entry-count" value="1" min="1" max="20" required />
+          </label>
+          <button type="submit" class="attendance-primary-btn">Add Activity</button>
+        </form>
+      </article>
+    </dialog>
+
+    <section class="sales-tracker-layout">
+      <article class="panel sales-chart-panel" id="sales-chart-panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="sales-chart-title">Daily Points</h2>
+            <span class="summary-line">Target line: 15 points per day</span>
+          </div>
+          <select id="sales-agent-filter" class="attendance-select" aria-label="Filter sales by agent"></select>
+        </div>
+        <div class="sales-point-chart" id="sales-point-chart" aria-label="Daily points chart"></div>
+        <p class="chart-insight" id="sales-chart-insight">Hover visually by scanning bars against the daily target.</p>
+      </article>
+    </section>
+
+    <section class="split-grid sales-review-grid">
+      <article class="panel sales-manager-weekly-panel" id="sales-manager-weekly-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Weekly Sales Tracker</h2>
+            <span class="summary-line" id="sales-weekly-agent-summary">Select an agent to view their point-card table.</span>
+          </div>
+          <div class="sales-week-switcher">
+            <button type="button" class="ghost-btn" id="sales-prev-week-btn">Prev Week</button>
+            <span id="sales-week-label">This week</span>
+            <button type="button" class="ghost-btn" id="sales-next-week-btn">Next Week</button>
+            <select id="sales-weekly-agent-toggle" class="attendance-select" aria-label="Select agent weekly tracker"></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="lead-table sales-weekly-table">
+            <thead id="sales-weekly-head"></thead>
+            <tbody id="sales-weekly-body"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel" id="sales-activity-mix-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Activity Mix</h2>
+            <span class="summary-line">Points by activity category</span>
+          </div>
+        </div>
+        <div class="sales-mix-chart" id="sales-mix-chart"></div>
+      </article>
+
+      <article class="panel" id="sales-weekly-reflection-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Weekly Reflection</h2>
+            <span class="summary-line">Good, bad, improvement</span>
+          </div>
+        </div>
+        <form id="sales-reflection-form" class="sales-reflection-form">
+          <label>1 good thing that happened<input id="sales-good" type="text" placeholder="e.g. Closed a warm referral" /></label>
+          <label>1 bad thing that happened<input id="sales-bad" type="text" placeholder="e.g. Two reschedules" /></label>
+          <label>1 improvement for next week<input id="sales-improve" type="text" placeholder="e.g. Confirm meetings 24h earlier" /></label>
+          <button type="submit" class="ghost-btn">Save Reflection</button>
+        </form>
+        <ul class="activity-list" id="sales-reflection-list"></ul>
+      </article>
+    </section>
+
+    <section class="panel" id="sales-records-panel">
+      <div class="panel-head">
+        <div>
+          <h2 id="sales-table-title">Activity Records</h2>
+          <span class="summary-line" id="sales-table-summary">Showing logged sales activity.</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="lead-table sales-record-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Agent</th>
+              <th>Activity</th>
+              <th>Client</th>
+              <th>Count</th>
+              <th>Points</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="sales-record-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+
+  <script src="../backend/nav.js"></script>
+  <script src="../backend/auth.js"></script>
+  <script src="../backend/sales-tracker.js"></script>
+</body>
+</html>

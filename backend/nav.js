@@ -34,9 +34,7 @@
     placeholder.remove();
   }
 
-  if (document.getElementById('site-nav')) {
-    injectNav();
-  } else if (document.readyState === 'loading') {
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injectNav);
   } else {
     injectNav();
