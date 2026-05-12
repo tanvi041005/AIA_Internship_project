@@ -104,6 +104,63 @@
       }).join("");
     }
 
+    (function integratedRecruit() {
+  const FUNNEL_DATA = [
+    { label: "Applicants", count: 247, pct: 100, detail: "42% from Referrals.", status: "normal" },
+    { label: "CV Review Pass", count: 178, pct: 72, detail: "Top drop-off: Mismatched experience.", status: "normal" },
+    { label: "First Interview", count: 94, pct: 38, detail: "Avg duration: 35 min.", status: "stalled" },
+    { label: "Offer Extended", count: 18, pct: 7, detail: "Decline reason: Competing offers.", status: "normal" }
+  ];
+
+  const SOURCES = [
+    { label: "Referral", pct: 42, roi: "High" },
+    { label: "LinkedIn", pct: 28, roi: "Medium" },
+    { label: "Job Portals", pct: 12, roi: "Low" }
+  ];
+
+  function renderFunnel() {
+    const container = document.getElementById("funnel-rows");
+    container.innerHTML = FUNNEL_DATA.map((s, i) => `
+      <div class="activity-list">
+        <li class="lead-row" style="border-left: 4px solid ${s.status === 'stalled' ? '#d31145' : 'transparent'}">
+          <div class="activity-body">
+            <div class="activity-row">
+              <span class="activity-name">${s.label}</span>
+              <span class="activity-time">${s.count} (${s.pct}%)</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${s.pct}%"></div></div>
+            <p class="activity-desc">${s.detail}</p>
+            ${s.status === 'stalled' ? '<small style="color:#d31145; font-weight:bold;">⚠️ Stalled: Review required</small>' : ''}
+          </div>
+        </li>
+      </div>
+    `).join("");
+  }
+
+  function renderSources() {
+    const container = document.getElementById("source-rows");
+    container.innerHTML = SOURCES.map(s => `
+      <div class="prod-hbar-row">
+        <span class="prod-hbar-label">${s.label}</span>
+        <div class="prod-hbar-track">
+          <div class="prod-hbar-fill" style="width:${s.pct}%; background:#c69a67;"></div>
+        </div>
+        <span class="prod-hbar-val">${s.pct}%</span>
+      </div>
+    `).join("");
+    
+    document.getElementById("source-insight").innerHTML = 
+      `<p><strong>Insight:</strong> Referrals yield the highest ROI.</p>`;
+  }
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", () => {
+    renderFunnel();
+    renderSources();
+    // Program rendering logic remains similar to previous
+  });
+})();
+
     renderFunnel();
     renderSources();
     renderPrograms();

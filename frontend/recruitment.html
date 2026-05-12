@@ -183,73 +183,56 @@
   <div id="site-nav"></div>
 
   <main id="main">
-    <!-- ── Page header ── -->
-    <p class="rp-eyebrow">iRECRUIT+ · 2026 · Leaders &amp; District</p>
-    <h1 class="rp-title">iRECRUIT+ <span style="font-weight:400;font-size:1.1rem;color:var(--text-muted);vertical-align:middle;">Recruitment Pipeline</span></h1>
-    <p class="rp-subtitle">Applicant funnel from intake to active Financial Consultant — conversion analytics, source attribution, and programme breakdown.</p>
-    <div class="rp-meta" id="rp-meta-toggle" aria-expanded="false">
-      <span class="caret">▼</span>
-      <span>Programme Lead: District Manager &middot; Cycle: 2026 Intake &middot; Target: 10 Active FCs</span>
-    </div>
-    <hr class="rp-divider" />
+  <h1 class="page-title">iRecruit+ Dashboard</h1>
+  <p class="page-lede">Operational recruitment analytics and pipeline velocity.</p>
 
-    <!-- ── KPI cards ── -->
-    <div class="rp-kpi-grid">
-      <div class="rp-kpi">
-        <p class="rp-kpi-lbl">Conversion Rate</p>
-        <p class="rp-kpi-val">4.0%</p>
-        <p class="rp-kpi-delta"><span class="delta-up">▲ +0.8%</span> <span class="delta-note">vs 2025</span></p>
-      </div>
-      <div class="rp-kpi">
-        <p class="rp-kpi-lbl">Time to Offer</p>
-        <p class="rp-kpi-val">19d</p>
-        <p class="rp-kpi-delta"><span class="delta-down">▼ -4d</span> <span class="delta-note">vs 2025</span></p>
-      </div>
-      <div class="rp-kpi">
-        <p class="rp-kpi-lbl">Offer Acceptance</p>
-        <p class="rp-kpi-val">67%</p>
-        <p class="rp-kpi-delta"><span class="delta-up">▲ +12%</span> <span class="delta-note">vs 2025</span></p>
-      </div>
-      <div class="rp-kpi">
-        <p class="rp-kpi-lbl">Source: Referral</p>
-        <p class="rp-kpi-val">42%</p>
-        <p class="rp-kpi-delta"><span class="delta-note">highest converter</span></p>
-      </div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Avg. Time to Fill</span>
+      <p class="kpi-value" id="kpi-ttf">22 Days</p>
+      <small class="kpi-sub">Target: < 30 Days</small>
     </div>
-
-    <!-- ── Funnel view ── -->
-    <p class="section-label">Funnel view</p>
-    <div class="funnel-card">
-      <p class="funnel-intake-tag">2026 INTAKE — 247 APPLICANTS — 10 ACTIVE FCs</p>
-      <p class="funnel-intake-title">From applicants to active Financial Consultants</p>
-      <hr class="funnel-hr" />
-      <div id="funnel-rows"></div>
+    <div class="kpi-card">
+      <span class="kpi-label">Offer Acceptance</span>
+      <p class="kpi-value" id="kpi-oar">84%</p>
+      <small class="kpi-sub">Industry Avg: 75%</small>
     </div>
-
-    <!-- ── Source + Programs ── -->
-    <div class="two-col">
-      <div class="panel-card">
-        <h3>Source attribution</h3>
-        <div id="source-rows"></div>
-      </div>
-      <div class="panel-card">
-        <h3>Programmes</h3>
-        <table class="prog-table">
-          <thead>
-            <tr>
-              <th>Programme</th>
-              <th>Opens</th>
-              <th>Interviews</th>
-              <th>Offers</th>
-              <th>Progress</th>
-            </tr>
-          </thead>
-          <tbody id="prog-tbody"></tbody>
-        </table>
-      </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Pipeline Health</span>
+      <p class="kpi-value" id="kpi-health">Good</p>
+      <small class="kpi-sub">Based on interview velocity</small>
     </div>
+  </div>
 
-  </main>
+  <section class="split-grid">
+    <article class="panel">
+      <h2>Recruitment Funnel & Bottlenecks</h2>
+      <div id="funnel-rows"></div> </article>
+
+    <article class="panel">
+      <h2>Sourcing Channel ROI</h2>
+      <div id="source-rows"></div> <div class="chart-insight" id="source-insight"></div>
+    </article>
+  </section>
+
+  <article class="panel">
+    <h2>Active Recruitment Programs</h2>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Program Name</th>
+            <th>Openings</th>
+            <th>Interviews</th>
+            <th>Offers</th>
+            <th>Conversion</th>
+          </tr>
+        </thead>
+        <tbody id="prog-tbody"></tbody>
+      </table>
+    </div>
+  </article>
+</main>
 
   <footer class="site-footer">
     <p>AIA Financial Agent Dashboard &mdash; Internal Use Only</p>
