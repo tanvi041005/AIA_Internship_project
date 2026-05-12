@@ -112,18 +112,31 @@ Prevents unexpected charges if you exceed free tier.
 
 3. Click **Save changes**
 
-## Step 4 — Upload the Frontend Files
+## Step 4 — Upload All Project Folders
+
+The project has three folders that must be uploaded separately, preserving the folder structure.
+The HTML files in `frontend/` use relative paths like `../css/` and `../backend/`, so all three
+folders must exist side-by-side inside the bucket.
 
 From your project root, run:
 
 ```bash
-aws s3 sync ./frontend s3://aia-dashboard-frontend --delete
+aws s3 sync ./frontend s3://aia-dashboard-frontend/frontend --delete
+aws s3 sync ./backend  s3://aia-dashboard-frontend/backend  --delete
+aws s3 sync ./css      s3://aia-dashboard-frontend/css      --delete
 ```
 
-This uploads every file in your `frontend/` folder to the bucket root.
+This produces the following structure in S3:
+```
+s3://aia-dashboard-frontend/
+├── frontend/   ← HTML files
+├── backend/    ← JS files (nav.js, auth.js, page scripts…)
+└── css/        ← CSS files (styles.css, leads.css…)
+```
+
 The `--delete` flag removes any files in S3 that no longer exist locally.
 
-> **Test it:** Visit the S3 website endpoint URL from Step 2. The dashboard should load.
+> **Test it:** Visit `<S3 website endpoint>/frontend/index.html` in your browser.
 > Note: At this point it still uses `localStorage` — that is addressed in Phase 2.
 
 ## Step 5 — Set Up CloudFront (HTTPS + Custom Domain)
@@ -135,7 +148,7 @@ S3 website hosting is HTTP only. CloudFront adds HTTPS for free.
 3. **Origin access**: Select **Origin access control settings (recommended)**
    - Create a new OAC when prompted
 4. **Viewer protocol policy**: **Redirect HTTP to HTTPS**
-5. **Default root object**: `index.html`
+5. **Default root object**: `frontend/index.html`
 6. **Price class**: Use only North America, Europe, Asia (reduces cost)
 7. Click **Create distribution**
 
@@ -147,12 +160,14 @@ S3 website hosting is HTTP only. CloudFront adds HTTPS for free.
 
 > **Your site is now live at `https://d1abc123.cloudfront.net`**
 
-## Step 6 — Re-deploy After Any Frontend Changes
+## Step 6 — Re-deploy After Any Changes
 
-Any time you change frontend files, run:
+Any time you change files, sync only the folders that changed:
 
 ```bash
-aws s3 sync ./frontend s3://aia-dashboard-frontend --delete
+aws s3 sync ./frontend s3://aia-dashboard-frontend/frontend --delete
+aws s3 sync ./backend  s3://aia-dashboard-frontend/backend  --delete
+aws s3 sync ./css      s3://aia-dashboard-frontend/css      --delete
 ```
 
 Then invalidate the CloudFront cache so users see the latest version:
@@ -717,9 +732,10 @@ Create a shared `backend/api.js` file that exports a central `API_BASE` constant
 After updating the frontend JS files:
 
 ```bash
-# Upload updated backend JS files (now referencing the API)
-aws s3 sync ./frontend  s3://aia-dashboard-frontend --delete
-aws s3 sync ./backend   s3://aia-dashboard-frontend/backend --delete
+# Upload all three folders (preserving the folder structure the HTML files depend on)
+aws s3 sync ./frontend s3://aia-dashboard-frontend/frontend --delete
+aws s3 sync ./backend  s3://aia-dashboard-frontend/backend  --delete
+aws s3 sync ./css      s3://aia-dashboard-frontend/css      --delete
 
 # Invalidate CloudFront cache
 aws cloudfront create-invalidation \
@@ -770,7 +786,7 @@ Never use your root AWS account for deployments. Create a dedicated IAM user:
 - [ ] AWS CLI installed and configured
 - [ ] S3 bucket created with static website hosting enabled
 - [ ] Bucket policy set to allow public read
-- [ ] `frontend/` files uploaded via `aws s3 sync`
+- [ ] `frontend/`, `backend/`, and `css/` folders uploaded via `aws s3 sync`
 - [ ] CloudFront distribution created and deployed
 - [ ] Site accessible at CloudFront HTTPS URL
 
