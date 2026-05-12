@@ -139,26 +139,73 @@ The `--delete` flag removes any files in S3 that no longer exist locally.
 > **Test it:** Visit `<S3 website endpoint>/frontend/index.html` in your browser.
 > Note: At this point it still uses `localStorage` — that is addressed in Phase 2.
 
-## Step 5 — Set Up CloudFront (HTTPS + Custom Domain)
+## Step 5 — Set Up CloudFront (HTTPS + CDN)
 
 S3 website hosting is HTTP only. CloudFront adds HTTPS for free.
 
+### 5.1 — Create the distribution
+
 1. Go to AWS Console → **CloudFront** → **Create distribution**
 2. **Origin domain**: Select your S3 bucket from the dropdown
-3. **Origin access**: Select **Origin access control settings (recommended)**
+3. **Origin path**: Leave **blank** (the project folders `frontend/`, `backend/`, `css/` all sit at the bucket root)
+4. **Origin access**: Select **Origin access control settings (recommended)**
    - Create a new OAC when prompted
-4. **Viewer protocol policy**: **Redirect HTTP to HTTPS**
-5. **Default root object**: `frontend/index.html`
-6. **Price class**: Use only North America, Europe, Asia (reduces cost)
-7. Click **Create distribution**
+5. **Viewer protocol policy**: **Redirect HTTP to HTTPS**
+6. **Default root object**: Leave **blank** (handled by the CloudFront Function in step 5.3)
+7. **Price class**: Use only North America, Europe, Asia (reduces cost)
+8. Click **Create distribution**
 
 > CloudFront takes 5–15 minutes to deploy globally.
 
-8. Once deployed, copy the **Distribution domain name** (e.g. `d1abc123.cloudfront.net`)
-9. Go back to your S3 bucket → **Permissions** → **Bucket policy**
-   - CloudFront will prompt you to update the bucket policy to allow only CloudFront access — follow the on-screen instructions
+9. Once deployed, copy the **Distribution domain name** (e.g. `d1abc123.cloudfront.net`)
+
+10. **Bucket policy update (only if you chose OAC in step 4):**
+    - In the CloudFront console, open your distribution → **Origins** tab → edit the origin
+    - Look for a blue **"Copy policy"** banner at the top of the page
+    - Copy the policy, then go to S3 → your bucket → **Permissions** → **Bucket policy** and paste it
+    - **If you chose "Public" origin access**, skip this — your existing public bucket policy already works
+
+### 5.2 — Why a redirect function is needed
+
+The project HTML files live in `frontend/` and reference assets with relative paths (`../css/`, `../backend/`). If CloudFront simply serves `frontend/index.html` at the root URL `/`, the browser's base URL stays as `/` — so relative links like `login.html` resolve to `/login.html` instead of `/frontend/login.html` and break.
+
+The fix is a **CloudFront Function** that issues a proper HTTP 301 redirect from `/` to `/frontend/index.html`, moving the browser URL into the `frontend/` context where all relative paths resolve correctly.
+
+### 5.3 — Create the root redirect CloudFront Function
+
+1. Go to **CloudFront** → **Functions** → **Create function**
+2. **Name**: `aia-root-redirect`
+3. **Runtime**: `cloudfront-js-2.0`
+4. Replace the default code with:
+
+```javascript
+function handler(event) {
+    var uri = event.request.uri;
+    if (uri === '/' || uri === '') {
+        return {
+            statusCode: 301,
+            statusDescription: 'Moved Permanently',
+            headers: {
+                location: { value: '/frontend/index.html' }
+            }
+        };
+    }
+    return event.request;
+}
+```
+
+5. Click **Save changes** → then **Publish**
+
+### 5.4 — Attach the function to your distribution
+
+1. Go to **CloudFront** → your distribution → **Behaviors** tab
+2. Select the **Default (\*)** behavior → **Edit**
+3. Scroll to **Function associations**
+4. Under **Viewer request** → select **CloudFront Functions** → choose `aia-root-redirect`
+5. Save changes and wait for the distribution to redeploy (~2 min)
 
 > **Your site is now live at `https://d1abc123.cloudfront.net`**
+> Visiting the root URL redirects to `/frontend/index.html` and all navigation works from there.
 
 ## Step 6 — Re-deploy After Any Changes
 
@@ -787,8 +834,10 @@ Never use your root AWS account for deployments. Create a dedicated IAM user:
 - [ ] S3 bucket created with static website hosting enabled
 - [ ] Bucket policy set to allow public read
 - [ ] `frontend/`, `backend/`, and `css/` folders uploaded via `aws s3 sync`
-- [ ] CloudFront distribution created and deployed
-- [ ] Site accessible at CloudFront HTTPS URL
+- [ ] CloudFront distribution created (origin path blank, default root object blank)
+- [ ] `aia-root-redirect` CloudFront Function created and published
+- [ ] Function attached to distribution default behavior as Viewer request
+- [ ] Site accessible at CloudFront HTTPS URL (`/` redirects to `/frontend/index.html`)
 
 ### Phase 2 — Database + API
 - [ ] VPC and security groups configured
