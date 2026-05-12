@@ -247,11 +247,19 @@ All backend resources must live in a Virtual Private Cloud (VPC).
    - Public subnets: 2, Private subnets: 2
    - Click **Create VPC**
 
-2. Go to **EC2** → **Security Groups** → **Create security group**
+2. Create the **Lambda security group first** — Go to **EC2** → **Security Groups** → **Create security group**
+   - Name: `aia-lambda-sg`
+   - VPC: `aia-dashboard-vpc`
+   - Inbound rules: none (Lambda initiates connections outward, nothing connects inbound to it)
+   - Outbound: leave as default (All traffic)
+   - Click **Create security group**
+
+3. Create the **RDS security group** — **Create security group** again
    - Name: `aia-rds-sg`
    - VPC: `aia-dashboard-vpc`
-   - Inbound rule: Type `MySQL/Aurora`, Port `3306`, Source: your Lambda security group (create this first or come back)
-   - This ensures only Lambda can reach the database
+   - Inbound rule: Type `MySQL/Aurora`, Port `3306`, Source: search for and select **`aia-lambda-sg`**
+   - This ensures only Lambda functions can reach the database on port 3306
+   - Click **Create security group**
 
 ## Step 8 — Launch an RDS MySQL Instance
 
@@ -663,7 +671,7 @@ zip -r mysql2-layer.zip nodejs/
    - Name: `aia-api-leads`
    - Runtime: `Node.js 20.x`
    - Execution role: `aia-lambda-role`
-3. **Advanced settings** → Enable VPC → select `aia-dashboard-vpc`, private subnets, `aia-rds-sg`
+3. **Advanced settings** → Enable VPC → select `aia-dashboard-vpc`, private subnets, security group **`aia-lambda-sg`**
 4. Add the `mysql2-layer` under **Layers**
 
 Paste the following as the function code:
