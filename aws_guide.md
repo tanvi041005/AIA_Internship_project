@@ -257,9 +257,12 @@ All backend resources must live in a Virtual Private Cloud (VPC).
 3. Create the **RDS security group** — **Create security group** again
    - Name: `aia-rds-sg`
    - VPC: `aia-dashboard-vpc`
-   - Inbound rule: Type `MySQL/Aurora`, Port `3306`, Source: search for and select **`aia-lambda-sg`**
-   - This ensures only Lambda functions can reach the database on port 3306
+   - Add **two** inbound rules:
+     - Type `MySQL/Aurora`, Port `3306`, Source: **`aia-lambda-sg`** — allows Lambda to reach RDS
+     - Type `MySQL/Aurora`, Port `3306`, Source: **`0.0.0.0/0`** — allows all developers to connect via MySQL Workbench
    - Click **Create security group**
+
+> **Security note:** `0.0.0.0/0` means anyone on the internet can attempt a connection. The only protection is your RDS password — use a long, random password (20+ characters) and never commit it to git.
 
 ## Step 8 — Launch an RDS MySQL Instance
 
@@ -280,7 +283,8 @@ All backend resources must live in a Virtual Private Cloud (VPC).
    - **Disable storage autoscaling** (to avoid charges)
 6. Connectivity:
    - **VPC**: `aia-dashboard-vpc`
-   - **Public access**: No (Lambda connects privately)
+   - **Subnet group**: choose a **public subnet** (so RDS gets a public DNS endpoint)
+   - **Public access**: **Yes** (required for developers to connect via MySQL Workbench)
    - **VPC security group**: `aia-rds-sg`
 7. Additional configuration:
    - **Initial database name**: `aia_dashboard`
@@ -290,7 +294,18 @@ All backend resources must live in a Virtual Private Cloud (VPC).
 
 ## Step 9 — Create the Database Schema
 
-Connect to RDS using a MySQL client from an EC2 instance or a bastion host in the same VPC, then run the schema:
+Connect to RDS directly from MySQL Workbench on your laptop:
+
+1. Open MySQL Workbench → **+** to add a new connection
+2. Set:
+   - **Hostname**: your RDS endpoint (e.g. `aia-dashboard-db.xxxx.ap-southeast-1.rds.amazonaws.com`)
+   - **Port**: `3306`
+   - **Username**: `admin`
+   - **Password**: your RDS master password
+3. Click **Test Connection** to verify, then **OK**
+4. Open the connection, paste the entire SQL block below into the query editor, and click **Execute (⚡)**
+
+
 
 ```sql
 CREATE DATABASE IF NOT EXISTS aia_dashboard;
