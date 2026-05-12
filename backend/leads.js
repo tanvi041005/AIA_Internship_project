@@ -5,7 +5,7 @@ const DEFAULT_LEADS = [
     id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
     meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Opening",
     remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
-    planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
+    planType:"Term Life",generalPlanType:"Protection",specificPlanType:"Term Life",sumAssured:300000,premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
     occupation:"Software Engineer",income:"SGD 7,200/mo",generalExpense:"SGD 3,600/mo",surplus:"SGD 3,600/mo",referredBy:"John Tan",
     existingPlans:"Existing GE policy expiring soon",
     followUps:[
@@ -19,7 +19,7 @@ const DEFAULT_LEADS = [
     id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
     meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact Find",
     remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
-    planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
+    planType:"Endowment",generalPlanType:"Savings",specificPlanType:"Endowment",sumAssured:180000,premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
     occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",generalExpense:"SGD 2,100/mo",surplus:"SGD 1,700/mo",referredBy:"Self (Instagram)",
     existingPlans:"No current plan on record",
     followUps:[
@@ -32,7 +32,7 @@ const DEFAULT_LEADS = [
     id:3,name:"Chen Jia Hao",age:42,contact:"9345-6789",email:"jiahao.chen@corp.sg",
     meetDate:"2025-05-08",location:"Raffles Place (Client Office)",meetType:"Physical",urgency:"urgent",stage:"Closing",
     remarks:"Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
-    planType:"CI + Keyman",premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
+    planType:"CI + Keyman",generalPlanType:"Protection",specificPlanType:"CI + Keyman",sumAssured:750000,premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
     occupation:"Company Director",income:"SGD 22,000/mo",generalExpense:"SGD 9,000/mo",surplus:"SGD 13,000/mo",referredBy:"Existing client (Peter Goh)",
     existingPlans:"Existing personal CI cover; looking at keyman and additional protection",
     followUps:[
@@ -46,7 +46,7 @@ const DEFAULT_LEADS = [
     id:4,name:"Priya Nair",age:31,contact:"9456-7890",email:"priya.nair@gmail.com",
     meetDate:"2025-05-20",location:"Jurong East CC",meetType:"Hybrid",urgency:"non-urgent",stage:"Prospecting",
     remarks:"Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
-    planType:"ILP",premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
+    planType:"ILP",generalPlanType:"Investment",specificPlanType:"ILP",sumAssured:200000,premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
     occupation:"Secondary School Teacher",income:"SGD 4,500/mo",generalExpense:"SGD 2,500/mo",surplus:"SGD 2,000/mo",referredBy:"Colleague referral",
     existingPlans:"No active insurance plan yet",
     followUps:[
@@ -59,7 +59,7 @@ const DEFAULT_LEADS = [
     id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
     meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Opening",
     remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
-    planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
+    planType:"Whole Life + Trust",generalPlanType:"Wealth",specificPlanType:"Whole Life + Trust",sumAssured:1000000,premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
     occupation:"VP Finance",income:"SGD 18,000/mo",generalExpense:"SGD 8,000/mo",surplus:"SGD 10,000/mo",referredBy:"Wealth manager partner",
     existingPlans:"Corporate coverage only; reviewing personal wealth and legacy plans",
     followUps:[
@@ -73,7 +73,7 @@ const DEFAULT_LEADS = [
     id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
     meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact Find",
     remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
-    planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
+    planType:"Retirement + MediShield",generalPlanType:"Retirement",specificPlanType:"Retirement + MediShield",sumAssured:120000,premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
     occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",generalExpense:"SGD 2,000/mo",surplus:"SGD 1,200/mo",referredBy:"Daughter's recommendation",
     existingPlans:"Reviewing existing Prudential policies",
     followUps:[
@@ -88,6 +88,21 @@ const STAGE_COLORS = ["#d4a574","#a6192e","#8b5cf6","#1e3a8a"];
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
 const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
 
+function formatCommissionRate(lead) {
+  if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
+    return `${Number(lead.commissionRate)}%`;
+  }
+  return lead && lead.commission ? lead.commission : "—";
+}
+
+function formatCommissionAmount(lead) {
+  const amount = lead && lead.commissionAmount !== undefined && lead.commissionAmount !== null
+    ? Number(lead.commissionAmount)
+    : Number(lead.premium || 0) * Number(lead.commissionRate || 0) / 100;
+  if (!Number.isFinite(amount) || amount <= 0) return "—";
+  return `${(lead.currency === "USD" ? "USD" : "SGD")} ${amount.toLocaleString()}`;
+}
+
 let LEADS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_LEADS;
 
 // Migrate old stage names to new ones
@@ -97,7 +112,15 @@ LEADS = LEADS.map(lead => {
     "Proposal Sent": "Opening",
     "Fact-Find": "Fact Find"
   };
-  return { ...lead, stage: stageMap[lead.stage] || lead.stage };
+  return {
+    ...lead,
+    stage: stageMap[lead.stage] || lead.stage,
+    specificPlanType: lead.specificPlanType || lead.planType || "",
+    generalPlanType: lead.generalPlanType || "",
+    currency: lead.currency === "USD" ? "USD" : "SGD",
+    sumAssured: Number(lead.sumAssured || 0),
+    planType: lead.planType || lead.specificPlanType || ""
+  };
 });
 
 localStorage.setItem(STORAGE_KEY, JSON.stringify(LEADS));
@@ -111,7 +134,6 @@ function init(){
   sortData();
   render();
   renderClosure();
-  renderCPF();
   bindEvents();
 }
 
@@ -215,6 +237,7 @@ function stageClass(stage){ return stage.toLowerCase().replace(/\s+/g, "-"); }
 function openDrawer(id){
   const lead = LEADS.find(l => l.id === id);
   if(!lead) return;
+  const currency = lead.currency === "USD" ? "USD" : "SGD";
   activeId = id;
   render();
   document.getElementById("drawer-name").textContent = lead.name;
@@ -248,11 +271,15 @@ function openDrawer(id){
         <div class="detail-item"><label>General Expense</label><strong>${lead.generalExpense || "—"}</strong></div>
         <div class="detail-item"><label>Surplus</label><strong>${lead.surplus || "—"}</strong></div>
         <div class="detail-item" style="grid-column:1/-1"><label>Existing Plans</label><strong>${lead.existingPlans || "No existing plans recorded"}</strong></div>
+        <div class="detail-item"><label>General Plan Type</label><strong>${lead.generalPlanType || "—"}</strong></div>
+        <div class="detail-item"><label>Specific Plan Type</label><strong>${lead.specificPlanType || lead.planType || "—"}</strong></div>
+        <div class="detail-item"><label>Sum Assured</label><strong>${lead.sumAssured ? `${currency} ${Number(lead.sumAssured).toLocaleString()}` : "—"}</strong></div>
         <div class="detail-item"><label>CPF OA Balance</label><strong>SGD ${lead.cpfOA.toLocaleString()}</strong></div>
         <div class="detail-item"><label>CPF SA Balance</label><strong>SGD ${lead.cpfSA.toLocaleString()}</strong></div>
-        <div class="detail-item"><label>Recommended Plan</label><strong>${lead.planType}</strong></div>
-        <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD ${lead.premium.toLocaleString()}</strong></div>
-        <div class="detail-item"><label>Commission Type</label><strong>${lead.commission}</strong></div>
+        <div class="detail-item"><label>Recommended Plan</label><strong>${lead.specificPlanType || lead.planType}</strong></div>
+        <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">${currency} ${lead.premium.toLocaleString()}</strong></div>
+        <div class="detail-item"><label>Commission Rate</label><strong>${formatCommissionRate(lead)}</strong></div>
+        <div class="detail-item"><label>Commission Amount</label><strong>${formatCommissionAmount(lead)}</strong></div>
         <div class="detail-item"><label>Pipeline Stage</label><span class="stage-pill ${stageClass(lead.stage)}">${lead.stage}</span></div>
       </div>
     </div>
@@ -287,28 +314,10 @@ function renderClosure(){
     <tr>
       <td><strong>${l.name.split(" ")[0]} ${l.name.split(" ").slice(-1)[0]}</strong></td>
       <td><span class="status-pill ${l.urgency}" style="font-size:.7rem">${cap(l.urgency)}</span></td>
-      <td style="font-size:.82rem">${l.planType}</td>
-      <td class="premium-val">SGD ${l.premium.toLocaleString()}</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">${l.commission}</td>
+      <td style="font-size:.82rem">${l.specificPlanType || l.planType}</td>
+      <td class="premium-val">${(l.currency === "USD" ? "USD" : "SGD")} ${l.premium.toLocaleString()}</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">${formatCommissionRate(l)}</td>
     </tr>`).join("");
-}
-
-function renderCPF(){
-  document.getElementById("cpf-list").innerHTML = LEADS.map((l,i) => {
-    const tot = l.cpfOA + l.cpfSA;
-    const pct = Math.round((l.cpfSA / tot) * 100);
-    const colors = ["red","blue","amber","green","red","blue"];
-    return `<li>
-      <span class="dot ${colors[i]}"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">${l.name.split(" ")[0]}</span>
-          <span class="activity-time">SA: ${pct}% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD ${l.cpfOA.toLocaleString()} · SA: SGD ${l.cpfSA.toLocaleString()} · Total: SGD ${tot.toLocaleString()}</p>
-      </div>
-    </li>`;
-  }).join("");
 }
 
 function bindEvents(){

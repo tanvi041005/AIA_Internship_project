@@ -6,27 +6,165 @@
   <title>Create Profile · Financial Agent Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .profile-form { display: grid; gap: 1rem; max-width: 640px; }
-    .profile-form label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .profile-form { display: grid; gap: 1rem; max-width: 640px; font-family: inherit; }
+    .profile-form label { 
+      display: block; 
+      font-size: 0.875rem; 
+      font-weight: 600; 
+      margin-bottom: 0.3rem; 
+      color: var(--text);
+      font-family: inherit;
+    }
     .profile-form input,
     .profile-form select,
     .profile-form textarea {
-      width: 100%; padding: 0.55rem 0.7rem;
-      border: 1px solid var(--border); border-radius: 8px; font: inherit;
+      width: 100%; 
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border); 
+      border-radius: 8px; 
+      font: 0.875rem inherit;
+      color: var(--text);
     }
-    .profile-form textarea { resize: vertical; min-height: 72px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-actions { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+    .profile-form input::placeholder,
+    .profile-form textarea::placeholder {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    .profile-form textarea { 
+      resize: vertical; 
+      min-height: 72px; 
+      font-family: inherit;
+    }
+    .profile-form small {
+      display: block;
+      margin-top: 0.2rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 400;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+    .form-row { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 1rem; 
+    }
+    .form-actions { 
+      display: flex; 
+      gap: 0.6rem; 
+      margin-top: 0.5rem; 
+    }
     .form-actions .btn-primary {
-      padding: 0.58rem 1.2rem; background: var(--brand); color: #fff;
-      border: none; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
+      padding: 0.58rem 1.2rem; 
+      background: var(--brand); 
+      color: #fff;
+      border: none; 
+      border-radius: 8px; 
+      font: 0.875rem 600 inherit; 
+      font-weight: 600; 
+      cursor: pointer;
     }
-    .form-actions .btn-primary:hover { background: var(--brand-dark); }
+    .form-actions .btn-primary:hover { 
+      background: var(--brand-dark); 
+    }
+    .ghost-btn {
+      padding: 0.58rem 1.2rem;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: 0.875rem 600 inherit;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .ghost-btn:hover {
+      border-color: var(--text);
+      background: var(--surface-subtle);
+    }
+    .existing-plans-field { 
+      display: grid; 
+      gap: 0.6rem; 
+    }
+    .existing-plans-field > label {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .existing-plans-field > small {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    .existing-plans-list { 
+      display: grid; 
+      gap: 0.5rem; 
+    }
+    .existing-plan-row { 
+      display: grid; 
+      gap: 0.28rem; 
+    }
+    .existing-plan-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-family: inherit;
+    }
+    .existing-plan-input {
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
+    .add-plan-btn {
+      justify-self: start;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--brand);
+      border-radius: 8px;
+      padding: 0.45rem 0.75rem;
+      font: 0.875rem 600 inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .add-plan-btn:hover {
+      border-color: var(--brand);
+      background: var(--brand-light);
+    }
+    .form-error {
+      padding: 0.75rem 1rem; 
+      background: #fee2e2;
+      color: #991b1b; 
+      border-radius: 8px; 
+      font-weight: 600; 
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+    }
     .form-success {
-      display: none; padding: 0.75rem 1rem; background: #d1fae5;
-      color: #065f46; border-radius: 8px; font-weight: 600; margin-top: 0.5rem;
+      display: none; 
+      padding: 0.75rem 1rem; 
+      background: #d1fae5;
+      color: #065f46; 
+      border-radius: 8px; 
+      font-weight: 600; 
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      font-family: inherit;
     }
-    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    .formula-hint {
+      margin: 0.15rem 0 1rem; 
+      font-size: 0.75rem; 
+      color: var(--text-muted);
+      font-family: inherit;
+      font-weight: 400;
+    }
+    @media (max-width: 600px) { 
+      .form-row { 
+        grid-template-columns: 1fr; 
+      } 
+    }
   </style>
 </head>
 <body>
@@ -35,7 +173,7 @@
   <header class="site-header">
     <div class="site-header-inner">
       <h1 class="site-title">Financial Agent Dashboard</h1>
-      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+      <p class="site-subtitle">Manage policies, clients, and training</p>
     </div>
   </header>
 
@@ -87,7 +225,8 @@
 
         <div>
           <label for="cp-location">Location</label>
-          <input type="text" id="cp-location" placeholder="e.g. Makati Office" />
+          <input type="text" id="cp-location" placeholder="📍 location: Makati Office or Marina Bay" />
+          <small>Office, mall, or district name</small>
         </div>
 
         <div class="form-row">
@@ -114,70 +253,112 @@
         <div class="form-row">
           <div>
             <label for="cp-occupation">Occupation</label>
-            <input type="text" id="cp-occupation" placeholder="e.g. Software Engineer" />
+            <input type="text" id="cp-occupation" placeholder="Job title: Software Engineer" />
+            <small>Current job/profession</small>
           </div>
           <div>
             <label for="cp-income">Monthly Income</label>
-            <input type="text" id="cp-income" placeholder="e.g. SGD 7,000" />
+            <input type="text" id="cp-income" placeholder="$ format: SGD 7,000 or 7000" />
+            <small>Include currency code (SGD/USD) or numbers only</small>
           </div>
         </div>
 
         <div class="form-row">
           <div>
             <label for="cp-general-expense">General Expense</label>
-            <input type="text" id="cp-general-expense" placeholder="e.g. SGD 3,200" />
+            <input type="text" id="cp-general-expense" placeholder="$ format: SGD 3,200 or 3200" />
+            <small>Monthly expenses</small>
           </div>
           <div>
             <label for="cp-surplus">Surplus</label>
-            <input type="text" id="cp-surplus" placeholder="e.g. SGD 3,800" />
+            <input type="text" id="cp-surplus" placeholder="$ format: SGD 3,800 or 3800" />
+            <small>Income minus expenses</small>
           </div>
         </div>
 
         <div class="form-row">
           <div>
             <label for="cp-cpf-oa">CPF OA Balance</label>
-            <input type="number" id="cp-cpf-oa" placeholder="e.g. 50000" />
+            <input type="number" id="cp-cpf-oa" placeholder="# numbers only: 50000" />
+            <small>Ordinary Account balance</small>
           </div>
           <div>
             <label for="cp-cpf-sa">CPF SA Balance</label>
-            <input type="number" id="cp-cpf-sa" placeholder="e.g. 20000" />
+            <input type="number" id="cp-cpf-sa" placeholder="# numbers only: 20000" />
+            <small>Special Account balance</small>
           </div>
         </div>
 
         <div class="form-row">
           <div>
-            <label for="cp-plan-type">Plan Type</label>
-            <input type="text" id="cp-plan-type" placeholder="e.g. Life Insurance - Term" />
+            <label for="cp-general-plan-type">General Plan Type</label>
+            <input type="text" id="cp-general-plan-type" placeholder="Category: Protection" />
+            <small>e.g., Protection, Savings, Investment, Wealth, Retirement</small>
           </div>
           <div>
-            <label for="cp-premium">Premium (SGD)</label>
-            <input type="number" id="cp-premium" min="0" placeholder="e.g. 120000" />
+            <label for="cp-plan-type">Specific Plan Type</label>
+            <input type="text" id="cp-plan-type" placeholder="Product: Whole Life" />
+            <small>e.g., Term Life, Whole Life, Endowment, ILP</small>
           </div>
         </div>
 
-        <div>
-          <label for="cp-commission">Commission Type</label>
-          <select id="cp-commission">
-            <option value="Upfront">Upfront</option>
-            <option value="Recurring">Recurring</option>
-            <option value="Tiered">Tiered</option>
-            <option value="Hybrid">Hybrid</option>
-          </select>
+        <div class="form-row">
+          <div>
+            <label for="cp-currency">Currency</label>
+            <select id="cp-currency">
+              <option value="SGD" selected>SGD</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+          </div>
         </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-sum-assured">Sum Assured</label>
+            <input type="number" id="cp-sum-assured" min="0" placeholder="# numbers only: 300000" />
+            <small>Total coverage amount</small>
+          </div>
+          <div>
+            <label for="cp-premium">Premium (Yearly)</label>
+            <input type="number" id="cp-premium" min="0" placeholder="# numbers only: 12000" />
+            <small>Annual premium payment</small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="cp-commission-rate">Commission Rate (%)</label>
+            <input type="number" id="cp-commission-rate" min="0" step="0.01" placeholder="% enter number: 12" />
+            <small>Percentage rate (auto-updates amount)</small>
+          </div>
+          <div>
+            <label for="cp-commission-amount">Commission Amount</label>
+            <input type="text" id="cp-commission-amount" readonly value="SGD 0" />
+            <small>Auto-calculated (read-only)</small>
+          </div>
+        </div>
+        <p class="formula-hint">💡 Formula: Est. Premium / Year × Commission Rate ÷ 100</p>
 
         <div>
           <label for="cp-referred">Referred By</label>
-          <input type="text" id="cp-referred" placeholder="e.g. John Tan" />
+          <input type="text" id="cp-referred" placeholder="Name or referrer: John Tan" />
+          <small>Who referred this lead to you?</small>
+        </div>
+
+        <div class="existing-plans-field">
+          <label>Existing Plans</label>
+          <small>List current insurance policies held by client</small>
+          <div id="existing-plans-list" class="existing-plans-list"></div>
+          <button type="button" id="add-existing-plan-btn" class="add-plan-btn">+ Add another plan</button>
         </div>
 
         <div>
-          <label for="cp-existing-plans">Existing Plans</label>
-          <textarea id="cp-existing-plans" placeholder="e.g. GE Term Life, AIA Endowment, Shield plan"></textarea>
-        </div>
-
-        <div>
-          <label for="cp-remarks">Remarks</label>
-          <textarea id="cp-remarks" placeholder="Notes about this lead…"></textarea>
+          <label for="cp-remarks">Remarks / Notes</label>
+          <textarea id="cp-remarks" placeholder="e.g. Interested in term life protection, family of 4, wife expecting..."></textarea>
+          <small>Add any additional notes, preferences, or follow-up items</small>
         </div>
 
         <p id="form-error" class="form-error" aria-live="polite"></p>

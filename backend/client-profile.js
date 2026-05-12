@@ -14,6 +14,9 @@
       stage: "Proposal Sent",
       remarks: "Interested in term life; wife expecting. Has existing GE policy expiring soon.",
       planType: "Term Life",
+      generalPlanType: "Protection",
+      specificPlanType: "Term Life",
+      sumAssured: 300000,
       premium: 2400,
       commission: "FYC",
       cpfSA: 42000,
@@ -44,6 +47,9 @@
       stage: "Fact-Find",
       remarks: "Self-employed, irregular income. Keen on savings plan for rainy day fund.",
       planType: "Endowment",
+      generalPlanType: "Savings",
+      specificPlanType: "Endowment",
+      sumAssured: 180000,
       premium: 3600,
       commission: "Trail",
       cpfSA: 18000,
@@ -73,6 +79,9 @@
       stage: "Closing",
       remarks: "Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
       planType: "CI + Keyman",
+      generalPlanType: "Protection",
+      specificPlanType: "CI + Keyman",
+      sumAssured: 750000,
       premium: 9800,
       commission: "FYC",
       cpfSA: 95000,
@@ -103,6 +112,9 @@
       stage: "Prospecting",
       remarks: "Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
       planType: "ILP",
+      generalPlanType: "Investment",
+      specificPlanType: "ILP",
+      sumAssured: 200000,
       premium: 4200,
       commission: "Trail",
       cpfSA: 28000,
@@ -132,6 +144,9 @@
       stage: "Needs Analysis",
       remarks: "Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
       planType: "Whole Life + Trust",
+      generalPlanType: "Wealth",
+      specificPlanType: "Whole Life + Trust",
+      sumAssured: 1000000,
       premium: 24000,
       commission: "FYC + Trail",
       cpfSA: 150000,
@@ -162,6 +177,9 @@
       stage: "Fact-Find",
       remarks: "Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
       planType: "Retirement + MediShield",
+      generalPlanType: "Retirement",
+      specificPlanType: "Retirement + MediShield",
+      sumAssured: 120000,
       premium: 1800,
       commission: "Trail",
       cpfSA: 65000,
@@ -221,6 +239,25 @@
     return `SGD ${numeric.toLocaleString()}${suffix}`;
   }
 
+  function formatCommissionRate(lead) {
+    if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
+      return `${Number(lead.commissionRate)}%`;
+    }
+    return lead && lead.commission ? lead.commission : "—";
+  }
+
+  function formatCommissionAmount(lead, currency) {
+    const amount = lead && lead.commissionAmount !== undefined && lead.commissionAmount !== null
+      ? Number(lead.commissionAmount)
+      : Number(lead.premium || 0) * Number(lead.commissionRate || 0) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) return "—";
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+
+  function getCurrencyCode(lead) {
+    return lead && lead.currency === "USD" ? "USD" : "SGD";
+  }
+
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -228,6 +265,38 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function toOrdinalLabel(position) {
+    const labels = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+    const idx = Math.max(1, Number(position || 1));
+    return labels[idx - 1] || `${idx}th`;
+  }
+
+  function getExistingPlansList(lead) {
+    if (Array.isArray(lead?.existingPlansList) && lead.existingPlansList.length) {
+      return lead.existingPlansList.map((plan) => String(plan || "").trim()).filter(Boolean);
+    }
+    if (!lead?.existingPlans) return [];
+    return String(lead.existingPlans)
+      .split(/\r?\n|,|;/)
+      .map((plan) => plan.trim())
+      .filter(Boolean);
+  }
+
+  function renderExistingPlans(lead) {
+    const plans = getExistingPlansList(lead);
+    if (!plans.length) {
+      return '<div class="financial-note-value">No existing plans recorded</div>';
+    }
+    return plans
+      .map((plan, index) => `
+        <div class="existing-plan-row-view">
+          <span class="existing-plan-tag">${toOrdinalLabel(index + 1)} Plan</span>
+          <span class="existing-plan-text">${escapeHtml(plan)}</span>
+        </div>
+      `)
+      .join("");
   }
 
   function renderTimelineView(followUps) {
@@ -311,6 +380,7 @@
 
     const avatarColor = AVATAR_COLORS[(lead.id - 1) % AVATAR_COLORS.length];
     const urgencyColor = lead.urgency === "urgent" ? "#ef4444" : lead.urgency === "medium" ? "#f59e0b" : "#6b7280";
+    const currency = getCurrencyCode(lead);
     const followUps = Array.isArray(lead.followUps) ? lead.followUps : [];
 
     const timelineHtml = editTimeline
@@ -419,7 +489,7 @@
 
           <div class="financial-note">
             <div class="info-label">Existing Plans</div>
-            <div class="financial-note-value">${escapeHtml(lead.existingPlans || "No existing plans recorded")}</div>
+            ${renderExistingPlans(lead)}
           </div>
 
           <div class="financial-detail-grid">
@@ -432,16 +502,28 @@
               <div class="info-value">SGD ${Number(lead.cpfSA || 0).toLocaleString()}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Recommended Plan</div>
-              <div class="info-value">${escapeHtml(lead.planType || "—")}</div>
+              <div class="info-label">General Plan Type</div>
+              <div class="info-value">${escapeHtml(lead.generalPlanType || "—")}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Specific Plan Type</div>
+              <div class="info-value">${escapeHtml(lead.specificPlanType || lead.planType || "—")}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Sum Assured</div>
+              <div class="info-value">${lead.sumAssured ? `${currency} ${Number(lead.sumAssured).toLocaleString()}` : "—"}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Commission Rate</div>
+              <div class="info-value">${escapeHtml(formatCommissionRate(lead))}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Commission Amount</div>
+              <div class="info-value">${escapeHtml(formatCommissionAmount(lead, currency))}</div>
             </div>
             <div class="info-item">
               <div class="info-label">Est. Premium / yr</div>
-              <div class="info-value" style="color: var(--brand);">SGD ${Number(lead.premium || 0).toLocaleString()}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Commission Type</div>
-              <div class="info-value">${escapeHtml(lead.commission || "—")}</div>
+              <div class="info-value" style="color: var(--brand);">${currency} ${Number(lead.premium || 0).toLocaleString()}</div>
             </div>
           </div>
         </div>

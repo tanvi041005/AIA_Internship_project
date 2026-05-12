@@ -13,19 +13,30 @@
       box-sizing: border-box;
     }
 
+    html {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
     body {
       background: linear-gradient(135deg, #f5f3f0 0%, #fef9f7 100%);
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
       color: #202124;
       min-height: 100vh;
+      text-rendering: optimizeLegibility;
     }
 
     html, body, button, input, select, textarea {
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
     }
 
     h1, h2, h3, .header-title, .card-title, .page-title {
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
       letter-spacing: -0.02em;
     }
 
@@ -78,6 +89,7 @@
       max-width: 1200px;
       margin: 2rem auto;
       padding: 0 2rem;
+      font-family: inherit;
     }
 
     .profile-header {
@@ -90,6 +102,7 @@
       grid-template-columns: auto 1fr auto;
       gap: 2rem;
       align-items: center;
+      font-family: inherit;
     }
 
     .profile-avatar {
@@ -107,14 +120,15 @@
     }
 
     .profile-info h1 {
-      font-size: 2rem;
+      font-size: 1.85rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
       color: var(--text);
+      letter-spacing: -0.03em;
     }
 
     .profile-subtitle {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text-muted);
       margin-bottom: 1rem;
     }
@@ -131,7 +145,7 @@
     }
 
     .meta-label {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       font-weight: 500;
       text-transform: uppercase;
@@ -140,7 +154,7 @@
     }
 
     .meta-value {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--text);
     }
@@ -194,16 +208,18 @@
       border-radius: 16px;
       padding: 2rem;
       box-shadow: var(--shadow);
+      font-family: inherit;
     }
 
     .card-title {
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      letter-spacing: -0.02em;
     }
 
     .section-divider {
@@ -224,18 +240,19 @@
     }
 
     .info-label {
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       margin-bottom: 0.3rem;
     }
 
     .info-value {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--text);
+      line-height: 1.35;
     }
 
     .financial-card {
@@ -247,6 +264,10 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1rem;
+    }
+
+    .financial-summary-grid > * {
+      min-width: 0;
     }
 
     .financial-summary-item,
@@ -267,13 +288,14 @@
     }
 
     .financial-value {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--text);
       line-height: 1.3;
       font-variant-numeric: tabular-nums;
-      word-break: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .accent-income {
@@ -294,16 +316,58 @@
     }
 
     .financial-note-value {
-      font-size: 1rem;
+      font-size: 0.98rem;
       line-height: 1.5;
       color: var(--text);
       font-weight: 600;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .existing-plan-row-view {
+      display: grid;
+      gap: 0.25rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px dashed #e0d5c2;
+      border-radius: 10px;
+      background: #fffdf8;
+    }
+
+    .existing-plan-row-view + .existing-plan-row-view {
+      margin-top: 0.45rem;
+    }
+
+    .existing-plan-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .existing-plan-text {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .financial-detail-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1rem;
+    }
+
+    .financial-card,
+    .timeline-section,
+    .timeline-editor,
+    .timeline-editor-row,
+    .financial-note {
+      font-family: inherit;
     }
 
     .risk-score-card {
@@ -588,7 +652,7 @@
   <header class="site-header">
     <div class="site-header-inner">
       <h1 class="site-title">Financial Agent Dashboard</h1>
-      <p class="site-subtitle">Manage policies, clients, recruitment, and training</p>
+      <p class="site-subtitle">Manage policies, clients, and training</p>
     </div>
   </header>
 

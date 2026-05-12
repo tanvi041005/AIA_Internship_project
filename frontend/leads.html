@@ -178,7 +178,7 @@
               <th>Urgency</th>
               <th>Plan</th>
               <th>Premium/yr</th>
-              <th>Commission</th>
+              <th>Commission Rate</th>
             </tr>
           </thead>
           <tbody id="closure-tbody">
@@ -187,108 +187,48 @@
       <td><span class="status-pill urgent" style="font-size:.7rem">Urgent</span></td>
       <td style="font-size:.82rem">Term Life</td>
       <td class="premium-val">SGD 2,400</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">FYC</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">12%</td>
     </tr>
     <tr>
       <td><strong>Nur Rahman</strong></td>
       <td><span class="status-pill medium" style="font-size:.7rem">Medium</span></td>
       <td style="font-size:.82rem">Endowment</td>
       <td class="premium-val">SGD 3,600</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">Trail</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">10%</td>
     </tr>
     <tr>
       <td><strong>Chen Hao</strong></td>
       <td><span class="status-pill urgent" style="font-size:.7rem">Urgent</span></td>
       <td style="font-size:.82rem">CI + Keyman</td>
       <td class="premium-val">SGD 9,800</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">FYC</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">12%</td>
     </tr>
     <tr>
       <td><strong>Priya Nair</strong></td>
       <td><span class="status-pill non-urgent" style="font-size:.7rem">Non-urgent</span></td>
       <td style="font-size:.82rem">ILP</td>
       <td class="premium-val">SGD 4,200</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">Trail</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">8%</td>
     </tr>
     <tr>
       <td><strong>Marcus Kiat</strong></td>
       <td><span class="status-pill urgent" style="font-size:.7rem">Urgent</span></td>
       <td style="font-size:.82rem">Whole Life + Trust</td>
       <td class="premium-val">SGD 24,000</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">FYC + Trail</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">12%</td>
     </tr>
     <tr>
       <td><strong>Sandra Ling</strong></td>
       <td><span class="status-pill non-urgent" style="font-size:.7rem">Non-urgent</span></td>
       <td style="font-size:.82rem">Retirement + MediShield</td>
       <td class="premium-val">SGD 1,800</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">Trail</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">10%</td>
     </tr></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <h2 style="font-size:1rem;font-weight:700">CPF Tracker</h2>
-    </div>
-    <ul class="activity-list" id="cpf-list"><li>
-      <span class="dot red"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Lim</span>
-          <span class="activity-time">SA: 32% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 88,000 · SA: SGD 42,000 · Total: SGD 130,000</p>
-      </div>
-    </li><li>
-      <span class="dot blue"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Nur</span>
-          <span class="activity-time">SA: 37% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 31,000 · SA: SGD 18,000 · Total: SGD 49,000</p>
-      </div>
-    </li><li>
-      <span class="dot amber"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Chen</span>
-          <span class="activity-time">SA: 35% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 180,000 · SA: SGD 95,000 · Total: SGD 275,000</p>
-      </div>
-    </li><li>
-      <span class="dot green"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Priya</span>
-          <span class="activity-time">SA: 34% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 54,000 · SA: SGD 28,000 · Total: SGD 82,000</p>
-      </div>
-    </li><li>
-      <span class="dot red"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Marcus</span>
-          <span class="activity-time">SA: 32% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 320,000 · SA: SGD 150,000 · Total: SGD 470,000</p>
-      </div>
-    </li><li>
-      <span class="dot blue"></span>
-      <div class="activity-body">
-        <div class="activity-row">
-          <span class="activity-name">Sandra</span>
-          <span class="activity-time">SA: 35% of total</span>
-        </div>
-        <p class="activity-desc">OA: SGD 120,000 · SA: SGD 65,000 · Total: SGD 185,000</p>
-      </div>
-    </li></ul>
-  </div>
 </main>
 
 <!-- Drawer -->
@@ -329,7 +269,8 @@
         <div class="detail-item"><label>CPF SA Balance</label><strong>SGD 150,000</strong></div>
         <div class="detail-item"><label>Recommended Plan</label><strong>Whole Life + Trust</strong></div>
         <div class="detail-item"><label>Est. Premium / yr</label><strong style="color:var(--brand)">SGD 24,000</strong></div>
-        <div class="detail-item"><label>Commission Type</label><strong>FYC + Trail</strong></div>
+        <div class="detail-item"><label>Commission Rate</label><strong>12%</strong></div>
+        <div class="detail-item"><label>Commission Amount</label><strong>SGD 2,880</strong></div>
         <div class="detail-item"><label>Pipeline Stage</label><strong>Opening</strong></div>
       </div>
     </div>

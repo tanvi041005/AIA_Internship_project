@@ -1,5 +1,67 @@
 ﻿const LEADS_STORAGE_KEY = "financial_leads_data";
 
+    const ORDINAL_WORDS = [
+      "First",
+      "Second",
+      "Third",
+      "Fourth",
+      "Fifth",
+      "Sixth",
+      "Seventh",
+      "Eighth",
+      "Ninth",
+      "Tenth"
+    ];
+
+    function toOrdinalLabel(position) {
+      const idx = Math.max(1, Number(position || 1));
+      if (ORDINAL_WORDS[idx - 1]) return ORDINAL_WORDS[idx - 1];
+      return `${idx}th`;
+    }
+
+    function normalizePlans(source) {
+      if (Array.isArray(source)) return source.map((s) => String(s || "").trim()).filter(Boolean);
+      if (!source) return [];
+      return String(source)
+        .split(/\r?\n|,|;/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    function renderPlanInputs(plans) {
+      const container = document.getElementById("existing-plans-list");
+      const normalizedPlans = plans && plans.length ? plans : [""];
+      container.innerHTML = normalizedPlans.map((planValue, index) => {
+        const position = index + 1;
+        const ord = toOrdinalLabel(position);
+        return `
+          <div class="existing-plan-row">
+            <span class="existing-plan-label">${ord} Plan</span>
+            <input type="text" class="existing-plan-input" placeholder="${ord} plan (e.g. AIA Endowment)" value="${String(planValue || "").replace(/&/g, "&amp;").replace(/\"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}" />
+          </div>
+        `;
+      }).join("");
+    }
+
+    function collectPlanInputs() {
+      return Array.from(document.querySelectorAll(".existing-plan-input"))
+        .map((input) => input.value.trim())
+        .filter(Boolean);
+    }
+
+    function formatCurrencyAmount(amount) {
+      return `SGD ${Number(amount || 0).toLocaleString()}`;
+    }
+
+    function calculateCommissionAmount() {
+      const premium = parseFloat(document.getElementById("cp-premium").value) || 0;
+      const commissionRate = parseFloat(document.getElementById("cp-commission-rate").value) || 0;
+      const amount = premium * commissionRate / 100;
+      const amountField = document.getElementById("cp-commission-amount");
+      if (amountField) amountField.value = formatCurrencyAmount(amount);
+      return amount;
+    }
+
     function getCustomLeads() {
       try { return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || []; }
       catch { return []; }
@@ -9,6 +71,20 @@
     const editId = params.get("edit") ? Number(params.get("edit")) : null;
     const editingLead = editId ? getCustomLeads().find((l) => l.id === editId) : null;
     const returnUrl = editId ? `client-profile.html?id=${editId}` : "leads.html";
+
+    const initialPlans = editingLead
+      ? normalizePlans(editingLead.existingPlansList && editingLead.existingPlansList.length ? editingLead.existingPlansList : editingLead.existingPlans)
+      : [""];
+    renderPlanInputs(initialPlans);
+
+    document.getElementById("add-existing-plan-btn").addEventListener("click", () => {
+      const currentPlans = collectPlanInputs();
+      currentPlans.push("");
+      renderPlanInputs(currentPlans);
+      const inputs = document.querySelectorAll(".existing-plan-input");
+      const lastInput = inputs[inputs.length - 1];
+      if (lastInput) lastInput.focus();
+    });
 
     if (editingLead) {
       document.getElementById("page-heading").textContent = "Edit Lead Profile";
@@ -28,13 +104,22 @@
       document.getElementById("cp-surplus").value = editingLead.surplus || "";
       document.getElementById("cp-cpf-oa").value = editingLead.cpfOA || "";
       document.getElementById("cp-cpf-sa").value = editingLead.cpfSA || "";
-      document.getElementById("cp-plan-type").value = editingLead.planType;
+      document.getElementById("cp-currency").value = editingLead.currency || "SGD";
+      document.getElementById("cp-general-plan-type").value = editingLead.generalPlanType || "";
+      document.getElementById("cp-plan-type").value = editingLead.specificPlanType || editingLead.planType || "";
+      document.getElementById("cp-sum-assured").value = editingLead.sumAssured || "";
       document.getElementById("cp-premium").value = editingLead.premium;
-      document.getElementById("cp-commission").value = editingLead.commission;
+      document.getElementById("cp-commission-rate").value = editingLead.commissionRate ?? "";
+      document.getElementById("cp-commission-amount").value = formatCurrencyAmount(
+        editingLead.commissionAmount ?? (Number(editingLead.premium || 0) * Number(editingLead.commissionRate || 0) / 100)
+      );
       document.getElementById("cp-referred").value = editingLead.referredBy || "";
-      document.getElementById("cp-existing-plans").value = editingLead.existingPlans || "";
       document.getElementById("cp-remarks").value = editingLead.remarks;
     }
+
+    document.getElementById("cp-premium").addEventListener("input", calculateCommissionAmount);
+    document.getElementById("cp-commission-rate").addEventListener("input", calculateCommissionAmount);
+    calculateCommissionAmount();
 
     document.getElementById("cancel-link").href = returnUrl;
 
@@ -54,6 +139,9 @@
         return;
       }
 
+      const existingPlansList = collectPlanInputs();
+      const specificPlanType = document.getElementById("cp-plan-type").value.trim();
+
       const updated = {
         id: editId || Date.now(),
         name, age,
@@ -70,11 +158,17 @@
         surplus: document.getElementById("cp-surplus").value.trim(),
         cpfOA: parseInt(document.getElementById("cp-cpf-oa").value, 10) || 0,
         cpfSA: parseInt(document.getElementById("cp-cpf-sa").value, 10) || 0,
-        planType: document.getElementById("cp-plan-type").value.trim(),
+        currency: document.getElementById("cp-currency").value || "SGD",
+        generalPlanType: document.getElementById("cp-general-plan-type").value.trim(),
+        specificPlanType,
+        planType: specificPlanType,
+        sumAssured: parseInt(document.getElementById("cp-sum-assured").value, 10) || 0,
         premium: parseInt(document.getElementById("cp-premium").value, 10) || 0,
-        commission: document.getElementById("cp-commission").value,
+        commissionRate: parseFloat(document.getElementById("cp-commission-rate").value) || 0,
+        commissionAmount: calculateCommissionAmount(),
         referredBy: document.getElementById("cp-referred").value.trim(),
-        existingPlans: document.getElementById("cp-existing-plans").value.trim(),
+        existingPlansList,
+        existingPlans: existingPlansList.join(", "),
         remarks: document.getElementById("cp-remarks").value.trim(),
         owner: "agent",
         followUps: editingLead ? editingLead.followUps : [

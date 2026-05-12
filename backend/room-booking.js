@@ -16,7 +16,7 @@
       { id: 1, title: 'Board Review', room: 'eagle', date: fmtDate(today), start: '09:00', end: '10:30', by: 'Sarah L.' },
       { id: 2, title: 'All-Hands', room: 'summit', date: fmtDate(today), start: '14:00', end: '15:00', by: 'Operations' },
       { id: 3, title: 'Dev Sprint Sync', room: 'ark', date: fmtDate(offsetDate(today, 1)), start: '10:00', end: '11:00', by: 'Tech Team' },
-      { id: 4, title: 'HR Interview', room: 'armour', date: fmtDate(offsetDate(today, 2)), start: '13:00', end: '14:00', by: 'Recruitment' },
+      { id: 4, title: 'HR Interview', room: 'armour', date: fmtDate(offsetDate(today, 2)), start: '13:00', end: '14:00', by: 'HR' },
       { id: 5, title: 'L&D Session', room: 'inspiration', date: fmtDate(offsetDate(today, -1)), start: '15:00', end: '16:30', by: 'Learning' },
       { id: 6, title: 'Wellness Break', room: 'nest', date: fmtDate(today), start: '12:00', end: '12:30', by: 'HR' },
     ];
