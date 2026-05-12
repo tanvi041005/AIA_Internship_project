@@ -3,8 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resources · Financial Agent Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Recruitment · Financial Agent Dashboard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    /* ── Page header ─────────────────────────────────── */
+    .rp-eyebrow {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.35rem;
+    }
+    .rp-title   { font-size: 1.9rem; font-weight: 800; color: var(--text); margin: 0 0 0.35rem; line-height: 1.15; }
+    .rp-subtitle{ font-size: 0.875rem; color: var(--text-muted); margin: 0 0 0.75rem; }
+    .rp-meta    {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.4rem 0.85rem; font-size: 0.78rem; color: var(--text-muted);
+      margin-bottom: 1.25rem; background: var(--card); cursor: pointer;
+      user-select: none; transition: border-color 0.15s;
+    }
+    .rp-meta:hover { border-color: var(--brand); }
+    .rp-meta .caret { transition: transform 0.2s; }
+    .rp-meta.open .caret { transform: rotate(180deg); }
+    .rp-divider { border: none; border-top: 2px solid var(--brand); opacity: 0.2; margin: 0 0 1.5rem; }
+
+    /* ── Section titles ──────────────────────────────── */
+    .section-label {
+      font-size: 1.05rem; font-weight: 700; color: var(--text);
+      margin: 0 0 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── KPI grid ────────────────────────────────────── */
+    .rp-kpi-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .rp-kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .rp-kpi-lbl {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.4rem;
+    }
+    .rp-kpi-val { font-size: 1.85rem; font-weight: 800; color: var(--text); line-height: 1; margin: 0 0 0.3rem; }
+    .rp-kpi-delta { font-size: 0.78rem; }
+    .delta-up   { color: #059669; }
+    .delta-down { color: var(--brand); }
+    .delta-note { color: var(--text-muted); }
+
+    /* ── Funnel ──────────────────────────────────────── */
+    .funnel-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    }
+    .funnel-intake-tag {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.3rem;
+    }
+    .funnel-intake-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0 0 1rem;
+    }
+    .funnel-hr { border: none; border-top: 1px solid var(--border); margin: 0 0 1.1rem; }
+    .funnel-row {
+      display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.6rem; cursor: pointer;
+    }
+    .funnel-row:hover .funnel-lbl { color: var(--text); }
+    .funnel-lbl {
+      font-size: 0.82rem; color: var(--text-muted); width: 140px;
+      flex-shrink: 0; text-align: right; transition: color 0.15s;
+    }
+    .funnel-track {
+      flex: 1; height: 2.25rem; background: var(--bg-page);
+      border-radius: 4px; overflow: hidden;
+    }
+    .funnel-fill {
+      height: 100%; border-radius: 4px; display: flex; align-items: center;
+      padding: 0 0.75rem; font-size: 0.78rem; font-weight: 700; color: #fff;
+      width: 0; transition: width 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap; min-width: 0;
+    }
+    .funnel-count  { font-size: 1rem; font-weight: 700; color: var(--text); width: 36px; text-align: right; flex-shrink: 0; }
+    .funnel-detail {
+      display: none; background: var(--surface-subtle); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.75rem 1rem; margin: -0.25rem 0 0.6rem 9.8rem;
+      font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;
+    }
+    .funnel-detail.open { display: block; }
+
+    /* ── Two-col grid ────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .panel-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    }
+    .panel-card h3 { font-size: 0.88rem; font-weight: 700; color: var(--text); margin: 0 0 1rem; }
+
+    /* Source bars */
+    .src-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
+    .src-lbl  { font-size: 0.82rem; color: var(--text); width: 85px; flex-shrink: 0; }
+    .src-track{ flex: 1; height: 8px; background: var(--bg-page); border-radius: 999px; overflow: hidden; }
+    .src-fill {
+      height: 100%; border-radius: 999px; background: var(--brand);
+      width: 0; transition: width 0.85s ease;
+    }
+    .src-pct  { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); width: 34px; text-align: right; }
+
+    /* Programs table */
+    .prog-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .prog-table th {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-muted); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border);
+      text-align: left; background: var(--surface-subtle);
+    }
+    .prog-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    .prog-table tr:last-child td { border-bottom: none; }
+    .prog-table tr:hover td { background: var(--surface-subtle); }
+    .prog-bar-cell { width: 100px; }
+    .prog-mini-track { height: 6px; background: var(--bg-page); border-radius: 999px; overflow: hidden; }
+    .prog-mini-fill  { height: 100%; border-radius: 999px; background: var(--brand); }
+    .stage-pill {
+      display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .pill-open   { background: #fff3cd; color: #856404; }
+    .pill-active { background: var(--brand-light); color: var(--brand-dark); }
+    .pill-closed { background: #d1fae5; color: #065f46; }
+
+    /* ── Scope section ───────────────────────────────── */
+    .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .scope-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    }
+    .scope-eyebrow {
+      font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--brand); margin: 0 0 0.25rem;
+    }
+    .scope-heading { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0 0 0.75rem; }
+    .scope-divider { border: none; border-top: 1px solid var(--brand); opacity: 0.2; margin: 0 0 0.75rem; }
+    .scope-item {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 0.45rem; font-size: 0.83rem; color: var(--text); transition: border-color 0.15s;
+    }
+    .scope-item:hover { border-color: var(--border-strong); }
+    .scope-item input[type="checkbox"] { flex-shrink: 0; margin-top: 2px; accent-color: var(--brand); cursor: pointer; }
+    .scope-item.out { color: var(--text-muted); }
+    .scope-item.out .scope-item-text { text-decoration: none; }
+
+    /* ── Build notes ─────────────────────────────────── */
+    .build-notes {
+      background: #fffbeb; border: 1px dashed #f0c050;
+      border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .build-notes-lbl {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #92650a; margin: 0 0 0.4rem;
+    }
+    .build-notes p  { font-size: 0.85rem; color: var(--text); margin: 0 0 0.5rem; }
+    .build-notes ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+    .build-notes li { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+    .build-notes em { color: var(--brand); font-style: italic; }
+
+    @media (max-width: 900px) {
+      .rp-kpi-grid { grid-template-columns: 1fr 1fr; }
+      .two-col, .scope-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -12,64 +176,87 @@
   <header class="site-header">
     <div class="site-header-inner">
       <h1 class="site-title">Financial Agent Dashboard</h1>
-      <p class="site-subtitle">Manage policies, clients, and training</p>
+      <p class="site-subtitle">Track leads, FYC performance, appointments, and agent activity</p>
     </div>
   </header>
 
   <div id="site-nav"></div>
 
   <main id="main">
-    <h1 class="page-title">Resources</h1>
-    <p class="page-lede">Direct access to shared sales documents, compliance references, and client presentation materials.</p>
+    <!-- ── Page header ── -->
+    <p class="rp-eyebrow">iRECRUIT+ · 2026 · Leaders &amp; District</p>
+    <h1 class="rp-title">iRECRUIT+ <span style="font-weight:400;font-size:1.1rem;color:var(--text-muted);vertical-align:middle;">Recruitment Pipeline</span></h1>
+    <p class="rp-subtitle">Applicant funnel from intake to active Financial Consultant — conversion analytics, source attribution, and programme breakdown.</p>
+    <div class="rp-meta" id="rp-meta-toggle" aria-expanded="false">
+      <span class="caret">▼</span>
+      <span>Programme Lead: District Manager &middot; Cycle: 2026 Intake &middot; Target: 10 Active FCs</span>
+    </div>
+    <hr class="rp-divider" />
 
-    <section class="split-grid" aria-label="Resource links">
-      <article class="panel">
-        <h2>SharePoint Documents</h2>
-        <ul class="activity-list">
-          <li>
-            <span class="dot blue" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Client Profile Templates</span>
-                <a class="activity-time" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open</a>
-              </div>
-              <p class="activity-desc">Lead intake forms, fact-find sheets, and meeting note templates.</p>
-            </div>
-          </li>
-          <li>
-            <span class="dot red" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Product & Plan Decks</span>
-                <a class="activity-time" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open</a>
-              </div>
-              <p class="activity-desc">Plan comparison decks, premium tables, and sales presentation files.</p>
-            </div>
-          </li>
-          <li>
-            <span class="dot orange" aria-hidden="true"></span>
-            <div class="activity-body">
-              <div class="activity-row">
-                <span class="activity-name">Compliance References</span>
-                <a class="activity-time" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open</a>
-              </div>
-              <p class="activity-desc">Disclosure scripts, product suitability checks, and document checklists.</p>
-            </div>
-          </li>
-        </ul>
-      </article>
+    <!-- ── KPI cards ── -->
+    <div class="rp-kpi-grid">
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Conversion Rate</p>
+        <p class="rp-kpi-val">4.0%</p>
+        <p class="rp-kpi-delta"><span class="delta-up">▲ +0.8%</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Time to Offer</p>
+        <p class="rp-kpi-val">19d</p>
+        <p class="rp-kpi-delta"><span class="delta-down">▼ -4d</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Offer Acceptance</p>
+        <p class="rp-kpi-val">67%</p>
+        <p class="rp-kpi-delta"><span class="delta-up">▲ +12%</span> <span class="delta-note">vs 2025</span></p>
+      </div>
+      <div class="rp-kpi">
+        <p class="rp-kpi-lbl">Source: Referral</p>
+        <p class="rp-kpi-val">42%</p>
+        <p class="rp-kpi-delta"><span class="delta-note">highest converter</span></p>
+      </div>
+    </div>
 
-      <article class="panel">
-        <h2>Quick Access</h2>
-        <p class="page-lede">Use the main SharePoint shortcut when you need to browse all district files.</p>
-        <a class="resource-link" href="https://www.sharepoint.com" target="_blank" rel="noopener noreferrer">Open SharePoint Resources</a>
-      </article>
-    </section>
+    <!-- ── Funnel view ── -->
+    <p class="section-label">Funnel view</p>
+    <div class="funnel-card">
+      <p class="funnel-intake-tag">2026 INTAKE — 247 APPLICANTS — 10 ACTIVE FCs</p>
+      <p class="funnel-intake-title">From applicants to active Financial Consultants</p>
+      <hr class="funnel-hr" />
+      <div id="funnel-rows"></div>
+    </div>
+
+    <!-- ── Source + Programs ── -->
+    <div class="two-col">
+      <div class="panel-card">
+        <h3>Source attribution</h3>
+        <div id="source-rows"></div>
+      </div>
+      <div class="panel-card">
+        <h3>Programmes</h3>
+        <table class="prog-table">
+          <thead>
+            <tr>
+              <th>Programme</th>
+              <th>Opens</th>
+              <th>Interviews</th>
+              <th>Offers</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody id="prog-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
-  <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <footer class="site-footer">
+    <p>AIA Financial Agent Dashboard &mdash; Internal Use Only</p>
+  </footer>
+
   <script src="../backend/nav.js"></script>
   <script src="../backend/auth.js"></script>
-  <script src="../backend/dashboard.js"></script>
+  <script src="../backend/recruitment.js"></script>
 </body>
 </html>
