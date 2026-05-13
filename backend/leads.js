@@ -1,5 +1,3 @@
-const STORAGE_KEY = "financial_leads_data";
-
 const DEFAULT_LEADS = [
   {
     id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
@@ -103,33 +101,14 @@ function formatCommissionAmount(lead) {
   return `${(lead.currency === "USD" ? "USD" : "SGD")} ${amount.toLocaleString()}`;
 }
 
-let LEADS = JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_LEADS;
-
-// Migrate old stage names to new ones
-LEADS = LEADS.map(lead => {
-  const stageMap = {
-    "Needs Analysis": "Opening",
-    "Proposal Sent": "Opening",
-    "Fact-Find": "Fact Find"
-  };
-  return {
-    ...lead,
-    stage: stageMap[lead.stage] || lead.stage,
-    specificPlanType: lead.specificPlanType || lead.planType || "",
-    generalPlanType: lead.generalPlanType || "",
-    currency: lead.currency === "USD" ? "USD" : "SGD",
-    sumAssured: Number(lead.sumAssured || 0),
-    planType: lead.planType || lead.specificPlanType || ""
-  };
-});
-
-localStorage.setItem(STORAGE_KEY, JSON.stringify(LEADS));
-
-let filtered = [...LEADS];
+let LEADS = [];
+let filtered = [];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 
-function init(){
-  if(!localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LEADS));
+async function init(){
+  const userId = sessionStorage.getItem("dashboardUser") || "A123";
+  LEADS = (await apiGet('/leads?userId=' + userId)).map(mapLead);
+  filtered = [...LEADS];
   renderKPIs();
   sortData();
   render();

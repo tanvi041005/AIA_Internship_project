@@ -11,16 +11,8 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Seed some bookings
-    let bookings = [
-      { id: 1, title: 'Board Review', room: 'eagle', date: fmtDate(today), start: '09:00', end: '10:30', by: 'Sarah L.' },
-      { id: 2, title: 'All-Hands', room: 'summit', date: fmtDate(today), start: '14:00', end: '15:00', by: 'Operations' },
-      { id: 3, title: 'Dev Sprint Sync', room: 'ark', date: fmtDate(offsetDate(today, 1)), start: '10:00', end: '11:00', by: 'Tech Team' },
-      { id: 4, title: 'HR Interview', room: 'armour', date: fmtDate(offsetDate(today, 2)), start: '13:00', end: '14:00', by: 'HR' },
-      { id: 5, title: 'L&D Session', room: 'inspiration', date: fmtDate(offsetDate(today, -1)), start: '15:00', end: '16:30', by: 'Learning' },
-      { id: 6, title: 'Wellness Break', room: 'nest', date: fmtDate(today), start: '12:00', end: '12:30', by: 'HR' },
-    ];
-    let nextId = 7;
+    let bookings = [];
+    let nextId = 1;
 
     // ── State ────────────────────────────────────────────────────────────────────
     let currentView = 'week';
@@ -428,7 +420,7 @@
       document.getElementById('bookingModal').close();
     }
 
-    function saveBooking() {
+    async function saveBooking() {
       const title = document.getElementById('fTitle').value.trim();
       const room = document.getElementById('fRoom').value;
       const date = document.getElementById('fDate').value;
@@ -488,14 +480,22 @@
           bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null };
         }
       } else {
-        // Add single booking or first recurring booking
-        bookings.push({ id: nextId++, title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null });
-        
-        // Add subsequent recurring bookings
+        const saved = await apiPost('/bookings', {
+          title,
+          room_id: room,
+          booking_date: date,
+          start_time: start + ':00',
+          end_time: end + ':00',
+          booked_by_name: by,
+          notes,
+          recurrence: recurrence !== 'none' ? recurrence : null,
+          recurrence_end: recurrence !== 'none' ? recurrenceEnd : null
+        });
+        bookings.push(mapBooking(saved));
+
         if (recurrence !== 'none') {
-          for (let i = 1; i < datesToBook.length; i++) {
-            bookings.push({ id: nextId++, title, room, date: datesToBook[i], start, end, by, notes, recurrence, recurrenceEnd });
-          }
+          const refreshed = await apiGet('/bookings');
+          bookings = refreshed.map(mapBooking);
         }
       }
       closeModal();
@@ -536,8 +536,9 @@
       document.getElementById('detailPopup').classList.remove('visible');
     }
 
-    function deleteBooking(id) {
+    async function deleteBooking(id) {
       if (!confirm('Delete this booking?')) return;
+      await apiDelete('/bookings/' + id);
       bookings = bookings.filter((b) => b.id !== id);
       closeDetail();
       render();
@@ -559,4 +560,8 @@
     });
 
     // ── Init ──────────────────────────────────────────────────────────────────────
-    render();
+    (async function() {
+      const data = await apiGet('/bookings');
+      bookings = data.map(mapBooking);
+      render();
+    })();

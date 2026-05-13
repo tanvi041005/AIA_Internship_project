@@ -1,39 +1,9 @@
-﻿(function announcementsPage() {
+﻿(async function announcementsPage() {
       var role = (sessionStorage.getItem("dashboardRole") || "").toLowerCase();
       var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
       var canCreate = role === "leader" || role === "district";
-      var ANNOUNCEMENTS_KEY = "fm_announcements_v1";
       var RESPONSES_KEY = "fm_announcement_responses_v1";
-
-      var defaultAnnouncements = [
-        {
-          id: "a1",
-          title: "Q2 Client Follow-up Compliance",
-          category: "Policy Update",
-          message: "All agents must complete follow-up notes for new leads within 24 hours and mark the status in the lead tracker.",
-          responseType: "acknowledge",
-          createdBy: "D123",
-          createdAt: "2026-05-08T01:00:00.000Z"
-        },
-        {
-          id: "a2",
-          title: "RSVP for This Event",
-          category: "Event Reminder",
-          message: "Please RSVP for the Monthly Sales Kickoff by Wednesday 5:00 PM so the admin team can confirm attendance and seating.",
-          responseType: "rsvp",
-          createdBy: "L123",
-          createdAt: "2026-05-08T01:30:00.000Z"
-        },
-        {
-          id: "a3",
-          title: "Portal Feature Testing Window",
-          category: "Testing Notice",
-          message: "This is a test announcement. Please open the Training and Leads modules, then report any issue to your team leader before end of day.",
-          responseType: "status",
-          createdBy: "L123",
-          createdAt: "2026-05-08T02:00:00.000Z"
-        }
-      ];
+      var announcementsCache = null;
 
       function readJson(key, fallback) {
         try {
@@ -50,13 +20,11 @@
         localStorage.setItem(key, JSON.stringify(value));
       }
 
-      function ensureAnnouncements() {
-        var records = readJson(ANNOUNCEMENTS_KEY, null);
-        if (!Array.isArray(records) || records.length === 0) {
-          saveJson(ANNOUNCEMENTS_KEY, defaultAnnouncements);
-          return defaultAnnouncements.slice();
-        }
-        return records;
+      async function loadAnnouncements() {
+        if (announcementsCache) return announcementsCache;
+        var rows = await apiGet('/announcements');
+        announcementsCache = rows.map(mapAnnouncement);
+        return announcementsCache;
       }
 
       function getResponsesStore() {
@@ -130,7 +98,7 @@
 
         var form = document.getElementById("announcement-create-form");
         if (!form) return;
-        form.addEventListener("submit", function (event) {
+        form.addEventListener("submit", async function (event) {
           event.preventDefault();
           var title = document.getElementById("announcement-title").value.trim();
           var category = document.getElementById("announcement-category").value.trim();
@@ -138,19 +106,16 @@
           var responseType = document.getElementById("announcement-response-type").value;
           if (!title || !category || !message) return;
 
-          var announcements = ensureAnnouncements();
-          announcements.unshift({
-            id: "a" + Date.now(),
+          await apiPost('/announcements', {
             title: title,
             category: category,
             message: message,
-            responseType: responseType,
-            createdBy: user,
-            createdAt: new Date().toISOString()
+            response_type: responseType,
+            created_by: user
           });
-          saveJson(ANNOUNCEMENTS_KEY, announcements);
+          announcementsCache = null;
           form.reset();
-          renderAnnouncements();
+          await renderAnnouncements();
         });
       }
 
@@ -209,8 +174,8 @@
         );
       }
 
-      function renderAnnouncements() {
-        var announcements = ensureAnnouncements();
+      async function renderAnnouncements() {
+        var announcements = await loadAnnouncements();
         var responsesStore = getResponsesStore();
         var container = document.getElementById("announcement-list");
         if (!container) return;
@@ -266,5 +231,5 @@
       }
 
       renderCreatePanel();
-      renderAnnouncements();
+      await renderAnnouncements();
     })();

@@ -1,5 +1,4 @@
-﻿(function () {
-      var SALES_KEY = "salesTrackerEntries";
+﻿(async function () {
       var REFLECTION_KEY = "salesTrackerReflections";
       var DAILY_TARGET = 15;
       var role = sessionStorage.getItem("dashboardRole") || "agent";
@@ -24,6 +23,7 @@
       ];
       var currentFilter = isManager ? "all" : user;
       var selectedWeekOffset = 0;
+      var salesEntriesCache = [];
 
       function todayISO() {
         return new Date().toISOString().slice(0, 10);
@@ -42,68 +42,8 @@
         localStorage.setItem(key, JSON.stringify(rows));
       }
 
-      function seedEntries() {
-        var rows = [
-          ["A123", "2026-05-04", "schedule", 4, "Marcus Tan", "Completed", "Booked policy reviews"],
-          ["A123", "2026-05-04", "contact", 7, "Warm list", "Completed", "Daily call block"],
-          ["A123", "2026-05-05", "insurance", 2, "Chen Jia Hao", "Completed", "CI and keyman discussion"],
-          ["A123", "2026-05-05", "referral", 2, "Nur Aisyah", "Follow-up", "Referred colleague"],
-          ["A123", "2026-05-06", "casual", 3, "Coffee chats", "Completed", "Prospecting meetings"],
-          ["A123", "2026-05-06", "activity", 3, "Pipeline work", "Completed", "Fact-find prep"],
-          ["A123", "2026-05-07", "case", 1, "Lim Wei Jie", "Completed", "Term life case closed"],
-          ["A123", "2026-05-07", "schedule", 3, "Next week", "Scheduled", "Follow-up meetings"],
-          ["A123", "2026-05-08", "insurance", 1, "Priya Nair", "Completed", "Proposal review"],
-          ["A123", "2026-05-08", "referral", 4, "COI list", "Completed", "Referral push"],
-          ["A124", "2026-05-04", "contact", 6, "Warm leads", "Completed", "Morning call block"],
-          ["A124", "2026-05-04", "schedule", 5, "May pipeline", "Scheduled", "Booked first appointments"],
-          ["A124", "2026-05-05", "casual", 4, "Coffee chats", "Completed", "Relationship building"],
-          ["A124", "2026-05-05", "insurance", 1, "Client review", "Completed", "Protection gap"],
-          ["A124", "2026-05-06", "activity", 2, "Admin follow-up", "Completed", "Needs analysis prep"],
-          ["A124", "2026-05-06", "schedule", 3, "Prospects", "Scheduled", "Next week pipeline"],
-          ["A124", "2026-05-07", "referral", 2, "Centre of influence", "Completed", "Referral asks"],
-          ["A124", "2026-05-07", "casual", 3, "Lunch meetings", "Completed", "Warm prospects"],
-          ["A124", "2026-05-08", "insurance", 2, "Review clients", "Completed", "Policy review day"],
-          ["A124", "2026-05-08", "contact", 5, "Cold follow-up", "Completed", "Reactivation calls"],
-          ["A125", "2026-05-04", "schedule", 5, "Prospects", "Scheduled", "Next week pipeline"],
-          ["A125", "2026-05-05", "insurance", 2, "Family planning", "Completed", "Protection review"],
-          ["A125", "2026-05-06", "referral", 3, "Client network", "Completed", "Referral campaign"],
-          ["A125", "2026-05-07", "casual", 4, "Warm prospects", "Completed", "Coffee meetings"],
-          ["A125", "2026-05-08", "case", 1, "Savings plan", "Completed", "Case closed"],
-          ["A126", "2026-05-04", "activity", 5, "Pipeline cleanup", "Completed", "CRM hygiene"],
-          ["A126", "2026-05-05", "contact", 8, "Existing clients", "Completed", "Review calls"],
-          ["A126", "2026-05-06", "insurance", 2, "Corporate client", "Completed", "Group policy discussion"],
-          ["A126", "2026-05-07", "case", 1, "Corporate client", "Completed", "Group policy"],
-          ["A126", "2026-05-08", "schedule", 4, "Upcoming week", "Scheduled", "Booked reviews"],
-          ["A127", "2026-05-04", "referral", 3, "Centre of influence", "Completed", "Referral drive"],
-          ["A127", "2026-05-05", "casual", 5, "Networking", "Completed", "Event follow-ups"],
-          ["A127", "2026-05-06", "schedule", 4, "Prospects", "Scheduled", "Booked fact-finds"],
-          ["A127", "2026-05-07", "insurance", 2, "Client reviews", "Completed", "Needs analysis"],
-          ["A127", "2026-05-08", "activity", 4, "Admin + prep", "Completed", "Proposal preparation"]
-        ].map(function (row, index) {
-          var type = activityTypes.find(function (item) { return item.id === row[2]; });
-          return {
-            id: "demo-sale-" + index,
-            agentId: row[0],
-            date: row[1],
-            activityId: row[2],
-            activityLabel: type.label,
-            pointValue: type.points,
-            count: row[3],
-            client: row[4],
-            status: row[5],
-            notes: row[6],
-            createdAt: new Date().toISOString()
-          };
-        });
-        var existing = readList(SALES_KEY).filter(function (row) {
-          var id = String(row.id || "");
-          return !id.startsWith("seed-sale-") && !id.startsWith("demo-sale-");
-        });
-        writeList(SALES_KEY, rows.concat(existing));
-      }
-
       function getEntries() {
-        return readList(SALES_KEY);
+        return salesEntriesCache;
       }
 
       function visibleEntries() {
@@ -361,25 +301,34 @@
             dialog.close();
           });
         }
-        form.addEventListener("submit", function (event) {
+        form.addEventListener("submit", async function (event) {
           event.preventDefault();
           var activityId = document.getElementById("sales-entry-activity").value;
           var type = activityTypes.find(function (item) { return item.id === activityId; });
-          var rows = getEntries();
-          rows.push({
+          var entryDate = document.getElementById("sales-entry-date").value;
+          var count = Number(document.getElementById("sales-entry-count").value || 1);
+          await apiPost('/sales', {
+            agent_id: user,
+            entry_date: entryDate,
+            activity_type_id: activityId,
+            count: count,
+            client_name: "-",
+            status: "Completed",
+            notes: "-"
+          });
+          salesEntriesCache.push({
             id: "sale-" + Date.now(),
             agentId: user,
-            date: document.getElementById("sales-entry-date").value,
+            date: entryDate,
             activityId: activityId,
             activityLabel: type.label,
             pointValue: type.points,
-            count: Number(document.getElementById("sales-entry-count").value || 1),
+            count: count,
             client: "-",
             status: "Completed",
             notes: "-",
             createdAt: new Date().toISOString()
           });
-          writeList(SALES_KEY, rows);
           form.reset();
           document.getElementById("sales-entry-date").value = todayISO();
           if (dialog) dialog.close();
@@ -411,7 +360,7 @@
         });
       }
 
-      seedEntries();
+      salesEntriesCache = (await apiGet('/sales')).map(function(r) { return mapSalesEntry(r, activityTypes); });
       renderMeta();
       renderActivityOptions();
       renderAgentFilter();
