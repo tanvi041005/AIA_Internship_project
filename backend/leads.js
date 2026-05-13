@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 const STORAGE_KEY = "financial_leads_data";
 
 const DEFAULT_LEADS = [
@@ -77,6 +78,8 @@ const DEFAULT_LEADS = [
   }
 ];
 
+=======
+>>>>>>> Stashed changes
 const STAGES = ["Prospecting","Fact Find","Opening","Closing"];
 const STAGE_COLORS = ["#d4a574","#a6192e","#8b5cf6","#1e3a8a"];
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};

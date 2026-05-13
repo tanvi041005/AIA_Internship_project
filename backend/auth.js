@@ -27,12 +27,6 @@
 
     if (!form || !usernameInput || !passwordInput) return;
 
-    const DEMO_USERS = {
-      A123: { password: "A123", role: "agent" },
-      L123: { password: "L123", role: "leader" },
-      D123: { password: "D123", role: "district" }
-    };
-
     function detectRole(userId) {
       const value = String(userId || "").trim().toUpperCase();
       if (/^A\d+$/i.test(value)) return { key: "agent", label: "Agent" };
@@ -45,7 +39,7 @@
       if (roleError) roleError.hidden = true;
     });
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const username = usernameInput.value.trim().toUpperCase();
       const password = passwordInput.value;
@@ -58,15 +52,17 @@
         return;
       }
 
-      const userRecord = DEMO_USERS[username];
-      if (!userRecord || userRecord.password !== password) {
+      let auth;
+      try {
+        auth = await apiPost('/auth/login', { userId: username, password });
+      } catch (err) {
         if (roleError) {
           roleError.textContent = "Invalid User ID or password.";
           roleError.hidden = false;
         }
         return;
       }
-      if (userRecord.role !== detected.key) {
+      if (auth.role !== detected.key) {
         if (roleError) {
           roleError.textContent = "User role mismatch for this User ID.";
           roleError.hidden = false;
@@ -74,10 +70,11 @@
         return;
       }
 
-      sessionStorage.setItem("dashboardRole", detected.key);
-      sessionStorage.setItem("dashboardUser", username || "User");
+      sessionStorage.setItem("dashboardRole", auth.role);
+      sessionStorage.setItem("dashboardUser", auth.userId || username);
+      if (auth.token) sessionStorage.setItem("authToken", auth.token);
       sessionStorage.setItem("announcementPromptPending", "1");
-      localStorage.setItem("calendarRole", detected.key === "district" ? "district_manager" : "agent");
+      localStorage.setItem("calendarRole", auth.role === "district" ? "district_manager" : "agent");
       localStorage.setItem("overviewScope", "agency");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "";

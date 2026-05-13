@@ -1,22 +1,23 @@
 ﻿// ─── Dataset ──────────────────────────────────────────────────────────
-    const AGENTS = [
-      { name: "Alicia Tan",   rank: 1,  ytdFyc: 34525, delta: 435,  cases: 14, team: "SP-ALPHA-GABY"   },
-      { name: "Brandon Lee",  rank: 2,  ytdFyc: 23210, delta: 44,   cases: 10, team: "SP-BETA-GABY"    },
-      { name: "Chloe Ong",    rank: 3,  ytdFyc: 9400,  delta: -39,  cases:  5, team: "SP-GAMMA-GABY"   },
-      { name: "Darren Lim",   rank: 4,  ytdFyc: 8025,  delta:   0,  cases:  4, team: "SP-DELTA-GABY"   },
-      { name: "Farah Rahim",  rank: 5,  ytdFyc: 7627,  delta: -26,  cases:  4, team: "SP-EPSILON-GABY" },
-      { name: "Gavin Teo",    rank: 6,  ytdFyc: 6577,  delta: 346,  cases:  3, team: "SP-ZETA-GABY"    },
-      { name: "Hui Min Chua", rank: 7,  ytdFyc: 6100,  delta:  76,  cases:  3, team: "SP-ETA-GABY"     },
-      { name: "Isaac Wong",   rank: 8,  ytdFyc: 5240,  delta: -55,  cases:  2, team: "SP-THETA-GABY"   },
-      { name: "Jia En Low",   rank: 9,  ytdFyc: 4941,  delta: -56,  cases:  2, team: "SP-IOTA-GABY"    },
-      { name: "Kumar Singh",  rank: 10, ytdFyc: 2022,  delta:   0,  cases:  1, team: "SP-KAPPA-GABY"   }
-    ];
+    let AGENTS = [];
+    let TOTAL_YTD = 0;
 
     // Cumulative district YTD by month (Jan–May actual, Jun–Dec projected)
     const DISTRICT_CUM = [6200,12400,18800,33100,45500,58600,68800,74200,87500,96800,104600,111800];
     const MONTHS       = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const TOTAL_YTD    = AGENTS.reduce((s, a) => s + a.ytdFyc, 0);
     const SLOT_COLORS  = ["#a6192e", "#374151", "#6d5bd0", "#059669"];
+
+    function mapAgentRow(r) {
+      return {
+        agentId: r.agent_id,
+        name:    r.full_name || r.agent_id,
+        rank:    Number(r.district_rank || 0),
+        ytdFyc:  Number(r.ytd_fyc || 0),
+        delta:   Number(r.delta_pct || 0),
+        cases:   Number(r.total_cases || 0),
+        team:    r.team_name || ''
+      };
+    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────
     function initials(name) {
@@ -350,5 +351,21 @@
     });
 
     // ─── Init ─────────────────────────────────────────────────────────────
-    addAgent(0);
-    addAgent(1);
+    (async function init() {
+      try {
+        const rows = await apiGet('/performance?year=2026&period=' + encodeURIComponent('Jan - May'));
+        AGENTS = rows.map(mapAgentRow).sort((a, b) => a.rank - b.rank);
+      } catch (err) {
+        console.error('Failed to load agent performance:', err);
+        AGENTS = [];
+      }
+      TOTAL_YTD = AGENTS.reduce((s, a) => s + a.ytdFyc, 0);
+      if (AGENTS.length >= 2) {
+        addAgent(0);
+        addAgent(1);
+      } else if (AGENTS.length === 1) {
+        addAgent(0);
+      } else {
+        render();
+      }
+    })();

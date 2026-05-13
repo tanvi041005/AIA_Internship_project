@@ -1,52 +1,6 @@
-﻿(function () {
-      var TOPICS = [
-        {
-          id: "t1",
-          title: "AIA Agent Foundations: Protection Planning",
-          youtubeId: "x3MBoq2b33k",
-          quiz: [
-            { id: "q1", question: "During client fact-finding, what should an AIA agent confirm first?", options: [
-              { id: "a", label: "Client protection needs and priorities", correct: true },
-              { id: "b", label: "Client social media profile only" },
-              { id: "c", label: "Only premium discount preference" }
-            ]},
-            { id: "q2", question: "Which action best matches responsible AIA advisory practice?", options: [
-              { id: "a", label: "Recommend plans that fit goals, affordability, and risk profile", correct: true },
-              { id: "b", label: "Push the highest premium product regardless of need" },
-              { id: "c", label: "Skip needs analysis if client is in a hurry" }
-            ]},
-            { id: "q3", question: "Before proposal confirmation, what should the agent do?", options: [
-              { id: "a", label: "Clearly explain coverage, exclusions, and payment commitment", correct: true },
-              { id: "b", label: "Ask the client to sign without discussion" },
-              { id: "c", label: "Focus only on commission details" }
-            ]}
-          ]
-        },
-        {
-          id: "t2",
-          title: "AIA Agent Practice: Objection Handling and Follow-up",
-          youtubeId: "zRSSQycVdzo",
-          quiz: [
-            { id: "q1", question: "When a client says 'I need time to think', what is the best response?", options: [
-              { id: "a", label: "Acknowledge concern, clarify questions, and agree on follow-up date", correct: true },
-              { id: "b", label: "Close the case immediately and stop follow-up" },
-              { id: "c", label: "Pressure for same-day payment only" }
-            ]},
-            { id: "q2", question: "Which follow-up habit supports stronger AIA conversion quality?", options: [
-              { id: "a", label: "Document concerns and next actions after each meeting", correct: true },
-              { id: "b", label: "Wait for clients to message first every time" },
-              { id: "c", label: "Use one script for every client scenario" }
-            ]},
-            { id: "q3", question: "For leadership visibility, what should agent updates include?", options: [
-              { id: "a", label: "Training completion status and key client follow-up outcomes", correct: true },
-              { id: "b", label: "Only personal notes with no next steps" },
-              { id: "c", label: "No records, only verbal updates" }
-            ]}
-          ]
-        }
-      ];
-
-      var TEAM_MAP = { L123: ["A123", "A124", "A125"], D123: ["A123", "A124", "A125", "A126", "A127"] };
+﻿(async function () {
+      var TOPICS = [];
+      var TEAM_MAP = {};
       var DEFAULT_AGENT_POOL = ["A123", "A124", "A125", "A126", "A127"];
       var role = sessionStorage.getItem("dashboardRole") || "agent";
       var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
@@ -302,10 +256,32 @@
       }
 
       function render() {
+        if (!TOPICS.length) {
+          document.getElementById("learning-path").innerHTML = '<div class="p-4 text-sm text-slate-500">Loading training content…</div>';
+          return;
+        }
         renderLearningPath();
         renderTopicView();
         renderQuiz();
         renderProgress();
+      }
+
+      render();
+
+      try {
+        TOPICS = await apiGet('/training/topics');
+      } catch (err) {
+        console.error('Failed to load training topics:', err);
+        TOPICS = [];
+      }
+
+      if (role === 'leader' || role === 'district') {
+        try {
+          var roster = await apiGet('/teams/' + user);
+          TEAM_MAP[user] = roster.map(function (r) { return r.agentId; });
+        } catch (err) {
+          console.error('Failed to load team roster:', err);
+        }
       }
 
       render();
