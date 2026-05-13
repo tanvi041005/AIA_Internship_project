@@ -649,9 +649,9 @@ CREATE TABLE agent_performance (
 
 ---
 
-## Step 10 — Create Lambda Functions for the API
+## Step 10 — Create a Single Lambda Function for the API
 
-Lambda functions replace the `server.js` dev server and handle all database reads/writes.
+One Lambda function handles every domain. It inspects the request path and method internally and dispatches to the right handler — no separate function per module needed.
 
 ### 10.1 — Set up the Lambda execution role
 
@@ -663,8 +663,6 @@ Lambda functions replace the `server.js` dev server and handle all database read
 4. Name it: `aia-lambda-role`
 
 ### 10.2 — Create a Lambda layer for the MySQL driver
-
-Lambda functions need the `mysql2` Node.js package. Package it as a layer:
 
 ```bash
 mkdir -p lambda-layer/nodejs
@@ -679,11 +677,11 @@ zip -r mysql2-layer.zip nodejs/
 3. Upload `mysql2-layer.zip`
 4. Compatible runtimes: `Node.js 20.x`
 
-### 10.3 — Create your first Lambda function (example: Leads API)
+### 10.3 — Create the Lambda function
 
 1. Go to **Lambda** → **Create function**
 2. **Author from scratch**
-   - Name: `aia-api-leads`
+   - Name: `aia-api`
    - Runtime: `Node.js 20.x`
    - Execution role: `aia-lambda-role`
 3. **Advanced settings** → Enable VPC → select `aia-dashboard-vpc`, private subnets, security group **`aia-lambda-sg`**
@@ -701,42 +699,159 @@ const DB_CONFIG = {
   database: process.env.DB_NAME,
 };
 
-exports.handler = async (event) => {
-  const conn = await mysql.createConnection(DB_CONFIG);
-  const method = event.httpMethod;
-  const path   = event.path;
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+};
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  };
+const ok      = (body) => ({ statusCode: 200, headers: HEADERS, body: JSON.stringify(body) });
+const created = (body) => ({ statusCode: 201, headers: HEADERS, body: JSON.stringify(body) });
+const notFound = ()   => ({ statusCode: 404, headers: HEADERS, body: JSON.stringify({ error: 'Not found' }) });
+
+// ── Leads ──────────────────────────────────────────────────────────────────────
+async function handleLeads(method, event, conn) {
+  if (method === 'GET') {
+    const userId = event.queryStringParameters?.userId;
+    const [rows] = await conn.execute(
+      'SELECT * FROM leads WHERE owner_id = ? ORDER BY created_at DESC', [userId]
+    );
+    return ok(rows);
+  }
+  if (method === 'POST') {
+    const d = JSON.parse(event.body);
+    const [r] = await conn.execute(
+      `INSERT INTO leads (name,age,contact,email,meet_date,location,meet_type,urgency,stage,
+         remarks,plan_type,annual_premium,commission_type,cpf_oa,cpf_sa,occupation,income,referred_by,owner_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [d.name,d.age,d.contact,d.email,d.meetDate,d.location,d.meetType,d.urgency,d.stage,
+       d.remarks,d.planType,d.premium,d.commission,d.cpfOA,d.cpfSA,d.occupation,d.income,d.referredBy,d.ownerId]
+    );
+    return created({ id: r.insertId });
+  }
+  return notFound();
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────────
+async function handleAnnouncements(method, event, conn) {
+  if (method === 'GET') {
+    const [rows] = await conn.execute('SELECT * FROM announcements ORDER BY created_at DESC');
+    return ok(rows);
+  }
+  if (method === 'POST') {
+    const d = JSON.parse(event.body);
+    const id = 'a' + Date.now();
+    await conn.execute(
+      `INSERT INTO announcements (announcement_id,title,category,message,response_type,created_by,created_at)
+       VALUES (?,?,?,?,?,?,NOW())`,
+      [id, d.title, d.category, d.message, d.responseType, d.createdBy]
+    );
+    return created({ id });
+  }
+  return notFound();
+}
+
+// ── Sales Tracker ─────────────────────────────────────────────────────────────
+async function handleSales(method, event, conn) {
+  if (method === 'GET') {
+    const agentId = event.queryStringParameters?.agentId;
+    const [rows] = await conn.execute(
+      'SELECT * FROM sales_entries WHERE agent_id = ? ORDER BY entry_date DESC', [agentId]
+    );
+    return ok(rows);
+  }
+  if (method === 'POST') {
+    const d = JSON.parse(event.body);
+    await conn.execute(
+      `INSERT INTO sales_entries (entry_id,agent_id,entry_date,activity_type_id,count,client_name,status,notes,created_at)
+       VALUES (?,?,?,?,?,?,?,?,NOW())`,
+      [d.entryId, d.agentId, d.date, d.activityId, d.count, d.client, d.status, d.notes]
+    );
+    return created({ id: d.entryId });
+  }
+  return notFound();
+}
+
+// ── Room Bookings ─────────────────────────────────────────────────────────────
+async function handleRoomBookings(method, event, conn) {
+  if (method === 'GET') {
+    const [rows] = await conn.execute('SELECT * FROM room_bookings ORDER BY booking_date, start_time');
+    return ok(rows);
+  }
+  if (method === 'POST') {
+    const d = JSON.parse(event.body);
+    const [r] = await conn.execute(
+      `INSERT INTO room_bookings (title,room_id,booking_date,start_time,end_time,booked_by_id,booked_by_name,notes,recurrence,recurrence_end)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [d.title, d.roomId, d.date, d.start, d.end, d.bookedById || null, d.bookedByName, d.notes || null, d.recurrence || 'none', d.recurrenceEnd || null]
+    );
+    return created({ id: r.insertId });
+  }
+  if (method === 'DELETE') {
+    const id = event.pathParameters?.id;
+    await conn.execute('DELETE FROM room_bookings WHERE booking_id = ?', [id]);
+    return ok({ deleted: id });
+  }
+  return notFound();
+}
+
+// ── Training ──────────────────────────────────────────────────────────────────
+async function handleTraining(method, event, conn) {
+  if (method === 'GET') {
+    const [topics] = await conn.execute('SELECT * FROM training_topics ORDER BY sort_order');
+    const [questions] = await conn.execute('SELECT * FROM quiz_questions ORDER BY sort_order');
+    const [options] = await conn.execute('SELECT * FROM quiz_options');
+    return ok({ topics, questions, options });
+  }
+  return notFound();
+}
+
+// ── Helpdesk ──────────────────────────────────────────────────────────────────
+async function handleHelpdesk(method, event, conn) {
+  if (method === 'GET') {
+    const [rows] = await conn.execute('SELECT * FROM helpdesk_tickets ORDER BY reported_at DESC');
+    return ok(rows);
+  }
+  if (method === 'POST') {
+    const d = JSON.parse(event.body);
+    const [r] = await conn.execute(
+      `INSERT INTO helpdesk_tickets (title,description,reporter_name,reporter_id,reported_at,priority,status,category)
+       VALUES (?,?,?,?,NOW(),?,?,?)`,
+      [d.title, d.description, d.reporterName, d.reporterId || null, d.priority, d.status, d.category]
+    );
+    return created({ id: r.insertId });
+  }
+  return notFound();
+}
+
+// ── Calendar Events ───────────────────────────────────────────────────────────
+async function handleCalendar(method, event, conn) {
+  if (method === 'GET') {
+    const [events] = await conn.execute('SELECT * FROM calendar_events ORDER BY event_date');
+    const [holidays] = await conn.execute('SELECT * FROM public_holidays ORDER BY holiday_date');
+    return ok({ events, holidays });
+  }
+  return notFound();
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: HEADERS, body: '' };
+  }
+
+  const conn   = await mysql.createConnection(DB_CONFIG);
+  const method = event.httpMethod;
+  const path   = (event.path || '').replace(/\/$/, '');
 
   try {
-    if (method === 'GET' && path === '/leads') {
-      const userId = event.queryStringParameters?.userId;
-      const [rows] = await conn.execute(
-        'SELECT * FROM leads WHERE owner_id = ? ORDER BY created_at DESC',
-        [userId]
-      );
-      return { statusCode: 200, headers, body: JSON.stringify(rows) };
-    }
-
-    if (method === 'POST' && path === '/leads') {
-      const data = JSON.parse(event.body);
-      const [result] = await conn.execute(
-        `INSERT INTO leads (name, age, contact, email, meet_date, location, meet_type,
-          urgency, stage, remarks, plan_type, annual_premium, commission_type,
-          cpf_oa, cpf_sa, occupation, income, referred_by, owner_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [data.name, data.age, data.contact, data.email, data.meetDate,
-         data.location, data.meetType, data.urgency, data.stage, data.remarks,
-         data.planType, data.premium, data.commission, data.cpfOA, data.cpfSA,
-         data.occupation, data.income, data.referredBy, data.ownerId]
-      );
-      return { statusCode: 201, headers, body: JSON.stringify({ id: result.insertId }) };
-    }
-
-    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Not found' }) };
+    if (path === '/leads')         return await handleLeads(method, event, conn);
+    if (path === '/announcements') return await handleAnnouncements(method, event, conn);
+    if (path === '/sales')         return await handleSales(method, event, conn);
+    if (path.startsWith('/room-bookings')) return await handleRoomBookings(method, event, conn);
+    if (path === '/training')      return await handleTraining(method, event, conn);
+    if (path === '/helpdesk')      return await handleHelpdesk(method, event, conn);
+    if (path === '/calendar')      return await handleCalendar(method, event, conn);
+    return notFound();
   } finally {
     await conn.end();
   }
@@ -749,28 +864,27 @@ exports.handler = async (event) => {
    - `DB_PASS` → your RDS password
    - `DB_NAME` → `aia_dashboard`
 
-Repeat this process for each module (announcements, helpdesk, training, etc.), creating one Lambda function per domain.
+> To add a new domain, define a `handleX()` function and add one line to the router. No new Lambda functions needed.
 
 ---
 
 ## Step 11 — Set Up API Gateway
 
-API Gateway creates the HTTPS URLs your frontend calls.
+API Gateway creates the HTTPS URL your frontend calls. Because all routing is handled inside the single Lambda, you only need one catch-all route.
 
 1. Go to **API Gateway** → **Create API** → **HTTP API**
 2. Name: `aia-dashboard-api`
-3. Add integrations → **Lambda** → select each of your Lambda functions
-4. Define routes:
-   - `GET /leads` → `aia-api-leads`
-   - `POST /leads` → `aia-api-leads`
-   - `GET /announcements` → `aia-api-announcements`
-   - `POST /announcements` → `aia-api-announcements`
-   - *(and so on for each module)*
+3. Add integration → **Lambda** → select `aia-api`
+4. Define routes — add these two (both point to the same `aia-api` integration):
+   - `ANY /`
+   - `ANY /{proxy+}`
 5. **CORS**: Enable, set allowed origin to your CloudFront domain (`https://d1abc123.cloudfront.net`)
 6. **Stage**: `$default` (auto-deploy)
 7. Click **Create**
 
 > Your API base URL will look like: `https://abc123.execute-api.ap-southeast-1.amazonaws.com`
+>
+> `ANY /{proxy+}` passes every path and method through to the Lambda. The router inside the function handles the rest.
 
 ---
 
@@ -868,9 +982,9 @@ Never use your root AWS account for deployments. Create a dedicated IAM user:
 - [ ] Database schema applied (all 25 tables)
 - [ ] Lambda execution role created
 - [ ] `mysql2` Lambda layer packaged and uploaded
-- [ ] Lambda functions created for each module
-- [ ] Environment variables set on each Lambda function
-- [ ] API Gateway HTTP API created with all routes
+- [ ] Single `aia-api` Lambda function created with internal router
+- [ ] Environment variables set on the Lambda function
+- [ ] API Gateway HTTP API created with `ANY /` and `ANY /{proxy+}` routes
 - [ ] CORS configured for CloudFront domain
 - [ ] Frontend JS files updated to use `fetch()` instead of `localStorage`
 - [ ] Updated frontend re-deployed and CloudFront cache invalidated
