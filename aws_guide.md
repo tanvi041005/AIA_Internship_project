@@ -687,10 +687,15 @@ zip -r mysql2-layer.zip nodejs/
 3. **Advanced settings** → Enable VPC → select `aia-dashboard-vpc`, private subnets, security group **`aia-lambda-sg`**
 4. Add the `mysql2-layer` under **Layers**
 
+In the inline code editor:
+- Confirm the entry file is **`index.mjs`** (recent Node.js 20.x Lambdas default to this). If you see `index.js` instead, right-click → Rename to `index.mjs`. The `.mjs` extension tells Node.js to treat the file as an ES module so `import`/`export` syntax works.
+- Leave the **Handler** field as `index.handler` (Configuration → General configuration).
+
 Paste the following as the function code:
 
 ```javascript
-const mysql = require('mysql2/promise');
+// index.mjs
+import mysql from 'mysql2/promise';
 
 const DB_CONFIG = {
   host:     process.env.DB_HOST,
@@ -834,7 +839,7 @@ async function handleCalendar(method, event, conn) {
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: HEADERS, body: '' };
   }
