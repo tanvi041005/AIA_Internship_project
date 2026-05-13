@@ -1,24 +1,215 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- AIA Dashboard — dummy data seed (MySQL 8.0+)
+-- AIA Dashboard database seed (MySQL 8.0+)
 --
 -- Run after schema.sql has been applied. Idempotent: uses INSERT IGNORE so
 -- re-running is safe.
 --
--- ⚠️  password_hash placeholder
+-- password_hash values
 -- ----------------------------------------------------------------------------
--- This file uses a placeholder bcrypt-shaped hash for every user. Before any
--- non-local deployment, replace these by running the existing seed.js
--- (which calls bcryptjs.hash) or update each row manually:
---
---   UPDATE users SET password_hash = '$2a$10$<real-bcrypt-hash>'
---   WHERE user_id = 'A123';
---
--- For local testing, your auth Lambda can either:
---   (a) Switch to bcrypt.compare after running seed.js to populate real hashes
---   (b) Compare against the plaintext stored here (dev only)
+-- User rows below contain real bcrypt hashes. The seeded password for each
+-- sample user is the same as its user_id, for example A123 / A123.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 USE aia_dashboard;
+
+-- Supporting lookup/persistence tables used by the API-backed frontend.
+-- Keep these near the top so later seed rows can reference them.
+
+CREATE TABLE IF NOT EXISTS sales_activity_types (
+  activity_type_id VARCHAR(32) PRIMARY KEY,
+  label VARCHAR(80) NOT NULL,
+  points INT NOT NULL
+);
+
+INSERT IGNORE INTO sales_activity_types (activity_type_id, label, points) VALUES
+  ('activity', 'Activity', 3),
+  ('contact', 'Contact', 1),
+  ('schedule', 'Schedule Appt', 2),
+  ('casual', 'Casual Meetup', 2),
+  ('insurance', 'Insurance Appt', 5),
+  ('referral', 'Referral', 3),
+  ('case', 'Case Closed', 10);
+
+CREATE TABLE IF NOT EXISTS rooms (
+  room_id VARCHAR(40) PRIMARY KEY,
+  label VARCHAR(120) NOT NULL,
+  css_class VARCHAR(80),
+  dot_color VARCHAR(20)
+);
+
+INSERT IGNORE INTO rooms (room_id, label, css_class, dot_color) VALUES
+  ('eagle', 'Eagle Boardroom', 'room-eagle', '#93c5fd'),
+  ('summit', 'Summit Event Hall', 'room-summit', '#fca5a5'),
+  ('ark', 'Ark', 'room-ark', '#6ee7b7'),
+  ('armour', 'Armour', 'room-armour', '#d1d5db'),
+  ('inspiration', 'Inspiration Lounge', 'room-inspiration', '#c4b5fd'),
+  ('nest', 'Nest / Nursing Room', 'room-nest', '#fde68a');
+
+CREATE TABLE IF NOT EXISTS resources (
+  resource_id VARCHAR(40) PRIMARY KEY,
+  title VARCHAR(160) NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  description VARCHAR(500),
+  dot VARCHAR(20),
+  sort_order INT DEFAULT 0
+);
+
+INSERT IGNORE INTO resources (resource_id, title, url, description, dot, sort_order) VALUES
+  ('client-profile-templates', 'Client Profile Templates', 'https://www.sharepoint.com', 'Lead intake forms, fact-find sheets, and meeting note templates.', 'blue', 1),
+  ('product-plan-decks', 'Product & Plan Decks', 'https://www.sharepoint.com', 'Plan comparison decks, premium tables, and sales presentation files.', 'red', 2),
+  ('compliance-references', 'Compliance References', 'https://www.sharepoint.com', 'Disclosure scripts, product suitability checks, and document checklists.', 'orange', 3);
+
+CREATE TABLE IF NOT EXISTS announcement_responses (
+  announcement_id VARCHAR(40) NOT NULL,
+  user_id VARCHAR(20) NOT NULL,
+  choice VARCHAR(40) NOT NULL,
+  note VARCHAR(500),
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (announcement_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS attendance_events (
+  event_id VARCHAR(80) PRIMARY KEY,
+  title VARCHAR(160) NOT NULL,
+  event_date DATE,
+  start_time TIME,
+  end_time TIME,
+  location VARCHAR(200),
+  event_type VARCHAR(80),
+  category VARCHAR(40),
+  attendance_token VARCHAR(120),
+  created_by VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS attendance_records (
+  attendance_id VARCHAR(80) PRIMARY KEY,
+  event_id VARCHAR(80) NOT NULL,
+  user_id VARCHAR(20) NOT NULL,
+  role VARCHAR(40),
+  check_in_time DATETIME NOT NULL,
+  status VARCHAR(40) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sales_reflections (
+  reflection_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  agent_id VARCHAR(20) NOT NULL,
+  reflection_date DATE NOT NULL,
+  good VARCHAR(500),
+  bad VARCHAR(500),
+  improve VARCHAR(500),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS personal_tasks (
+  task_id VARCHAR(80) PRIMARY KEY,
+  user_id VARCHAR(20) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  is_done BOOLEAN DEFAULT FALSE,
+  source VARCHAR(80),
+  due_date DATE,
+  event_title VARCHAR(200)
+);
+
+CREATE TABLE IF NOT EXISTS helpdesk_tickets (
+  ticket_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  reporter VARCHAR(120),
+  reported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  priority VARCHAR(20) DEFAULT 'low',
+  status VARCHAR(20) DEFAULT 'open',
+  category VARCHAR(80)
+);
+
+CREATE TABLE IF NOT EXISTS recruitment_funnel (
+  stage_id VARCHAR(40) PRIMARY KEY,
+  label VARCHAR(120) NOT NULL,
+  count INT NOT NULL,
+  pct INT NOT NULL,
+  color VARCHAR(20),
+  detail VARCHAR(500),
+  sort_order INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS recruitment_sources (
+  source_id VARCHAR(40) PRIMARY KEY,
+  label VARCHAR(120) NOT NULL,
+  pct INT NOT NULL,
+  sort_order INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS recruitment_programs (
+  program_id VARCHAR(40) PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  opens INT NOT NULL,
+  interviews INT NOT NULL,
+  offers INT NOT NULL,
+  status VARCHAR(40)
+);
+
+CREATE TABLE IF NOT EXISTS recruitment_metrics (
+  metric_id VARCHAR(40) PRIMARY KEY,
+  label VARCHAR(120) NOT NULL,
+  value_text VARCHAR(40) NOT NULL,
+  delta_text VARCHAR(40),
+  note VARCHAR(120),
+  sort_order INT DEFAULT 0
+);
+
+INSERT IGNORE INTO recruitment_funnel (stage_id, label, count, pct, color, detail, sort_order) VALUES
+  ('applicants', 'Applicants', 247, 100, '#202124', '247 total applicants across all channels.', 1),
+  ('cv-review-pass', 'CV Review Pass', 178, 72, '#374151', '178 CVs cleared initial screening.', 2),
+  ('first-interview', 'First Interview', 94, 38, '#4b5563', '94 candidates attended first interview.', 3),
+  ('final-round', 'Final Round', 35, 14, '#6b7280', '35 reached final assessment.', 4),
+  ('offer-extended', 'Offer Extended', 18, 7, '#9ca3af', '18 offers sent.', 5),
+  ('active-fc', 'Active FC', 10, 4, '#a6192e', '10 active Financial Consultants from this intake.', 6);
+
+INSERT IGNORE INTO recruitment_sources (source_id, label, pct, sort_order) VALUES
+  ('referral', 'Referral', 42, 1),
+  ('linkedin', 'LinkedIn', 28, 2),
+  ('walk-in', 'Walk-in', 18, 3),
+  ('job-portals', 'Job Portals', 12, 4);
+
+INSERT IGNORE INTO recruitment_programs (program_id, name, opens, interviews, offers, status) VALUES
+  ('fc-graduate', 'FC Graduate', 58, 22, 6, 'active'),
+  ('internship-eng', 'Internship - Eng', 41, 17, 5, 'open'),
+  ('internship-data', 'Internship - Data', 33, 14, 4, 'open');
+
+INSERT IGNORE INTO recruitment_metrics (metric_id, label, value_text, delta_text, note, sort_order) VALUES
+  ('conversion-rate', 'Conversion Rate', '4.0%', '+0.8%', 'vs 2025', 1),
+  ('time-to-offer', 'Time to Offer', '19d', '-4d', 'vs 2025', 2),
+  ('offer-acceptance', 'Offer Acceptance', '67%', '+12%', 'vs 2025', 3),
+  ('source-referral', 'Source: Referral', '42%', NULL, 'highest converter', 4);
+
+CREATE TABLE IF NOT EXISTS cpf_allocation_bands (
+  max_age INT PRIMARY KEY,
+  oa DECIMAL(8,4) NOT NULL,
+  sa DECIMAL(8,4) NOT NULL,
+  ma DECIMAL(8,4) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cpf_contribution_bands (
+  max_age INT PRIMARY KEY,
+  employer DECIMAL(8,4) NOT NULL,
+  employee DECIMAL(8,4) NOT NULL
+);
+
+INSERT IGNORE INTO cpf_allocation_bands (max_age, oa, sa, ma) VALUES
+  (35, 0.6217, 0.1621, 0.2162),
+  (45, 0.5677, 0.1891, 0.2432),
+  (50, 0.5136, 0.2162, 0.2702),
+  (55, 0.4055, 0.3108, 0.2837),
+  (60, 0.3694, 0.3076, 0.3230),
+  (65, 0.1490, 0.4042, 0.4468),
+  (70, 0.0607, 0.3030, 0.6363),
+  (120, 0.0800, 0.0800, 0.8400);
+
+INSERT IGNORE INTO cpf_contribution_bands (max_age, employer, employee) VALUES
+  (55, 0.1700, 0.2000),
+  (60, 0.1550, 0.1700),
+  (65, 0.1200, 0.1150),
+  (70, 0.0900, 0.0750),
+  (120, 0.0750, 0.0500);
 
 
 -- ── 1. USERS ─────────────────────────────────────────────────────────────────
@@ -26,22 +217,22 @@ USE aia_dashboard;
 -- Agent names sourced from sales-tracker.js + agent-comparison.js.
 
 INSERT IGNORE INTO users (user_id, full_name, role_id, password_hash, is_active) VALUES
-  ('A123', 'Alicia Tan',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A123', TRUE),
-  ('A124', 'Brandon Lee',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A124', TRUE),
-  ('A125', 'Chloe Ong',     (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A125', TRUE),
-  ('A126', 'Darren Lim',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A126', TRUE),
-  ('A127', 'Farah Rahim',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A127', TRUE),
-  ('A128', 'Gavin Teo',     (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A128', TRUE),
-  ('A129', 'Hui Min Chua',  (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A129', TRUE),
-  ('A130', 'Isaac Wong',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A130', TRUE),
-  ('A131', 'Jia En Low',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A131', TRUE),
-  ('A132', 'Kumar Singh',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.A132', TRUE),
-  ('L123', 'Leader Demo',   (SELECT role_id FROM roles WHERE role_key='leader'),   '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.L123', TRUE),
-  ('D123', 'District Demo', (SELECT role_id FROM roles WHERE role_key='district'), '$2a$10$PLACEHOLDER.REPLACE.WITH.REAL.BCRYPT.HASH.D123', TRUE);
+  ('A123', 'Alicia Tan',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$xl1X6XHvcuN1C3CaHou21OLh6zlxEQZtI1I5aTxs8I5OyDF6jMiKG', TRUE),
+  ('A124', 'Brandon Lee',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$jYIdk6qfNnQWWW0mrQazu.BiNwxgvx.W3wkbrruIlIloF5ATSn5WS', TRUE),
+  ('A125', 'Chloe Ong',     (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$r788qrEQHwBmypkcj5Mr1OsLoOkozofwKcFZX5hjEkJ98erdgA/zu', TRUE),
+  ('A126', 'Darren Lim',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$5J3UPYSzUDWDJDH2Yqlr2uvxP7iRTqCtkQf9rkPoscdehyhygyGuG', TRUE),
+  ('A127', 'Farah Rahim',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$N0Na.zVefTcepVtlqzinEOJC2VE.8W3bQPIGSNTUhLN8.xOL7MxDi', TRUE),
+  ('A128', 'Gavin Teo',     (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$ezpCunHtV2WbMBv/pLCA.ux9B7.3h8aiwUTkS8g./SrZ0cllvZTiC', TRUE),
+  ('A129', 'Hui Min Chua',  (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$5ylMtRt3q/4sXGz3F0Y4vudFsSKbj1KfSSAcIv.GIW3nCKhsehHQK', TRUE),
+  ('A130', 'Isaac Wong',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$AxaeiXdE.5NFrp7x7Elwu.FtyJSm/pM7QG5Pb7jkW2q8.2tsjHNlK', TRUE),
+  ('A131', 'Jia En Low',    (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$hkRcGGrSDSOYT5OTRJLvkON3WeD3iX8.0hpSfiCNI9RSzB9pjc8su', TRUE),
+  ('A132', 'Kumar Singh',   (SELECT role_id FROM roles WHERE role_key='agent'),    '$2b$10$xpguHSB0a9VP5ZG5h169B.GULMTunun8y9dLSUv9sU1EKLpQOKQNe', TRUE),
+  ('L123', 'Leader Demo',   (SELECT role_id FROM roles WHERE role_key='leader'),   '$2b$10$ZZ5R3/xnK7JjCtZ5l7Rsx.TFREaIWivZmYHlR2k0UXn2qMqov.cYq', TRUE),
+  ('D123', 'District Demo', (SELECT role_id FROM roles WHERE role_key='district'), '$2b$10$V7XOfibY2nrvksk4iiYeueEbY4k.KQO/swVb6FSQNfbgtD9JEONza', TRUE);
 
 
 -- ── 2. LEADS  ────────────────────────────────────────────────────────────────
--- 6 leads from leads.js DEFAULT_LEADS, all owned by A123.
+-- Lead seed rows used by the database-backed frontend, all owned by A123.
 -- Fields not in fixed columns (sumAssured, currency, generalExpense, surplus,
 -- existingPlans, generalPlanType, specificPlanType) are stored in `extra`.
 

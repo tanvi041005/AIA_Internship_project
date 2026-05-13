@@ -37,7 +37,7 @@
 
   <main id="main">
     <h1 class="page-title">Leader access</h1>
-    <p class="page-lede">Recruitment analytics are restricted. Enter the shared access code (demo default: <code>changeme</code>).</p>
+    <p class="page-lede">Recruitment analytics are restricted. Enter the access code issued by your administrator.</p>
 
     <div class="panel form-card">
       <form id="login-form" novalidate>
@@ -49,8 +49,10 @@
     </div>
   </main>
 
-  <footer class="site-footer">Financial Agent Dashboard · Demo gate uses browser sessionStorage only</footer>
+  <footer class="site-footer">Financial Agent Dashboard · Restricted access</footer>
 
+  <script src="../backend/api-config.js"></script>
+  <script src="../backend/api.js"></script>
   <script src="../backend/auth.js"></script>
   <script src="../backend/recruitment-login.js"></script>
 </body>

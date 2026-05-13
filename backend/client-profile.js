@@ -1,245 +1,144 @@
-﻿const LEADS_STORAGE_KEY = "financial_leads_data";
-    const DEFAULT_LEADS = [
-      {
-        id:1,name:"Lim Wei Jie",age:34,contact:"9123-4567",email:"weijie.lim@email.com",
-        meetDate:"2025-05-12",location:"Toa Payoh HDB",meetType:"Physical",urgency:"urgent",stage:"Proposal Sent",
-        remarks:"Interested in term life; wife expecting. Has existing GE policy expiring soon.",
-        planType:"Term Life",premium:2400,commission:"FYC",cpfSA:42000,cpfOA:88000,
-        occupation:"Software Engineer",income:"SGD 7,200/mo",referredBy:"John Tan",
-        followUps:[
-          {label:"Initial meeting",date:"2025-04-30",done:true},
-          {label:"Proposal sent",date:"2025-05-05",done:true},
-          {label:"Follow-up call",date:"2025-05-14",done:false},
-          {label:"Closing",date:"2025-05-20",done:false}
-        ]
-      },
-      {
-        id:2,name:"Nur Aisyah Binte Rahman",age:28,contact:"8234-5678",email:"aisyah.r@email.com",
-        meetDate:"2025-05-15",location:"Tampines Mall",meetType:"Online",urgency:"medium",stage:"Fact-Find",
-        remarks:"Self-employed, irregular income. Keen on savings plan for rainy day fund.",
-        planType:"Endowment",premium:3600,commission:"Trail",cpfSA:18000,cpfOA:31000,
-        occupation:"Freelance Designer",income:"SGD 3,800/mo (avg)",referredBy:"Self (Instagram)",
-        followUps:[
-          {label:"Intro call",date:"2025-05-10",done:true},
-          {label:"Fact-find session",date:"2025-05-15",done:false},
-          {label:"Needs analysis",date:"2025-05-22",done:false}
-        ]
-      },
-      {
-        id:3,name:"Chen Jia Hao",age:42,contact:"9345-6789",email:"jiahao.chen@corp.sg",
-        meetDate:"2025-05-08",location:"Raffles Place (Client Office)",meetType:"Physical",urgency:"urgent",stage:"Closing",
-        remarks:"Director-level. Needs keyman insurance + personal CI cover. Decide by end of month.",
-        planType:"CI + Keyman",premium:9800,commission:"FYC",cpfSA:95000,cpfOA:180000,
-        occupation:"Company Director",income:"SGD 22,000/mo",referredBy:"Existing client (Peter Goh)",
-        followUps:[
-          {label:"Discovery",date:"2025-04-22",done:true},
-          {label:"Proposal",date:"2025-05-02",done:true},
-          {label:"Negotiation",date:"2025-05-08",done:true},
-          {label:"Closing sign-off",date:"2025-05-15",done:false}
-        ]
-      },
-      {
-        id:4,name:"Priya Nair",age:31,contact:"9456-7890",email:"priya.nair@gmail.com",
-        meetDate:"2025-05-20",location:"Jurong East CC",meetType:"Hybrid",urgency:"non-urgent",stage:"Prospecting",
-        remarks:"Teacher. Wants ILP for long-term growth. No rush — reviewing options with husband.",
-        planType:"ILP",premium:4200,commission:"Trail",cpfSA:28000,cpfOA:54000,
-        occupation:"Secondary School Teacher",income:"SGD 4,500/mo",referredBy:"Colleague referral",
-        followUps:[
-          {label:"WhatsApp intro",date:"2025-05-17",done:true},
-          {label:"Meet-up",date:"2025-05-20",done:false},
-          {label:"Proposal",date:"2025-05-28",done:false}
-        ]
-      },
-      {
-        id:5,name:"Marcus Tan Boon Kiat",age:38,contact:"9567-8901",email:"marcus.tbk@finco.com",
-        meetDate:"2025-05-06",location:"CBD (Zoom)",meetType:"Online",urgency:"urgent",stage:"Needs Analysis",
-        remarks:"Planning early retirement at 55. HNW profile — keen on wealth accumulation + legacy planning.",
-        planType:"Whole Life + Trust",premium:24000,commission:"FYC + Trail",cpfSA:150000,cpfOA:320000,
-        occupation:"VP Finance",income:"SGD 18,000/mo",referredBy:"Wealth manager partner",
-        followUps:[
-          {label:"Zoom intro",date:"2025-05-01",done:true},
-          {label:"Needs analysis",date:"2025-05-06",done:true},
-          {label:"Solutioning",date:"2025-05-12",done:false},
-          {label:"Proposal",date:"2025-05-19",done:false}
-        ]
-      },
-      {
-        id:6,name:"Sandra Loh Mei Ling",age:55,contact:"8678-9012",email:"sandraloh@email.com",
-        meetDate:"2025-05-25",location:"Woodlands Civic Centre",meetType:"Physical",urgency:"non-urgent",stage:"Fact-Find",
-        remarks:"Near retirement. Reviewing existing Prudential policies. Possible DPS lapse to address.",
-        planType:"Retirement + MediShield",premium:1800,commission:"Trail",cpfSA:65000,cpfOA:120000,
-        occupation:"Admin Executive (Govt)",income:"SGD 3,200/mo",referredBy:"Daughter's recommendation",
-        followUps:[
-          {label:"Phone call",date:"2025-05-20",done:true},
-          {label:"Fact-find",date:"2025-05-25",done:false}
-        ]
-      }
-    ];
+(function () {
+  const AVATAR_COLORS = ["#a6192e", "#3b82f6", "#16a34a", "#f59e0b", "#8b5cf6", "#ec4899"];
 
-    const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
+  function parseExtra(value) {
+    if (!value) return {};
+    if (typeof value === "object") return value;
+    try { return JSON.parse(value) || {}; } catch (e) { return {}; }
+  }
 
-    function getLeads() {
-      try {
-        return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || DEFAULT_LEADS;
-      } catch {
-        return DEFAULT_LEADS;
-      }
+  function mapLeadRow(row) {
+    const extra = parseExtra(row.extra);
+    const followUps = Array.isArray(row.followUps) ? row.followUps : Array.isArray(row.follow_ups) ? row.follow_ups : [];
+    return {
+      id: Number(row.lead_id || row.id),
+      name: row.name || "",
+      age: Number(row.age || 0),
+      contact: row.contact || "",
+      email: row.email || "",
+      meetDate: row.meet_date || row.meetDate || "",
+      location: row.location || "",
+      meetType: row.meet_type || row.meetType || "",
+      urgency: String(row.urgency || "").toLowerCase(),
+      stage: row.stage || "",
+      remarks: row.remarks || "",
+      planType: row.plan_type || row.planType || "",
+      premium: Number(row.annual_premium || row.premium || 0),
+      commission: row.commission_type || row.commission || "",
+      cpfOA: Number(row.cpf_oa || row.cpfOA || 0),
+      cpfSA: Number(row.cpf_sa || row.cpfSA || 0),
+      occupation: row.occupation || "",
+      income: row.income || "",
+      referredBy: row.referred_by || row.referredBy || "",
+      sumAssured: extra.sumAssured,
+      currency: extra.currency || "SGD",
+      generalExpense: extra.generalExpense,
+      surplus: extra.surplus,
+      existingPlans: extra.existingPlans,
+      generalPlanType: extra.generalPlanType,
+      specificPlanType: extra.specificPlanType,
+      followUps: followUps.map(function (f) {
+        return {
+          label: f.label || f.follow_up_label || "",
+          date: f.date || f.scheduled_date || "",
+          done: Boolean(f.done || f.is_done)
+        };
+      })
+    };
+  }
+
+  function esc(value) {
+    const node = document.createElement("div");
+    node.textContent = String(value || "");
+    return node.innerHTML;
+  }
+
+  function initials(name) {
+    return String(name || "").split(/\s+/).map(function (w) { return w[0]; }).filter(Boolean).slice(0, 2).join("").toUpperCase();
+  }
+
+  function formatDate(value) {
+    if (!value) return "-";
+    const date = new Date(value + "T00:00:00");
+    if (isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("en-SG", { day: "numeric", month: "short", year: "numeric" }).format(date);
+  }
+
+  function money(value) {
+    return "SGD " + Math.round(Number(value || 0)).toLocaleString("en-SG");
+  }
+
+  async function loadLead(leadId) {
+    return mapLeadRow(await apiGet("/leads/" + encodeURIComponent(leadId)));
+  }
+
+  function renderProfile(lead) {
+    const avatarColor = AVATAR_COLORS[(lead.id - 1) % AVATAR_COLORS.length];
+    const urgencyColor = lead.urgency === "urgent" ? "#ef4444" : lead.urgency === "medium" ? "#f59e0b" : "#6b7280";
+    const followUps = (lead.followUps || []).map(function (item) {
+      return '<div class="timeline-item">' +
+        '<div class="timeline-dot ' + (item.done ? "completed" : "pending") + '"></div>' +
+        '<div class="timeline-content"><strong>' + esc(item.label) + '</strong><span>' + formatDate(item.date) + " - " + (item.done ? "Completed" : "Pending") + "</span></div>" +
+      "</div>";
+    }).join("");
+
+    document.getElementById("profileContent").innerHTML =
+      '<div class="profile-header" style="background: linear-gradient(135deg, ' + avatarColor + '15 0%, ' + avatarColor + '08 100%);">' +
+        '<div class="profile-avatar" style="background: linear-gradient(135deg, ' + avatarColor + " 0%, " + avatarColor + 'dd 100%);">' + esc(initials(lead.name)) + '</div>' +
+        '<div class="profile-info"><h1>' + esc(lead.name) + '</h1><p class="profile-subtitle">' + esc(lead.occupation) + ' | ' + esc(lead.income) + '</p>' +
+        '<div class="profile-meta">' +
+          '<div class="meta-item"><span class="meta-label">Referred By</span><span class="meta-value">' + esc(lead.referredBy || "-") + '</span></div>' +
+          '<div class="meta-item"><span class="meta-label">Stage</span><span class="meta-value">' + esc(lead.stage) + '</span></div>' +
+          '<div class="meta-item"><span class="meta-label">Urgency</span><span class="meta-value" style="color:' + urgencyColor + ';">' + esc(lead.urgency.toUpperCase()) + '</span></div>' +
+        '</div></div>' +
+        '<div class="profile-actions"><button class="btn-primary" onclick="window.location.href=\'create-profile.html?edit=' + encodeURIComponent(lead.id) + '\'">Edit Profile</button></div>' +
+      '</div>' +
+      '<div class="content-grid">' +
+        '<div class="card"><h2 class="card-title">Client Details</h2><div class="section-divider"></div><div class="info-grid">' +
+          info("Age", lead.age + " years") +
+          info("Contact", lead.contact) +
+          info("Email", lead.email) +
+          info("Meeting Type", lead.meetType) +
+          info("First Appointment", formatDate(lead.meetDate)) +
+          info("Location", lead.location) +
+          info("Stage", lead.stage) +
+          info("Urgency", lead.urgency) +
+        '</div></div>' +
+        '<div class="card"><h2 class="card-title">Financial Profile</h2><div class="section-divider"></div><div class="info-grid">' +
+          info("CPF OA", money(lead.cpfOA)) +
+          info("CPF SA", money(lead.cpfSA)) +
+          info("Recommended Plan", lead.planType) +
+          info("Annual Premium", money(lead.premium)) +
+          info("Commission", lead.commission) +
+          info("Sum Assured", lead.sumAssured ? money(lead.sumAssured) : "-") +
+          info("General Expense", lead.generalExpense || "-") +
+          info("Surplus", lead.surplus || "-") +
+        '</div></div>' +
+        '<div class="card full-width"><h2 class="card-title">Remarks</h2><div class="section-divider"></div><p class="remarks-text">' + esc(lead.remarks || "-") + '</p></div>' +
+        '<div class="card full-width"><h2 class="card-title">Follow-up Timeline</h2><div class="section-divider"></div><div class="timeline">' + (followUps || '<p class="muted-text">No follow-ups found.</p>') + '</div></div>' +
+      '</div>';
+  }
+
+  function info(label, value) {
+    return '<div class="info-item"><div class="info-label">' + esc(label) + '</div><div class="info-value">' + esc(value) + '</div></div>';
+  }
+
+  async function init() {
+    const params = new URLSearchParams(location.search);
+    const leadId = params.get("id");
+    const root = document.getElementById("profileContent");
+    if (!leadId) {
+      root.innerHTML = '<div class="error-message">Missing lead id.</div>';
+      return;
     }
-
-    function initials(name) {
-      return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+    root.innerHTML = '<div class="loading">Loading client profile from database...</div>';
+    try {
+      renderProfile(await loadLead(leadId));
+    } catch (err) {
+      console.error("Failed to load lead profile", err);
+      root.innerHTML = '<div class="error-message">Lead not found in the database.</div>';
     }
+  }
 
-    function formatDate(d) {
-      if(!d) return "—";
-      const [y,m,dd] = d.split("-");
-      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-      return `${parseInt(dd)} ${months[parseInt(m)-1]} ${y}`;
-    }
-
-    function renderProfile(leadId) {
-      const leads = getLeads();
-      const lead = leads.find(l => l.id === leadId);
-      
-      if (!lead) {
-        document.getElementById('profileContent').innerHTML = '<div class="error-message">Lead not found</div>';
-        return;
-      }
-
-      const avatarColor = AVATAR_COLORS[(lead.id-1) % AVATAR_COLORS.length];
-      const urgencyColor = lead.urgency === 'urgent' ? '#ef4444' : lead.urgency === 'medium' ? '#f59e0b' : '#6b7280';
-
-      const html = `
-        <div class="profile-header" style="background: linear-gradient(135deg, ${avatarColor}15 0%, ${avatarColor}08 100%);">
-          <div class="profile-avatar" style="background: linear-gradient(135deg, ${avatarColor} 0%, ${avatarColor}dd 100%);">
-            ${initials(lead.name)}
-          </div>
-          <div class="profile-info">
-            <h1>${lead.name}</h1>
-            <p class="profile-subtitle">${lead.occupation} • ${lead.income}</p>
-            <div class="profile-meta">
-              <div class="meta-item">
-                <span class="meta-label">Referred By</span>
-                <span class="meta-value">${lead.referredBy}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Stage</span>
-                <span class="meta-value">${lead.stage}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Urgency</span>
-                <span class="meta-value" style="color: ${urgencyColor};">${lead.urgency.toUpperCase()}</span>
-              </div>
-            </div>
-          </div>
-          <div class="profile-actions">
-            <button class="btn-primary" onclick="window.location.href='create-profile.html?edit=${lead.id}'">Edit Profile</button>
-          </div>
-        </div>
-
-        <div class="content-grid">
-          <div class="card">
-            <h2 class="card-title">Client Details</h2>
-            <div class="section-divider"></div>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">Age</div>
-                <div class="info-value">${lead.age} years</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Contact</div>
-                <div class="info-value">${lead.contact}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Email</div>
-                <div class="info-value" style="font-size: 0.95rem;">${lead.email}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Meeting Type</div>
-                <div class="info-value">${lead.meetType}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">First Appointment</div>
-                <div class="info-value">${formatDate(lead.meetDate)}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Location</div>
-                <div class="info-value">${lead.location}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Stage</div>
-                <div class="info-value">${lead.stage}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Urgency</div>
-                <div class="info-value" style="color:${urgencyColor}">${lead.urgency.toUpperCase()}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h2 class="card-title">Financial Portfolio</h2>
-            <div class="section-divider"></div>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">CPF OA Balance</div>
-                <div class="info-value">SGD ${lead.cpfOA.toLocaleString()}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">CPF SA Balance</div>
-                <div class="info-value">SGD ${lead.cpfSA.toLocaleString()}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Recommended Plan</div>
-                <div class="info-value">${lead.planType}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Est. Premium / yr</div>
-                <div class="info-value" style="color: var(--brand);">SGD ${lead.premium.toLocaleString()}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Commission Type</div>
-                <div class="info-value">${lead.commission}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="timeline-section">
-          <h2 class="card-title">Follow-up Timeline</h2>
-          <div class="section-divider"></div>
-          <div class="timeline">
-            ${(lead.followUps || []).map(f => `
-              <div class="timeline-item ${f.done ? 'done' : 'pending'}">
-                <div class="timeline-dot"></div>
-                <div class="timeline-title">${f.label}</div>
-                <div class="timeline-date">
-                  ${formatDate(f.date)}
-                  <span class="timeline-status ${f.done ? 'completed' : 'pending'}">
-                    ${f.done ? '✓ Completed' : '◌ Pending'}
-                  </span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="card" style="grid-column: span 2; margin-top: 0;">
-          <h2 class="card-title">Remarks</h2>
-          <div class="section-divider"></div>
-          <p style="font-size: 1rem; line-height: 1.6; color: var(--text);">${lead.remarks}</p>
-        </div>
-      `;
-
-      document.getElementById('profileContent').innerHTML = html;
-    }
-
-    // Get lead ID from URL
-    const params = new URLSearchParams(window.location.search);
-    const leadId = parseInt(params.get('id'));
-    
-    if (leadId) {
-      renderProfile(leadId);
-    } else {
-      document.getElementById('profileContent').innerHTML = '<div class="error-message">No lead ID provided</div>';
-    }
+  init();
+})();

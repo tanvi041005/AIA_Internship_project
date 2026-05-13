@@ -3,7 +3,7 @@
     let TOTAL_YTD = 0;
 
     // Cumulative district YTD by month (Jan–May actual, Jun–Dec projected)
-    const DISTRICT_CUM = [6200,12400,18800,33100,45500,58600,68800,74200,87500,96800,104600,111800];
+    let DISTRICT_CUM = [];
     const MONTHS       = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const SLOT_COLORS  = ["#a6192e", "#374151", "#6d5bd0", "#059669"];
 
@@ -17,6 +17,12 @@
         cases:   Number(r.total_cases || 0),
         team:    r.team_name || ''
       };
+    }
+
+    function parseExtra(value) {
+      if (!value) return {};
+      if (typeof value === "object") return value;
+      try { return JSON.parse(value) || {}; } catch (e) { return {}; }
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────
@@ -354,6 +360,8 @@
     (async function init() {
       try {
         const rows = await apiGet('/performance?year=2026&period=' + encodeURIComponent('Jan - May'));
+        const topExtra = parseExtra(rows && rows[0] && rows[0].extra);
+        DISTRICT_CUM = Array.isArray(topExtra.monthlyYtd) ? topExtra.monthlyYtd.map(function (m) { return Number(m.value || 0); }) : [];
         AGENTS = rows.map(mapAgentRow).sort((a, b) => a.rank - b.rank);
       } catch (err) {
         console.error('Failed to load agent performance:', err);

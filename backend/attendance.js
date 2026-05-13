@@ -11,22 +11,51 @@
       var role = signedInRole;
       var isHostView = role === "district";
       var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
-      var fallbackEvents = [
-        { id: "agency-1", title: "District Training Session", date: "2026-05-12", startTime: "09:00", endTime: "11:00", location: "District Training Room", type: "Training" },
-        { id: "agency-2", title: "District Sales Review", date: "2026-05-25", startTime: "14:00", endTime: "15:30", location: "Main Meeting Room", type: "Meeting" }
-      ];
+      var attendanceEvents = [];
+      var attendanceRecords = [];
+      var calendarEvents = [];
 
       function readList(key) {
-        try {
-          var parsed = JSON.parse(localStorage.getItem(key) || "[]");
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (error) {
-          return [];
-        }
+        if (key === EVENTS_KEY) return attendanceEvents;
+        if (key === RECORDS_KEY) return attendanceRecords;
+        return [];
       }
 
       function writeList(key, rows) {
-        localStorage.setItem(key, JSON.stringify(rows));
+        if (key === EVENTS_KEY) attendanceEvents = rows;
+        if (key === RECORDS_KEY) attendanceRecords = rows;
+      }
+
+      function normalizeEvent(row) {
+        return {
+          id: row.event_id || row.id,
+          title: row.title || "Calendar Event",
+          date: row.event_date || row.date || "",
+          startTime: String(row.start_time || row.startTime || "").slice(0, 5),
+          endTime: String(row.end_time || row.endTime || "").slice(0, 5),
+          location: row.location || "",
+          type: row.event_type || row.type || "Calendar Event",
+          category: row.category || "calendar",
+          attendanceToken: row.attendance_token || row.attendanceToken || ""
+        };
+      }
+
+      function normalizeRecord(row) {
+        return {
+          id: row.attendance_id || row.id,
+          eventId: row.event_id || row.eventId,
+          eventTitle: row.event_title || row.eventTitle,
+          userId: row.user_id || row.userId,
+          role: row.role || row.role_key,
+          checkInTime: row.check_in_time || row.checkInTime,
+          status: row.status
+        };
+      }
+
+      async function loadData() {
+        attendanceEvents = (await apiGet("/attendance-events").catch(function () { return []; })).map(normalizeEvent);
+        attendanceRecords = (await apiGet("/attendance-records").catch(function () { return []; })).map(normalizeRecord);
+        calendarEvents = (await apiGet("/events").catch(function () { return []; })).map(normalizeEvent);
       }
 
       function normalizeCalendarEvent(item, prefix) {
@@ -44,13 +73,9 @@
       }
 
       function calendarEventsFromStorage() {
-        var personal = readList("personalEvents").map(function (item) {
-          return normalizeCalendarEvent(item, "personal");
+        return calendarEvents.map(function (item) {
+          return normalizeCalendarEvent(item, item.category || "calendar");
         }).filter(Boolean);
-        var agency = readList("agencyEvents").map(function (item) {
-          return normalizeCalendarEvent(item, "agency");
-        }).filter(Boolean);
-        return agency.concat(personal);
       }
 
       function eventFromUrl() {
@@ -74,7 +99,7 @@
           stored.unshift(urlEvent);
           writeList(EVENTS_KEY, stored);
         }
-        var merged = stored.concat(calendarEventsFromStorage()).concat(fallbackEvents);
+        var merged = stored.concat(calendarEventsFromStorage());
         var seen = {};
         return merged.filter(function (item) {
           if (!item || !item.id || seen[item.id]) return false;
@@ -144,7 +169,7 @@
         return withWindows.sort(function (a, b) { return b.start - a.start; })[0]?.event || null;
       }
 
-      function saveAttendanceEvent(eventItem) {
+      async function saveAttendanceEvent(eventItem) {
         if (!eventItem) return null;
         var stored = readList(EVENTS_KEY);
         var existing = stored.find(function (item) { return item.id === eventItem.id; });
@@ -164,7 +189,13 @@
           ? stored.map(function (item) { return item.id === normalized.id ? Object.assign({}, item, normalized) : item; })
           : [normalized].concat(stored);
         writeList(EVENTS_KEY, next);
-        return normalized;
+        try {
+          var saved = await apiPost("/attendance-events", normalized);
+          return normalizeEvent(saved || normalized);
+        } catch (err) {
+          console.error("Failed to save attendance event", err);
+          return normalized;
+        }
       }
 
       function canCheckIn(eventItem) {
@@ -269,14 +300,14 @@
         }
       }
 
-      function renderHostQr(eventItem) {
+      async function renderHostQr(eventItem) {
         var dialog = document.getElementById("attendance-qr-fullscreen");
         var canvas = document.getElementById("attendance-host-qr-canvas");
         var title = document.getElementById("attendance-host-qr-title");
         var meta = document.getElementById("attendance-host-qr-meta");
         var link = document.getElementById("attendance-host-qr-link");
         if (!dialog || !canvas || !title || !link || !eventItem) return;
-        var saved = saveAttendanceEvent(eventItem);
+        var saved = await saveAttendanceEvent(eventItem);
         var url = buildCheckInUrl(saved);
         title.textContent = saved.title + " · " + formatDate(saved.date);
         link.href = url;
@@ -314,7 +345,7 @@
           : '<tr><td colspan="5" class="muted-text">No attendance recorded for this event yet.</td></tr>';
       }
 
-      function checkIn() {
+      async function checkIn() {
         var eventItem = selectedEvent();
         if (!eventItem) return;
         if (!canCheckIn(eventItem)) {
@@ -336,7 +367,7 @@
         }
         var now = new Date();
         var status = statusForCheckIn(eventItem, now);
-        records.unshift({
+        var record = {
           id: "att-" + Date.now(),
           eventId: eventItem.id,
           eventTitle: eventItem.title,
@@ -344,26 +375,36 @@
           role: role,
           checkInTime: now.toISOString(),
           status: status
-        });
+        };
+        records.unshift(record);
         writeList(RECORDS_KEY, records);
+        try {
+          await apiPost("/attendance-records", record);
+        } catch (err) {
+          console.error("Failed to save attendance record", err);
+        }
         message.textContent = "Attendance recorded for " + user + " at " + formatDateTime(now.toISOString()) + ".";
         pill.textContent = status;
         pill.className = "status-pill " + (status === "Late" ? "urgent" : "non-urgent");
         renderRecords();
       }
 
-      renderUserMeta();
-      renderRoleView();
-      renderSelector();
-      renderEvent();
-      renderRecords();
-      document.getElementById("attendance-checkin-btn").addEventListener("click", checkIn);
-      document.getElementById("attendance-generate-qr-btn").addEventListener("click", function () {
-        var eventItem = selectedEvent();
-        if (eventItem) renderHostQr(eventItem);
+      loadData().then(function () {
+        renderUserMeta();
+        renderRoleView();
+        renderSelector();
+        renderEvent();
+        renderRecords();
+        document.getElementById("attendance-checkin-btn").addEventListener("click", checkIn);
+        document.getElementById("attendance-generate-qr-btn").addEventListener("click", function () {
+          var eventItem = selectedEvent();
+          if (eventItem) renderHostQr(eventItem);
+        });
+        document.getElementById("attendance-close-qr-btn").addEventListener("click", function () {
+          document.getElementById("attendance-qr-fullscreen").close();
+        });
+        if (eventId && openedFromQr) checkIn();
+      }).catch(function (err) {
+        console.error("Failed to load attendance data", err);
       });
-      document.getElementById("attendance-close-qr-btn").addEventListener("click", function () {
-        document.getElementById("attendance-qr-fullscreen").close();
-      });
-      if (eventId && openedFromQr) checkIn();
     })();

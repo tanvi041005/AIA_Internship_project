@@ -1,6 +1,9 @@
 ﻿let leadData = [];
 
 let districtEventsSeed = [];
+let personalEventsData = [];
+let personalTasksData = [];
+let attendanceEventsData = [];
 
 // Map a DB leads row → the legacy overview-page shape this file expects.
 // Falls back to fields in `extra` for owner/agency, which were not in the new schema.
@@ -166,6 +169,9 @@ async function loadDashboardData() {
   const tasks = [
     apiGet('/leads?userId=' + userId).then(function (rows) { leadData = rows.map(mapLeadForOverview); }).catch(function (e) { console.error('leads', e); }),
     apiGet('/events?category=agency').then(function (rows) { districtEventsSeed = rows.map(mapEventForOverview); }).catch(function (e) { console.error('events', e); }),
+    apiGet('/events?category=personal&userId=' + userId).then(function (rows) { personalEventsData = rows.map(mapEventForOverview); }).catch(function (e) { console.error('personal events', e); }),
+    apiGet('/tasks?userId=' + userId).then(function (rows) { personalTasksData = Array.isArray(rows) ? rows : []; }).catch(function (e) { console.error('tasks', e); }),
+    apiGet('/attendance-events').then(function (rows) { attendanceEventsData = Array.isArray(rows) ? rows.map(mapEventForOverview) : []; }).catch(function (e) { console.error('attendance events', e); }),
     apiGet('/cpf?agentId=' + userId).then(function (rows) { cpfTrackerData = rows.map(mapCpfRow); }).catch(function (e) { console.error('cpf', e); }),
     apiGet('/performance?year=2026&period=' + encodeURIComponent('Jan - May')).then(function (rows) { performanceData = buildPerformanceData(rows); }).catch(function (e) { console.error('performance', e); })
   ];
@@ -212,62 +218,35 @@ function compactMoney(value) {
 }
 
 function getAgencyEvents() {
-  try {
-    const raw = localStorage.getItem(AGENCY_EVENTS_STORAGE_KEY);
-    if (!raw) return [...districtEventsSeed];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-  } catch (error) {
-    // Fall back to seed events if storage is invalid.
-  }
   return [...districtEventsSeed];
 }
 
 function saveAgencyEvents(events) {
-  localStorage.setItem(AGENCY_EVENTS_STORAGE_KEY, JSON.stringify(events));
+  districtEventsSeed = events;
+  apiPost('/events/bulk', { category: 'agency', events: events }).catch(function (error) { console.error('events/bulk', error); });
 }
 
 function getPersonalEvents() {
-  try {
-    const raw = localStorage.getItem(PERSONAL_EVENTS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-  } catch (error) {
-    // Fall back to empty list if storage is invalid.
-  }
-  return [];
+  return [...personalEventsData];
 }
 
 function savePersonalEvents(events) {
-  localStorage.setItem(PERSONAL_EVENTS_STORAGE_KEY, JSON.stringify(events));
+  personalEventsData = events;
+  apiPost('/events/bulk', { category: 'personal', userId: sessionStorage.getItem('dashboardUser') || 'A123', events: events }).catch(function (error) { console.error('personal events/bulk', error); });
 }
 
 function getPersonalTasks() {
-  try {
-    const raw = localStorage.getItem(PERSONAL_TASKS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(parsed)) return parsed;
-  } catch (error) {
-    // Fall back to empty list if storage is invalid.
-  }
-  return [];
+  return [...personalTasksData];
 }
 
 function savePersonalTasks(tasks) {
-  localStorage.setItem(PERSONAL_TASKS_STORAGE_KEY, JSON.stringify(tasks));
+  personalTasksData = tasks;
+  apiPost('/tasks/bulk', { userId: sessionStorage.getItem('dashboardUser') || 'A123', tasks: tasks }).catch(function (error) { console.error('tasks/bulk', error); });
   window.dispatchEvent(new CustomEvent("personalTasksUpdated"));
 }
 
 function getAttendanceEvents() {
-  try {
-    const raw = localStorage.getItem(ATTENDANCE_EVENTS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(parsed)) return parsed;
-  } catch (error) {
-    // Fall back to an empty list if storage is invalid.
-  }
-  return [];
+  return [...attendanceEventsData];
 }
 
 function saveAttendanceEvent(eventItem) {
@@ -289,7 +268,8 @@ function saveAttendanceEvent(eventItem) {
   const next = stored.some((item) => item.id === normalized.id)
     ? stored.map((item) => (item.id === normalized.id ? { ...item, ...normalized } : item))
     : [normalized, ...stored];
-  localStorage.setItem(ATTENDANCE_EVENTS_STORAGE_KEY, JSON.stringify(next));
+  attendanceEventsData = next;
+  apiPost('/attendance-events', normalized).catch(function (error) { console.error('attendance-events', error); });
   return normalized;
 }
 

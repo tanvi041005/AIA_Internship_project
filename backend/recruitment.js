@@ -1,109 +1,153 @@
-﻿// ─── Data ─────────────────────────────────────────────
-    const FUNNEL = [
-      { label: "Applicants",      count: 247, pct: 100, color: "#202124",
-        detail: "247 total applicants across all channels. Referral (42%), LinkedIn (28%), Walk-in (18%), Job portals (12%)." },
-      { label: "CV Review Pass",  count: 178, pct: 72,  color: "#374151",
-        detail: "178 CVs cleared initial screening. Top drop-off: incomplete applications (38%), mismatched experience (24%)." },
-      { label: "First Interview", count: 94,  pct: 38,  color: "#4b5563",
-        detail: "94 candidates attended first interview. Panel: Agency Leader + HR. Avg duration 35 min." },
-      { label: "Final Round",     count: 35,  pct: 14,  color: "#6b7280",
-        detail: "35 reached final assessment. Includes role-play, financial planning exercise, and culture fit review." },
-      { label: "Offer Extended",  count: 18,  pct: 7,   color: "#9ca3af",
-        detail: "18 offers sent. Avg time from first interview to offer: 19 days. Decline reasons: competing offers (3), relocation (2)." },
-      { label: "Active FC",       count: 10,  pct: 4,   color: "#a6192e",
-        detail: "10 active Financial Consultants from this intake. Target was 10. Onboarding completion: 80%." },
-    ];
+(async function () {
+  let FUNNEL = [];
+  let SOURCES = [];
+  let PROGRAMS = [];
+  let METRICS = {};
 
-    const SOURCES = [
-      { label: "Referral",    pct: 42 },
-      { label: "LinkedIn",    pct: 28 },
-      { label: "Walk-in",     pct: 18 },
-      { label: "Job Portals", pct: 12 },
-    ];
+  function esc(value) {
+    const node = document.createElement("div");
+    node.textContent = String(value || "");
+    return node.innerHTML;
+  }
 
-    const PROGRAMS = [
-      { name: "FC Graduate",       opens: 58, interviews: 22, offers: 6,  status: "active" },
-      { name: "Internship – Eng",  opens: 41, interviews: 17, offers: 5,  status: "open"   },
-      { name: "Internship – Data", opens: 33, interviews: 14, offers: 4,  status: "open"   },
-    ];
+  async function loadRecruitmentData() {
+    const data = await apiGet("/recruitment");
+    FUNNEL = Array.isArray(data.funnel) ? data.funnel : [];
+    SOURCES = Array.isArray(data.sources) ? data.sources : [];
+    PROGRAMS = Array.isArray(data.programs) ? data.programs : [];
+    const derivedMetrics = deriveMetrics();
+    METRICS = data.metrics && typeof data.metrics === "object"
+      ? { ...derivedMetrics, ...data.metrics, kpis: Array.isArray(data.metrics.kpis) ? data.metrics.kpis : derivedMetrics.kpis }
+      : derivedMetrics;
+  }
 
-    // ─── Render funnel ─────────────────────────────────────
-    function renderFunnel() {
-      const container = document.getElementById("funnel-rows");
-      container.innerHTML = FUNNEL.map((s, i) => `
-        <div class="funnel-row" data-idx="${i}" role="button" tabindex="0" aria-expanded="false"
-             aria-label="${s.label}: ${s.count} (${s.pct}%)">
-          <span class="funnel-lbl">${s.label}</span>
-          <div class="funnel-track">
-            <div class="funnel-fill" data-pct="${s.pct}" style="background:${s.color}">
-              ${s.pct}%
-            </div>
+  function findByLabel(rows, pattern) {
+    return rows.find((row) => pattern.test(String(row.label || row.name || "")));
+  }
+
+  function formatPct(value, digits = 0) {
+    if (!Number.isFinite(value)) return "N/A";
+    return value.toFixed(digits).replace(/\.0$/, "") + "%";
+  }
+
+  function deriveMetrics() {
+    const applicants = Number((findByLabel(FUNNEL, /applicant/i) || {}).count || 0);
+    const active = Number((findByLabel(FUNNEL, /active/i) || {}).count || 0);
+    const offers = Number((findByLabel(FUNNEL, /offer/i) || {}).count || 0);
+    const referral = Number((findByLabel(SOURCES, /referral/i) || {}).pct || 0);
+    return {
+      programmeLead: "District Manager",
+      cycle: "2026 Intake",
+      targetActiveFc: active || 0,
+      intakeTag: `${applicants || 0} applicants - ${active || 0} active FCs`,
+      kpis: [
+        { label: "Conversion Rate", value: applicants ? formatPct((active / applicants) * 100, 1) : "N/A", delta: "" },
+        { label: "Time to Offer", value: "N/A", delta: "" },
+        { label: "Offer Acceptance", value: offers ? formatPct((active / offers) * 100) : "N/A", delta: "" },
+        { label: "Source: Referral", value: referral ? formatPct(referral) : "N/A", delta: "highest converter" }
+      ]
+    };
+  }
+
+  function renderMetrics() {
+    const meta = document.getElementById("rp-meta-summary");
+    const tag = document.getElementById("funnel-intake-tag");
+    const grid = document.getElementById("recruitment-kpi-grid");
+    if (meta) {
+      const pieces = [
+        METRICS.programmeLead ? "Programme Lead: " + METRICS.programmeLead : "",
+        METRICS.cycle ? "Cycle: " + METRICS.cycle : "",
+        METRICS.targetActiveFc ? "Target: " + METRICS.targetActiveFc + " Active FCs" : ""
+      ].filter(Boolean);
+      meta.textContent = pieces.length ? pieces.join(" · ") : "Recruitment cycle loaded";
+    }
+    if (tag) tag.textContent = METRICS.intakeTag || "";
+    if (!grid) return;
+    const kpis = Array.isArray(METRICS.kpis) ? METRICS.kpis : [];
+    grid.innerHTML = kpis.length ? kpis.map((kpi) => {
+      const trendClass = /^-/.test(String(kpi.delta || "")) ? "delta-down" : "delta-up";
+      const delta = kpi.delta
+        ? `<p class="rp-kpi-delta"><span class="${trendClass}">${esc(kpi.delta)}</span> <span class="delta-note">${esc(kpi.note || "")}</span></p>`
+        : `<p class="rp-kpi-delta"><span class="delta-note">${esc(kpi.note || "")}</span></p>`;
+      return `<div class="rp-kpi">
+        <p class="rp-kpi-lbl">${esc(kpi.label)}</p>
+        <p class="rp-kpi-val">${esc(kpi.value)}</p>
+        ${delta}
+      </div>`;
+    }).join("") : '<p class="muted-text">No recruitment KPI metrics found in the database.</p>';
+  }
+
+  function renderFunnel() {
+    const container = document.getElementById("funnel-rows");
+    if (!FUNNEL.length) {
+      container.innerHTML = '<p class="muted-text">No recruitment funnel data found in the database.</p>';
+      return;
+    }
+    container.innerHTML = FUNNEL.map((s, i) => `
+      <div class="funnel-row" data-idx="${i}" role="button" tabindex="0" aria-expanded="false"
+           aria-label="${esc(s.label)}: ${Number(s.count || 0)} (${Number(s.pct || s.percent || 0)}%)">
+        <span class="funnel-lbl">${esc(s.label)}</span>
+        <div class="funnel-track">
+          <div class="funnel-fill" data-pct="${Number(s.pct || s.percent || 0)}" style="background:${esc(s.color || "#6b7280")}">
+            ${Number(s.pct || s.percent || 0)}%
           </div>
-          <span class="funnel-count">${s.count}</span>
         </div>
-        <div class="funnel-detail" id="funnel-detail-${i}">${s.detail}</div>
-      `).join("");
+        <span class="funnel-count">${Number(s.count || 0)}</span>
+      </div>
+      <div class="funnel-detail" id="funnel-detail-${i}">${esc(s.detail || "")}</div>
+    `).join("");
 
-      // Animate on load
-      requestAnimationFrame(() => setTimeout(() => {
-        document.querySelectorAll(".funnel-fill").forEach(el => {
-          el.style.width = el.dataset.pct + "%";
-        });
-      }, 120));
-
-      // Toggle details on click / Enter
-      container.querySelectorAll(".funnel-row").forEach(row => {
-        const toggle = () => {
-          const idx    = row.dataset.idx;
-          const detail = document.getElementById(`funnel-detail-${idx}`);
-          const open   = detail.classList.toggle("open");
-          row.setAttribute("aria-expanded", String(open));
-        };
-        row.addEventListener("click",   toggle);
-        row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
-      });
-    }
-
-    // ─── Render source attribution ─────────────────────────
-    function renderSources() {
-      document.getElementById("source-rows").innerHTML = SOURCES.map(s => `
-        <div class="src-row">
-          <span class="src-lbl">${s.label}</span>
-          <div class="src-track"><div class="src-fill" data-pct="${s.pct}"></div></div>
-          <span class="src-pct">${s.pct}%</span>
-        </div>
-      `).join("");
-
-      requestAnimationFrame(() => setTimeout(() => {
-        document.querySelectorAll(".src-fill").forEach(el => {
-          el.style.width = el.dataset.pct + "%";
-        });
-      }, 200));
-    }
-
-    // ─── Render programs ───────────────────────────────────
-    function renderPrograms() {
-      const statusPill = s => {
-        if (s === "active")  return `<span class="stage-pill pill-active">Active</span>`;
-        if (s === "closed")  return `<span class="stage-pill pill-closed">Closed</span>`;
-        return `<span class="stage-pill pill-open">Open</span>`;
+    requestAnimationFrame(() => setTimeout(() => {
+      document.querySelectorAll(".funnel-fill").forEach(el => { el.style.width = el.dataset.pct + "%"; });
+    }, 120));
+    container.querySelectorAll(".funnel-row").forEach(row => {
+      const toggle = () => {
+        const detail = document.getElementById(`funnel-detail-${row.dataset.idx}`);
+        const open = detail.classList.toggle("open");
+        row.setAttribute("aria-expanded", String(open));
       };
-      document.getElementById("prog-tbody").innerHTML = PROGRAMS.map(p => {
-        const pct = Math.round((p.offers / p.opens) * 100);
-        return `<tr>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.opens}</td>
-          <td>${p.interviews}</td>
-          <td>${p.offers}</td>
-          <td class="prog-bar-cell">
-            <div class="prog-mini-track">
-              <div class="prog-mini-fill" style="width:${pct}%"></div>
-            </div>
-          </td>
-        </tr>`;
-      }).join("");
-    }
+      row.addEventListener("click", toggle);
+      row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+    });
+  }
 
-    renderFunnel();
-    renderSources();
-    renderPrograms();
+  function renderSources() {
+    const root = document.getElementById("source-rows");
+    root.innerHTML = SOURCES.length ? SOURCES.map(s => `
+      <div class="src-row">
+        <span class="src-lbl">${esc(s.label)}</span>
+        <div class="src-track"><div class="src-fill" data-pct="${Number(s.pct || s.percent || 0)}"></div></div>
+        <span class="src-pct">${Number(s.pct || s.percent || 0)}%</span>
+      </div>
+    `).join("") : '<p class="muted-text">No source data found in the database.</p>';
+    requestAnimationFrame(() => setTimeout(() => {
+      document.querySelectorAll(".src-fill").forEach(el => { el.style.width = el.dataset.pct + "%"; });
+    }, 200));
+  }
+
+  function renderPrograms() {
+    const tbody = document.getElementById("prog-tbody");
+    tbody.innerHTML = PROGRAMS.length ? PROGRAMS.map(p => {
+      const opens = Number(p.opens || p.open_positions || 0);
+      const offers = Number(p.offers || p.offers_extended || 0);
+      const pct = opens ? Math.round((offers / opens) * 100) : 0;
+      return `<tr>
+        <td><strong>${esc(p.name || p.program_name)}</strong></td>
+        <td>${opens}</td>
+        <td>${Number(p.interviews || p.interviews_conducted || 0)}</td>
+        <td>${offers}</td>
+        <td class="prog-bar-cell"><div class="prog-mini-track"><div class="prog-mini-fill" style="width:${pct}%"></div></div></td>
+      </tr>`;
+    }).join("") : '<tr><td colspan="5" class="muted-text">No recruitment programs found in the database.</td></tr>';
+  }
+
+  try {
+    await loadRecruitmentData();
+  } catch (err) {
+    console.error("Failed to load recruitment data", err);
+  }
+  renderMetrics();
+  renderFunnel();
+  renderSources();
+  renderPrograms();
+})();

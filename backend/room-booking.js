@@ -1,33 +1,48 @@
 ﻿// ── Data ────────────────────────────────────────────────────────────────────
-    const ROOMS = [
-      { id: 'eagle', label: 'Eagle Boardroom', cls: 'room-eagle', dot: '#93c5fd' },
-      { id: 'summit', label: 'Summit Event Hall', cls: 'room-summit', dot: '#fca5a5' },
-      { id: 'ark', label: 'Ark (near Eagle)', cls: 'room-ark', dot: '#6ee7b7' },
-      { id: 'armour', label: 'Armour (beside Pigeon)', cls: 'room-armour', dot: '#d1d5db' },
-      { id: 'inspiration', label: 'Inspiration Lounge', cls: 'room-inspiration', dot: '#c4b5fd' },
-      { id: 'nest', label: 'Nest / Nursing Room', cls: 'room-nest', dot: '#fde68a' },
-    ];
+    let ROOMS = [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Seed some bookings
-    let bookings = [
-      { id: 1, title: 'Board Review', room: 'eagle', date: fmtDate(today), start: '09:00', end: '10:30', by: 'Sarah L.' },
-      { id: 2, title: 'All-Hands', room: 'summit', date: fmtDate(today), start: '14:00', end: '15:00', by: 'Operations' },
-      { id: 3, title: 'Dev Sprint Sync', room: 'ark', date: fmtDate(offsetDate(today, 1)), start: '10:00', end: '11:00', by: 'Tech Team' },
-      { id: 4, title: 'HR Interview', room: 'armour', date: fmtDate(offsetDate(today, 2)), start: '13:00', end: '14:00', by: 'Recruitment' },
-      { id: 5, title: 'L&D Session', room: 'inspiration', date: fmtDate(offsetDate(today, -1)), start: '15:00', end: '16:30', by: 'Learning' },
-      { id: 6, title: 'Wellness Break', room: 'nest', date: fmtDate(today), start: '12:00', end: '12:30', by: 'HR' },
-    ];
-    let nextId = 7;
+    let bookings = [];
 
     // ── State ────────────────────────────────────────────────────────────────────
     let currentView = 'week';
     let currentDate = new Date(today);
     let miniDate = new Date(today);
-    let visibleRooms = new Set(ROOMS.map((r) => r.id));
+    let visibleRooms = new Set();
     let editingId = null;
+
+    function normalizeRoom(row) {
+      const id = row.room_id || row.id;
+      return {
+        id: id,
+        label: row.label || row.room_name || row.name || id,
+        cls: row.css_class || row.cls || ('room-' + id),
+        dot: row.dot_color || row.dot || '#d1d5db'
+      };
+    }
+
+    function normalizeBooking(row) {
+      return {
+        id: row.booking_id || row.id,
+        title: row.title || '',
+        room: row.room_id || row.room,
+        date: row.booking_date || row.date,
+        start: String(row.start_time || row.start || '').slice(0, 5),
+        end: String(row.end_time || row.end || '').slice(0, 5),
+        by: row.booked_by_name || row.by || '',
+        notes: row.notes || '',
+        recurrence: row.recurrence || null,
+        recurrenceEnd: row.recurrence_end || row.recurrenceEnd || ''
+      };
+    }
+
+    async function loadData() {
+      ROOMS = (await apiGet('/rooms').catch(function () { return []; })).map(normalizeRoom);
+      bookings = (await apiGet('/room-bookings').catch(function () { return []; })).map(normalizeBooking);
+      visibleRooms = new Set(ROOMS.map((r) => r.id));
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
     function fmtDate(d) {
@@ -61,7 +76,7 @@
       return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
     }
     function roomById(id) {
-      return ROOMS.find((r) => r.id === id);
+      return ROOMS.find((r) => r.id === id) || { id: id, label: id, cls: 'room-armour', dot: '#d1d5db' };
     }
     function visibleBookingsForDate(ds) {
       return bookings.filter((b) => b.date === ds && visibleRooms.has(b.room));
@@ -359,7 +374,7 @@
       editingId = null;
       document.getElementById('modalTitle').textContent = 'New Reservation';
       document.getElementById('fTitle').value = '';
-      document.getElementById('fRoom').value = ROOMS[0].id;
+      document.getElementById('fRoom').value = ROOMS[0] ? ROOMS[0].id : '';
       document.getElementById('fDate').value = prefill.date || fmtDate(currentDate);
       document.getElementById('fStart').value = prefill.start || '09:00';
       document.getElementById('fEnd').value = prefill.end || '10:00';
@@ -394,7 +409,7 @@
       document.getElementById('bookingModal').close();
     }
 
-    function saveBooking() {
+    async function saveBooking() {
       const title = document.getElementById('fTitle').value.trim();
       const room = document.getElementById('fRoom').value;
       const date = document.getElementById('fDate').value;
@@ -443,24 +458,33 @@
         }
       }
       
-      if (editingId) {
-        const idx = bookings.findIndex((b) => b.id === editingId);
-        if (idx > -1) {
-          bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null };
+      const payload = {
+        title,
+        roomId: room,
+        date,
+        startTime: start,
+        endTime: end,
+        bookedByName: by,
+        notes,
+        recurrence: recurrence !== 'none' ? recurrence : 'none',
+        recurrenceEnd
+      };
+
+      try {
+        if (editingId) {
+          await apiPut('/room-bookings/' + encodeURIComponent(editingId), payload);
+        } else {
+          await Promise.all(datesToBook.map(function (bookingDate) {
+            return apiPost('/room-bookings', { ...payload, date: bookingDate });
+          }));
         }
-      } else {
-        // Add single booking or first recurring booking
-        bookings.push({ id: nextId++, title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null });
-        
-        // Add subsequent recurring bookings
-        if (recurrence !== 'none') {
-          for (let i = 1; i < datesToBook.length; i++) {
-            bookings.push({ id: nextId++, title, room, date: datesToBook[i], start, end, by, notes, recurrence, recurrenceEnd });
-          }
-        }
+        await loadData();
+        closeModal();
+        render();
+      } catch (err) {
+        console.error('Failed to save room booking', err);
+        alert('Could not save this booking to the database.');
       }
-      closeModal();
-      render();
     }
 
     // ── Detail popup ──────────────────────────────────────────────────────────────
@@ -497,11 +521,17 @@
       document.getElementById('detailPopup').classList.remove('visible');
     }
 
-    function deleteBooking(id) {
+    async function deleteBooking(id) {
       if (!confirm('Delete this booking?')) return;
-      bookings = bookings.filter((b) => b.id !== id);
-      closeDetail();
-      render();
+      try {
+        await apiDelete('/room-bookings/' + encodeURIComponent(id));
+        await loadData();
+        closeDetail();
+        render();
+      } catch (err) {
+        console.error('Failed to delete room booking', err);
+        alert('Could not delete this booking from the database.');
+      }
     }
 
     document.addEventListener('click', (e) => {
@@ -520,4 +550,7 @@
     });
 
     // ── Init ──────────────────────────────────────────────────────────────────────
-    render();
+    loadData().then(render).catch(function (err) {
+      console.error('Failed to load room bookings', err);
+      render();
+    });

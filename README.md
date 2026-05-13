@@ -1,21 +1,26 @@
 # AIA Internship project
 
-Financial Agent Dashboard - static HTML/CSS (no build step).
+Financial Agent Dashboard backed by API calls to the database layer.
 
 ## Run locally
 
-Open `financial-dashboard/index.html` in a browser, or from PowerShell:
+Start the local API shim, then open the `frontend/` pages in a browser.
 
 ```powershell
-Start-Process .\financial-dashboard\index.html
+$env:RECRUITMENT_ACCESS_CODE = "your-local-code"
+node backend\server.js
 ```
+
+When using VS Code Live Server, open `frontend/login.html`. The frontend will call
+`http://127.0.0.1:8080` locally. For AWS/RDS, set the API Gateway invoke URL in
+`backend/api-config.js`.
 
 ## Pages
 
 - **Overview** - lead KPIs, sales / closure summary, CPF tracker, and resources
 - **Leads** - client profiles, urgency tracking, filtering, and closure estimates
 - **Calendar** - appointments, meet-ups, reminders, and linked tasks
-- **Recruitment** - leader gate; default demo code is `changeme` (see `recruitment-login.html`)
+- **Recruitment** - restricted analytics unlocked through the API-backed access route
 - **Training** and **Resources**
 
 ## GitHub

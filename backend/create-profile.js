@@ -1,92 +1,135 @@
-﻿const LEADS_STORAGE_KEY = "financial_leads_data";
+(function () {
+  const params = new URLSearchParams(location.search);
+  const editId = params.get("edit") ? Number(params.get("edit")) : null;
+  const returnUrl = editId ? "client-profile.html?id=" + encodeURIComponent(editId) : "leads.html";
 
-    function getCustomLeads() {
-      try { return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || []; }
-      catch { return []; }
+  function value(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  function numberValue(id) {
+    return Number(document.getElementById(id).value || 0);
+  }
+
+  function mapLeadRow(row) {
+    return {
+      id: Number(row.lead_id || row.id),
+      name: row.name || "",
+      age: Number(row.age || 0),
+      contact: row.contact || "",
+      email: row.email || "",
+      meetDate: row.meet_date || row.meetDate || "",
+      meetType: row.meet_type || row.meetType || "",
+      location: row.location || "",
+      urgency: row.urgency || "",
+      stage: row.stage || "",
+      occupation: row.occupation || "",
+      income: row.income || "",
+      cpfOA: Number(row.cpf_oa || row.cpfOA || 0),
+      cpfSA: Number(row.cpf_sa || row.cpfSA || 0),
+      planType: row.plan_type || row.planType || "",
+      premium: Number(row.annual_premium || row.premium || 0),
+      commission: row.commission_type || row.commission || "",
+      referredBy: row.referred_by || row.referredBy || "",
+      remarks: row.remarks || ""
+    };
+  }
+
+  async function loadEditingLead() {
+    if (!editId) return null;
+    return mapLeadRow(await apiGet("/leads/" + encodeURIComponent(editId)));
+  }
+
+  function setField(id, value) {
+    document.getElementById(id).value = value || "";
+  }
+
+  function fillForm(lead) {
+    if (!lead) return;
+    document.getElementById("page-heading").textContent = "Edit Lead Profile";
+    document.getElementById("submit-btn").textContent = "Update Profile";
+    setField("cp-name", lead.name);
+    setField("cp-age", lead.age);
+    setField("cp-contact", lead.contact);
+    setField("cp-email", lead.email);
+    setField("cp-meetup-date", lead.meetDate);
+    setField("cp-meeting-type", lead.meetType);
+    setField("cp-location", lead.location);
+    setField("cp-urgency", lead.urgency);
+    setField("cp-stage", lead.stage);
+    setField("cp-occupation", lead.occupation);
+    setField("cp-income", lead.income);
+    setField("cp-cpf-oa", lead.cpfOA);
+    setField("cp-cpf-sa", lead.cpfSA);
+    setField("cp-plan-type", lead.planType);
+    setField("cp-premium", lead.premium);
+    setField("cp-commission", lead.commission);
+    setField("cp-referred", lead.referredBy);
+    setField("cp-remarks", lead.remarks);
+  }
+
+  function buildPayload() {
+    return {
+      leadId: editId,
+      name: value("cp-name"),
+      age: numberValue("cp-age"),
+      contact: value("cp-contact"),
+      email: value("cp-email"),
+      meetDate: value("cp-meetup-date"),
+      location: value("cp-location"),
+      meetType: value("cp-meeting-type"),
+      urgency: value("cp-urgency"),
+      stage: value("cp-stage"),
+      occupation: value("cp-occupation"),
+      income: value("cp-income"),
+      cpfOA: numberValue("cp-cpf-oa"),
+      cpfSA: numberValue("cp-cpf-sa"),
+      planType: value("cp-plan-type"),
+      premium: numberValue("cp-premium"),
+      commission: value("cp-commission"),
+      referredBy: value("cp-referred"),
+      remarks: value("cp-remarks"),
+      ownerId: (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase()
+    };
+  }
+
+  async function saveLead(event) {
+    event.preventDefault();
+    const err = document.getElementById("form-error");
+    err.textContent = "";
+    const payload = buildPayload();
+    if (!payload.name || !payload.contact || !payload.email || !payload.meetDate || !payload.age) {
+      err.textContent = "Please fill in all required fields.";
+      return;
     }
-
-    const params = new URLSearchParams(location.search);
-    const editId = params.get("edit") ? Number(params.get("edit")) : null;
-    const editingLead = editId ? getCustomLeads().find((l) => l.id === editId) : null;
-    const returnUrl = editId ? `client-profile.html?id=${editId}` : "leads.html";
-
-    if (editingLead) {
-      document.getElementById("page-heading").textContent = "Edit Lead Profile";
-      document.getElementById("submit-btn").textContent = "Update Profile";
-      document.getElementById("cp-name").value = editingLead.name;
-      document.getElementById("cp-age").value = editingLead.age;
-      document.getElementById("cp-contact").value = editingLead.contact;
-      document.getElementById("cp-email").value = editingLead.email || "";
-      document.getElementById("cp-meetup-date").value = editingLead.meetDate;
-      document.getElementById("cp-meeting-type").value = editingLead.meetType;
-      document.getElementById("cp-location").value = editingLead.location;
-      document.getElementById("cp-urgency").value = editingLead.urgency;
-      document.getElementById("cp-stage").value = editingLead.stage;
-      document.getElementById("cp-occupation").value = editingLead.occupation || "";
-      document.getElementById("cp-income").value = editingLead.income || "";
-      document.getElementById("cp-cpf-oa").value = editingLead.cpfOA || "";
-      document.getElementById("cp-cpf-sa").value = editingLead.cpfSA || "";
-      document.getElementById("cp-plan-type").value = editingLead.planType;
-      document.getElementById("cp-premium").value = editingLead.premium;
-      document.getElementById("cp-commission").value = editingLead.commission;
-      document.getElementById("cp-referred").value = editingLead.referredBy || "";
-      document.getElementById("cp-remarks").value = editingLead.remarks;
-    }
-
-    document.getElementById("cancel-link").href = returnUrl;
-
-    document.getElementById("create-profile-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const err = document.getElementById("form-error");
-      err.textContent = "";
-
-      const name = document.getElementById("cp-name").value.trim();
-      const age = parseInt(document.getElementById("cp-age").value, 10);
-      const contact = document.getElementById("cp-contact").value.trim();
-      const email = document.getElementById("cp-email").value.trim();
-      const meetDate = document.getElementById("cp-meetup-date").value;
-
-      if (!name || !contact || !email || !meetDate || isNaN(age)) {
-        err.textContent = "Please fill in all required fields.";
-        return;
-      }
-
-      const updated = {
-        id: editId || Date.now(),
-        name, age,
-        contact,
-        email,
-        meetDate,
-        location: document.getElementById("cp-location").value.trim(),
-        meetType: document.getElementById("cp-meeting-type").value,
-        urgency: document.getElementById("cp-urgency").value,
-        stage: document.getElementById("cp-stage").value,
-        occupation: document.getElementById("cp-occupation").value.trim(),
-        income: document.getElementById("cp-income").value.trim(),
-        cpfOA: parseInt(document.getElementById("cp-cpf-oa").value, 10) || 0,
-        cpfSA: parseInt(document.getElementById("cp-cpf-sa").value, 10) || 0,
-        planType: document.getElementById("cp-plan-type").value.trim(),
-        premium: parseInt(document.getElementById("cp-premium").value, 10) || 0,
-        commission: document.getElementById("cp-commission").value,
-        referredBy: document.getElementById("cp-referred").value.trim(),
-        remarks: document.getElementById("cp-remarks").value.trim(),
-        owner: "agent",
-        followUps: editingLead ? editingLead.followUps : [
-          {label:"Lead Created", date: new Date().toISOString().split('T')[0], done:true}
-        ]
-      };
-
-      const leads = getCustomLeads();
+    try {
       if (editId) {
-        const idx = leads.findIndex((l) => l.id === editId);
-        if (idx !== -1) leads[idx] = updated; else leads.push(updated);
+        await apiPut("/leads/" + encodeURIComponent(editId), payload);
       } else {
-        leads.push(updated);
+        await apiPost("/leads", payload);
       }
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    } catch (e) {
+      console.error("Failed to save lead", e);
+      err.textContent = "Could not save profile to database.";
+      return;
+    }
+    const successMsg = document.getElementById("form-success");
+    successMsg.textContent = editId ? "Profile updated! Redirecting..." : "Profile saved! Redirecting...";
+    successMsg.style.display = "block";
+    setTimeout(function () { window.location.href = returnUrl; }, 700);
+  }
 
-      const successMsg = document.getElementById("form-success");
-      successMsg.textContent = editId ? "Profile updated! Redirecting…" : "Profile saved! Redirecting…";
-      successMsg.style.display = "block";
-      setTimeout(() => { window.location.href = returnUrl; }, 1200);
-    });
+  async function init() {
+    document.getElementById("cancel-link").href = returnUrl;
+    if (editId) {
+      try {
+        fillForm(await loadEditingLead());
+      } catch (err) {
+        document.getElementById("form-error").textContent = "Could not load this lead from database.";
+      }
+    }
+    document.getElementById("create-profile-form").addEventListener("submit", saveLead);
+  }
+
+  init();
+})();

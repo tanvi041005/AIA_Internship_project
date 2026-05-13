@@ -1,26 +1,19 @@
 ﻿(async function () {
       var TOPICS = [];
       var TEAM_MAP = {};
-      var DEFAULT_AGENT_POOL = ["A123", "A124", "A125", "A126", "A127"];
       var role = sessionStorage.getItem("dashboardRole") || "agent";
       var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
       var activeTopicIndex = 0;
       var player = null;
       var ytReady = false;
-      var progressKey = "fm_training_progress_v2";
       var progressStore = readProgressStore();
 
       window.onYouTubeIframeAPIReady = function () { ytReady = true; render(); };
 
       function readProgressStore() {
-        try {
-          var raw = localStorage.getItem(progressKey);
-          if (!raw) return {};
-          var parsed = JSON.parse(raw);
-          return parsed && typeof parsed === "object" ? parsed : {};
-        } catch (e) { return {}; }
+        return {};
       }
-      function saveProgressStore() { localStorage.setItem(progressKey, JSON.stringify(progressStore)); }
+      function saveProgressStore() { apiPost('/training/progress', { userId: user, progress: progressStore }).catch(function (e) { console.error('training progress', e); }); }
       function getUserProgress(userId) {
         if (!progressStore[userId]) progressStore[userId] = { topics: {} };
         return progressStore[userId];
@@ -187,28 +180,14 @@
         return Math.round(points / total);
       }
 
-      function getRosterAgentIdsForManager(managerId) {
-        try {
-          var raw = localStorage.getItem("fm_team_members_v1");
-          if (!raw) return [];
-          var all = JSON.parse(raw);
-          if (!all || typeof all !== "object") return [];
-          var list = all[managerId] || [];
-          if (!Array.isArray(list)) return [];
-          return list
-            .map(function (m) { return String(m.agentId || "").toUpperCase(); })
-            .filter(function (id) { return /^A\d+$/i.test(id); });
-        } catch (e) {
-          return [];
-        }
-      }
+      function getRosterAgentIdsForManager() { return []; }
 
       function getManagedAgents() {
         if (role !== "leader" && role !== "district") return [];
         var rosterIds = getRosterAgentIdsForManager(user);
         var configured = TEAM_MAP[user] || [];
         var tracked = Object.keys(progressStore || {}).filter(function (id) { return /^A\d+$/i.test(id); });
-        var pool = rosterIds.concat(configured).concat(tracked).concat(DEFAULT_AGENT_POOL);
+        var pool = rosterIds.concat(configured).concat(tracked);
         var unique = pool.filter(function (id, index) { return pool.indexOf(id) === index; });
         return unique.sort();
       }
@@ -264,6 +243,13 @@
         renderTopicView();
         renderQuiz();
         renderProgress();
+      }
+
+      try {
+        var savedProgress = await apiGet('/training/progress?userId=' + encodeURIComponent(user));
+        progressStore = savedProgress && typeof savedProgress === 'object' ? savedProgress : {};
+      } catch (err) {
+        progressStore = {};
       }
 
       render();

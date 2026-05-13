@@ -39,6 +39,20 @@
       if (roleError) roleError.hidden = true;
     });
 
+    function normalizeRole(auth) {
+      const role = String(auth && (auth.role || auth.roleKey || auth.role_key) || "").toLowerCase();
+      if (role) return role;
+      const roleId = Number(auth && (auth.roleId || auth.role_id));
+      if (roleId === 1) return "agent";
+      if (roleId === 2) return "leader";
+      if (roleId === 3) return "district";
+      return "";
+    }
+
+    function normalizeUserId(auth, fallback) {
+      return String(auth && (auth.userId || auth.user_id) || fallback || "").toUpperCase();
+    }
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const username = usernameInput.value.trim().toUpperCase();
@@ -56,13 +70,31 @@
       try {
         auth = await apiPost('/auth/login', { userId: username, password });
       } catch (err) {
+        console.error("Login failed", {
+          message: err && err.message,
+          status: err && err.status,
+          apiUrl: err && err.apiUrl,
+          payload: err && err.payload,
+          baseUrl: window.API_BASE_URL || localStorage.getItem("apiBaseUrl") || ""
+        });
         if (roleError) {
-          roleError.textContent = "Invalid User ID or password.";
+          if (err && err.isNetworkError) {
+            roleError.textContent = "Cannot reach login API. Check API Gateway URL and CORS.";
+          } else if (err && (err.status === 404 || err.status === 405)) {
+            roleError.textContent = "Login API route not found. Check API Gateway path /auth/login.";
+          } else if (err && err.status >= 500) {
+            roleError.textContent = "Login API failed. Check Lambda logs and RDS connection.";
+          } else {
+            roleError.textContent = "Invalid User ID or password.";
+          }
           roleError.hidden = false;
         }
         return;
       }
-      if (auth.role !== detected.key) {
+      const authRole = normalizeRole(auth);
+      const authUserId = normalizeUserId(auth, username);
+
+      if (authRole !== detected.key) {
         if (roleError) {
           roleError.textContent = "User role mismatch for this User ID.";
           roleError.hidden = false;
@@ -70,11 +102,11 @@
         return;
       }
 
-      sessionStorage.setItem("dashboardRole", auth.role);
-      sessionStorage.setItem("dashboardUser", auth.userId || username);
+      sessionStorage.setItem("dashboardRole", authRole);
+      sessionStorage.setItem("dashboardUser", authUserId);
       if (auth.token) sessionStorage.setItem("authToken", auth.token);
       sessionStorage.setItem("announcementPromptPending", "1");
-      localStorage.setItem("calendarRole", auth.role === "district" ? "district_manager" : "agent");
+      localStorage.setItem("calendarRole", authRole === "district" ? "district_manager" : "agent");
       localStorage.setItem("overviewScope", "agency");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "";
@@ -333,6 +365,7 @@
       logout.addEventListener("click", () => {
         sessionStorage.removeItem("dashboardRole");
         sessionStorage.removeItem("dashboardUser");
+        sessionStorage.removeItem("authToken");
       });
       nav.appendChild(logout);
     }
@@ -402,14 +435,7 @@
   }
 
   function readAnnouncements() {
-    try {
-      const raw = localStorage.getItem("fm_announcements_v1");
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
-    }
+    return [];
   }
 
   function escapeHtml(value) {
