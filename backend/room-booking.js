@@ -14,6 +14,7 @@
     let miniDate = new Date(today);
     let visibleRooms = new Set();
     let editingId = null;
+    let _editingSeries = false;
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
     function fmtDate(d) {
@@ -46,27 +47,20 @@
     function minsToTime(n) {
       return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
     }
-    function nextRecurringDate(current, recurrence, anchorDay) {
-      const next = new Date(current);
-      if (recurrence === 'daily') {
-        next.setDate(next.getDate() + 1);
-        return next;
+    function generateRecurringDates(startDate, recurrenceType, untilDate) {
+      const dates = [];
+      const current = new Date(startDate + 'T00:00:00');
+      const until   = new Date(untilDate  + 'T00:00:00');
+      while (current <= until) {
+        dates.push(fmtDate(current));
+        if      (recurrenceType === 'daily')     current.setDate(current.getDate() + 1);
+        else if (recurrenceType === 'weekly')    current.setDate(current.getDate() + 7);
+        else if (recurrenceType === 'biweekly')  current.setDate(current.getDate() + 14);
+        else if (recurrenceType === 'monthly')   current.setMonth(current.getMonth() + 1);
+        else break;
+        if (dates.length > 730) break;
       }
-      if (recurrence === 'weekly') {
-        next.setDate(next.getDate() + 7);
-        return next;
-      }
-      if (recurrence === 'biweekly') {
-        next.setDate(next.getDate() + 14);
-        return next;
-      }
-      if (recurrence === 'monthly') {
-        const monthStart = new Date(next.getFullYear(), next.getMonth() + 1, 1);
-        const monthLastDay = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
-        monthStart.setDate(Math.min(anchorDay, monthLastDay));
-        return monthStart;
-      }
-      return null;
+      return dates;
     }
     function roomById(id) {
       return ROOMS.find((r) => r.id === id);
@@ -355,28 +349,19 @@
     function slotClick(e, ds) {
       if (e.target.closest('.booking-block')) return;
       const cell = e.target.closest('.hour-cell');
-      let mins = timeToMins('09:00');
-
+      let hour = 9;
       if (cell && cell.dataset.hour !== undefined) {
-        const hour = Number(cell.dataset.hour);
-        const rect = cell.getBoundingClientRect();
-        const withinCell = Math.min(Math.max(e.clientY - rect.top, 0), rect.height - 1);
-        mins = hour * 60 + Math.round((withinCell / rect.height) * 60 / 15) * 15;
-      } else {
-        const col = e.currentTarget;
-        const rect = col.getBoundingClientRect();
-        const relY = e.clientY - rect.top + col.closest('.week-body').scrollTop;
-        mins = Math.round((relY / 48) * 60 / 15) * 15;
+        hour = Number(cell.dataset.hour);
       }
-
-      const start = minsToTime(Math.min(mins, 23 * 60));
-      const end = minsToTime(Math.min(mins + 60, 24 * 60 - 1));
+      const start = String(hour).padStart(2, '0') + ':00';
+      const end = String(Math.min(hour + 1, 23)).padStart(2, '0') + ':00';
       openModal({ date: ds, start, end });
     }
 
     // ── Modal ─────────────────────────────────────────────────────────────────────
     function openModal(prefill = {}) {
       editingId = null;
+      _editingSeries = false;
       document.getElementById('modalTitle').textContent = 'New Reservation';
       document.getElementById('fTitle').value = '';
       document.getElementById('fRoom').value = ROOMS[0].id;
@@ -391,11 +376,12 @@
       document.getElementById('bookingModal').showModal();
     }
 
-    function openEditModal(id) {
+    function _doOpenEditModal(id, editSeries) {
       const b = bookings.find((x) => x.id === id);
       if (!b) return;
       editingId = id;
-      document.getElementById('modalTitle').textContent = 'Edit Reservation';
+      _editingSeries = editSeries;
+      document.getElementById('modalTitle').textContent = editSeries ? 'Edit Booking Series' : 'Edit Reservation';
       document.getElementById('fTitle').value = b.title;
       document.getElementById('fRoom').value = b.room;
       document.getElementById('fDate').value = b.date;
@@ -403,11 +389,26 @@
       document.getElementById('fEnd').value = b.end;
       document.getElementById('fBy').value = b.by || '';
       document.getElementById('fNotes').value = b.notes || '';
-      document.getElementById('fRecurrence').value = b.recurrence || 'none';
-      document.getElementById('fRecurrenceEnd').value = b.recurrenceEnd || '';
-      document.getElementById('recurrenceEndGroup').style.display = b.recurrence && b.recurrence !== 'none' ? 'block' : 'none';
+      document.getElementById('fRecurrence').value = 'none';
+      document.getElementById('fRecurrenceEnd').value = '';
+      document.getElementById('recurrenceEndGroup').style.display = 'none';
       closeDetail();
       document.getElementById('bookingModal').showModal();
+    }
+
+    function openEditModal(id) {
+      const b = bookings.find((x) => x.id === id);
+      if (!b) return;
+      if (b.recurrenceId) {
+        showRecurringChoice(
+          'Edit Recurring Booking',
+          'This booking is part of a recurring series. What would you like to edit?',
+          () => _doOpenEditModal(id, false),
+          () => _doOpenEditModal(id, true)
+        );
+      } else {
+        _doOpenEditModal(id, false);
+      }
     }
 
     function closeModal() {
@@ -424,6 +425,7 @@
       const notes = document.getElementById('fNotes').value.trim();
       const recurrence = document.getElementById('fRecurrence').value;
       const recurrenceEnd = document.getElementById('fRecurrenceEnd').value;
+
       if (!title || !date || !start || !end) {
         alert('Please fill in title, date and times.');
         return;
@@ -432,33 +434,27 @@
         alert('End time must be after start time.');
         return;
       }
-      
-      // Generate all booking dates based on recurrence
-      const datesToBook = [date];
-      if (recurrence !== 'none') {
-        const startDate = parseDate(date);
-        const limitDate = recurrenceEnd ? parseDate(recurrenceEnd) : new Date(startDate.getFullYear() + 2, startDate.getMonth(), startDate.getDate());
-        const anchorDay = startDate.getDate();
-        const maxOccurrences = 730;
-        let currentBookDate = new Date(startDate);
 
-        if (recurrenceEnd && limitDate < startDate) {
-          alert('Repeat until date must be the same as or after the booking date.');
+      // Build list of dates to book using generateRecurringDates (same as calendar page)
+      let datesToBook;
+      if (recurrence !== 'none') {
+        if (!recurrenceEnd) {
+          alert('Please set a "Repeat Until" date for recurring bookings.');
           return;
         }
-
-        for (let i = 0; i < maxOccurrences; i++) {
-          const nextDate = nextRecurringDate(currentBookDate, recurrence, anchorDay);
-          if (!nextDate || nextDate > limitDate) break;
-          datesToBook.push(fmtDate(nextDate));
-          currentBookDate = nextDate;
+        if (recurrenceEnd < date) {
+          alert('"Repeat Until" date must be on or after the booking date.');
+          return;
         }
+        datesToBook = generateRecurringDates(date, recurrence, recurrenceEnd);
+      } else {
+        datesToBook = [date];
       }
-      
-      // Check conflicts for all dates
-      for (let checkDate of datesToBook) {
+
+      // Conflict check (skip series entries when editing series)
+      for (const checkDate of datesToBook) {
         const hasConflict = bookings.some((b) => {
-          if (editingId && b.id === editingId) return false;
+          if (editingId && (_editingSeries ? b.recurrenceId === bookings.find(x => x.id === editingId)?.recurrenceId : b.id === editingId)) return false;
           if (b.room !== room || b.date !== checkDate) return false;
           return start < b.end && end > b.start;
         });
@@ -467,32 +463,42 @@
           return;
         }
       }
-      
+
       if (editingId) {
-        const idx = bookings.findIndex((b) => b.id === editingId);
-        if (idx > -1) {
-          bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null };
-          apiPut('/room-bookings/' + editingId, { title, room_id: room, booking_date: date, start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes }).catch(function() {});
+        if (_editingSeries) {
+          const eb = bookings.find((x) => x.id === editingId);
+          const seriesBookings = eb && eb.recurrenceId
+            ? bookings.filter((x) => x.recurrenceId === eb.recurrenceId)
+            : [eb];
+          await Promise.all(seriesBookings.map((sb) =>
+            apiPut('/room-bookings/' + sb.id, {
+              title, room_id: room, start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
+            }).catch(() => {})
+          ));
+        } else {
+          await apiPut('/room-bookings/' + editingId, {
+            title, room_id: room, booking_date: date,
+            start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
+          }).catch(() => {});
         }
       } else {
-        const saved = await apiPost('/room-bookings', {
-          title,
-          room_id: room,
-          booking_date: date,
-          start_time: start + ':00',
-          end_time: end + ':00',
-          booked_by_name: by,
-          notes,
-          recurrence: recurrence !== 'none' ? recurrence : null,
-          recurrence_end: recurrence !== 'none' ? recurrenceEnd : null
-        });
-        bookings.push(mapBooking(saved));
-
-        if (recurrence !== 'none') {
-          const refreshed = await apiGet('/room-bookings');
-          bookings = refreshed.map(mapBooking);
-        }
+        const recurrenceId = recurrence !== 'none' ? ('recur-room-' + Date.now()) : null;
+        await Promise.all(datesToBook.map((d) =>
+          apiPost('/room-bookings', {
+            title,
+            room_id: room,
+            booking_date: d,
+            start_time: start + ':00',
+            end_time: end + ':00',
+            booked_by_name: by,
+            notes,
+            ...(recurrenceId ? { recurrence_id: recurrenceId } : {}),
+          })
+        ));
       }
+
+      const refreshed = await apiGet('/room-bookings');
+      bookings = refreshed.map(mapBooking);
       closeModal();
       render();
     }
@@ -517,6 +523,7 @@
     <p>🕐 ${b.start} – ${b.end}</p>
     ${b.by ? `<p>👤 ${b.by}</p>` : ''}
     ${b.notes ? `<p>📝 ${b.notes}</p>` : ''}
+    ${b.recurrenceId ? `<p style="font-size:0.78rem;color:#7c3aed;">🔁 Recurring series</p>` : ''}
     <div class="detail-actions">
       <button class="detail-edit" onclick="openEditModal(${id})">Edit</button>
       <button class="detail-delete" onclick="deleteBooking(${id})">Delete</button>
@@ -531,12 +538,45 @@
       document.getElementById('detailPopup').classList.remove('visible');
     }
 
+    function showRecurringChoice(title, msg, onThis, onAll) {
+      const dlg = document.getElementById('recurChoiceModal');
+      document.getElementById('recurChoiceTitle').textContent = title;
+      document.getElementById('recurChoiceMsg').textContent = msg;
+      document.getElementById('recurChoiceThis').onclick = () => { dlg.close(); onThis(); };
+      document.getElementById('recurChoiceAll').onclick = () => { dlg.close(); onAll(); };
+      document.getElementById('recurChoiceCancel').onclick = () => dlg.close();
+      dlg.showModal();
+    }
+
     async function deleteBooking(id) {
-      if (!confirm('Delete this booking?')) return;
-      await apiDelete('/room-bookings/' + id);
-      bookings = bookings.filter((b) => b.id !== id);
-      closeDetail();
-      render();
+      const b = bookings.find((x) => x.id === id);
+      if (!b) return;
+      if (b.recurrenceId) {
+        showRecurringChoice(
+          'Delete Recurring Booking',
+          'This booking is part of a recurring series. What would you like to delete?',
+          async () => {
+            await apiDelete('/room-bookings/' + id);
+            bookings = bookings.filter((x) => x.id !== id);
+            closeDetail();
+            render();
+          },
+          async () => {
+            const rid = b.recurrenceId;
+            const seriesIds = bookings.filter((x) => x.recurrenceId === rid).map((x) => x.id);
+            await Promise.all(seriesIds.map((sid) => apiDelete('/room-bookings/' + sid).catch(() => {})));
+            bookings = bookings.filter((x) => x.recurrenceId !== rid);
+            closeDetail();
+            render();
+          }
+        );
+      } else {
+        if (!confirm('Delete this booking?')) return;
+        await apiDelete('/room-bookings/' + id);
+        bookings = bookings.filter((x) => x.id !== id);
+        closeDetail();
+        render();
+      }
     }
 
     document.addEventListener('click', (e) => {
@@ -558,7 +598,7 @@
     (async function() {
       const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
       ROOMS = roomsData.map(function(r) {
-        return { id: r.room_id, label: r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.color || '#93c5fd' };
+        return { id: r.room_id, label: r.label || r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.dot_color || r.color || '#93c5fd' };
       });
       visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
       bookings = bookingsData.map(mapBooking);
