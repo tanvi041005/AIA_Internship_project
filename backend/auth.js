@@ -23,45 +23,58 @@
     if (!form || !usernameInput || !passwordInput) return;
 
     const DEMO_USERS = {
-      A123: { password: "A123", role: "agent" },
-      L123: { password: "L123", role: "leader" },
-      D123: { password: "D123", role: "district" }
+      ARIEL: { password: "ariel", role: "admin" }
     };
 
     function detectRole(userId) {
       const value = String(userId || "").trim().toUpperCase();
-      if (/^A\d+$/i.test(value)) return { key: "agent", label: "Agent" };
-      if (/^L\d+$/i.test(value)) return { key: "leader", label: "Leader" };
-      if (/^D\d+$/i.test(value)) return { key: "district", label: "District" };
-      return null;
+      if (!value) return null;
+      if (value === "ARIEL" || value === "ADMIN") return { key: "admin", label: "Admin Super User" };
+      return { key: "agent", label: "Agent" };
+    }
+
+    function isOpenAgentLogin(detectedRole) {
+      return detectedRole && detectedRole.key === "agent";
     }
 
     usernameInput.addEventListener("input", () => {
       if (roleError) roleError.hidden = true;
     });
 
-    form.addEventListener("submit", (event) => {
+    async function loginFromApi(username, password) {
+      if (typeof window.apiPost !== "function") return null;
+      try {
+        return await window.apiPost("/auth/login", { userId: username, password });
+      } catch (error) {
+        return null;
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const username = usernameInput.value.trim().toUpperCase();
       const password = passwordInput.value;
       const detected = detectRole(username);
       if (!detected) {
         if (roleError) {
-          roleError.textContent = "User ID not recognized. Use A###, L###, or D### format.";
+          roleError.textContent = "User ID required.";
           roleError.hidden = false;
         }
         return;
       }
 
+      const apiUser = await loginFromApi(username, password);
+      const resolvedRole = apiUser?.role || detected.key;
+      const resolvedUser = String(apiUser?.userId || apiUser?.user_id || username || "User").toUpperCase();
       const userRecord = DEMO_USERS[username];
-      if (!userRecord || userRecord.password !== password) {
+      if (!apiUser && !isOpenAgentLogin(detected) && (!userRecord || userRecord.password !== password)) {
         if (roleError) {
           roleError.textContent = "Invalid User ID or password.";
           roleError.hidden = false;
         }
         return;
       }
-      if (userRecord.role !== detected.key) {
+      if (!apiUser && userRecord && userRecord.role !== detected.key) {
         if (roleError) {
           roleError.textContent = "User role mismatch for this User ID.";
           roleError.hidden = false;
@@ -69,10 +82,10 @@
         return;
       }
 
-      sessionStorage.setItem("dashboardRole", detected.key);
-      sessionStorage.setItem("dashboardUser", username || "User");
+      sessionStorage.setItem("dashboardRole", resolvedRole);
+      sessionStorage.setItem("dashboardUser", resolvedUser);
       sessionStorage.setItem("announcementPromptPending", "1");
-      localStorage.setItem("calendarRole", detected.key === "district" ? "district_manager" : "agent");
+      localStorage.setItem("calendarRole", resolvedRole === "admin" ? "admin" : "agent");
       localStorage.setItem("overviewScope", "agency");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "";
@@ -87,8 +100,8 @@
     if (!nav) return;
     const roleLabels = {
       agent: "Agent",
-      leader: "Leader",
-      district: "District Manager"
+      leader: "Agency Leader",
+      admin: "Admin Super User"
     };
 
     const overviewLink = Array.from(nav.querySelectorAll("a")).find(
@@ -132,11 +145,28 @@
       }
     }
 
+    const hasAdminLink = Array.from(nav.querySelectorAll("a")).some(
+      (link) => (link.getAttribute("href") || "").toLowerCase() === "admin.html"
+    );
+    if (!hasAdminLink && loggedRole === "admin") {
+      const adminLink = document.createElement("a");
+      adminLink.href = "admin.html";
+      adminLink.textContent = "Admin";
+      const resourcesLink = Array.from(nav.querySelectorAll("a")).find(
+        (link) => (link.getAttribute("href") || "").toLowerCase() === "resources.html"
+      );
+      if (resourcesLink) {
+        resourcesLink.insertAdjacentElement("beforebegin", adminLink);
+      } else {
+        nav.appendChild(adminLink);
+      }
+    }
+
 
     const hasTeamLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "onboarding.html"
     );
-    if (!hasTeamLink && loggedRole && (loggedRole === "leader" || loggedRole === "district")) {
+    if (!hasTeamLink && loggedRole === "leader") {
       const teamLink = document.createElement("a");
       teamLink.href = "onboarding.html";
       teamLink.textContent = "Onboarding";
@@ -161,7 +191,7 @@
 
     if (overviewLink && !document.getElementById("overview-scope-menu")) {
       const scopeLabels = {
-        district: "District Overview",
+        district: "All Agencies Overview",
         agency: "Agency Overview",
         personal: "Personal Overview"
       };
@@ -175,7 +205,7 @@
         "beforeend",
         `
           <div class="overview-scope-menu" id="overview-scope-menu" role="menu" aria-label="Overview scope">
-            <button type="button" role="menuitem" data-overview-menu-scope="district">District Overview</button>
+            <button type="button" role="menuitem" data-overview-menu-scope="district">All Agencies Overview</button>
             <button type="button" role="menuitem" data-overview-menu-scope="agency">Agency Overview</button>
             <button type="button" role="menuitem" data-overview-menu-scope="personal">Personal Overview</button>
           </div>
@@ -276,8 +306,9 @@
       const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
       const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
       const isTeamPage = href === "onboarding.html" && currentPage === "onboarding.html";
+      const isAdminPage = href === "admin.html" && currentPage === "admin.html";
 
-      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isTeamPage) {
+      if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isTeamPage || isAdminPage) {
         link.classList.add("active");
       } else {
         link.classList.remove("active");

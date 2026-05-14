@@ -5,7 +5,7 @@
       var TEAM_MAP = {};
       var DEFAULT_AGENT_POOL = [];
       var role = sessionStorage.getItem("dashboardRole") || "agent";
-      var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
+      var user = (sessionStorage.getItem("dashboardUser") || "").toUpperCase();
       var activeTopicIndex = 0;
       var player = null;
       var ytReady = false;
@@ -206,7 +206,7 @@
       }
 
       function getManagedAgents() {
-        if (role !== "leader" && role !== "district") return [];
+        if (role !== "leader" && role !== "admin") return [];
         var rosterIds = getRosterAgentIdsForManager(user);
         var configured = TEAM_MAP[user] || [];
         var tracked = Object.keys(progressStore || {}).filter(function (id) { return /^A\d+$/i.test(id); });
@@ -287,7 +287,7 @@
           }
         } catch (e) { console.warn("Failed to load training topics:", e); }
         try {
-          var managerId = (role === "leader" || role === "district") ? user : null;
+          var managerId = (role === "leader" || role === "admin") ? user : null;
           if (managerId) {
             var team = await apiGet("/teams/" + encodeURIComponent(managerId));
             if (Array.isArray(team)) {

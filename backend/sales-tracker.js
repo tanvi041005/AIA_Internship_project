@@ -2,9 +2,9 @@
       var REFLECTION_KEY = "salesTrackerReflections";
       var DAILY_TARGET = 15;
       var role = sessionStorage.getItem("dashboardRole") || "agent";
-      var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
-      var isManager = role === "district" || role === "leader";
-      var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
+      var user = (sessionStorage.getItem("dashboardUser") || "").toUpperCase();
+      var isManager = role === "leader" || role === "admin";
+      var roleLabels = { agent: "Agent", leader: "Agency Leader", admin: "Admin Super User" };
       // GET /users → { user_id, full_name }; GET /sales-settings → { activityTypes, weeklyTarget }
       var agentNames = {};
       var activityTypes = [];

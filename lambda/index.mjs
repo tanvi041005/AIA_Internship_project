@@ -65,6 +65,18 @@ function qs(event) {
   return event.queryStringParameters || {};
 }
 
+function asNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeImportedAgentId(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/^\d+(\.0+)?$/.test(raw)) return String(Math.round(Number(raw)));
+  return raw.toUpperCase();
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 export const handler = async (event) => {
@@ -120,7 +132,8 @@ export const handler = async (event) => {
     // ────────────────────────────────────────────────────────────────────────
     if (method === "GET" && path === "/users") {
       const { role } = query;
-      let sql = `SELECT u.user_id, u.full_name, u.role_id, r.role_key AS role
+      let sql = `SELECT u.user_id, u.full_name, u.role_id, r.role_key AS role,
+                        JSON_UNQUOTE(JSON_EXTRACT(u.extra, '$.agency')) AS agency
                  FROM users u JOIN roles r ON r.role_id = u.role_id
                  WHERE u.is_active = 1`;
       const params = [];
@@ -471,6 +484,200 @@ export const handler = async (event) => {
       sql += " ORDER BY ap.district_rank ASC";
       const [rows] = await pool.query(sql, params);
       return ok(rows);
+    }
+
+    if (method === "POST" && path === "/users") {
+      const b = parseBody(event);
+      const userId = String(b.user_id || b.userId || "").trim().toUpperCase();
+      const fullName = String(b.full_name || b.fullName || "").trim();
+      const roleKey = String(b.role || b.role_key || "agent").trim().toLowerCase();
+      const password = String(b.password || userId || "").trim();
+      const agency = String(b.agency || b.agency_name || b.teamName || b.team_name || "").trim();
+      if (!userId || !fullName || !roleKey || !password) {
+        return bad("user_id, full_name, role, and password required");
+      }
+
+      const [[roleRow]] = await pool.query(
+        "SELECT role_id FROM roles WHERE role_key = ? LIMIT 1",
+        [roleKey]
+      );
+      if (!roleRow) return bad("Invalid role");
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      await pool.query(
+        `INSERT INTO users (user_id, full_name, role_id, password_hash, is_active, extra)
+         VALUES (?,?,?,?,?,JSON_OBJECT('source','admin_onboarding','agency',?))
+         ON DUPLICATE KEY UPDATE
+           full_name     = VALUES(full_name),
+           role_id       = VALUES(role_id),
+           password_hash = VALUES(password_hash),
+           is_active     = VALUES(is_active),
+           extra         = JSON_SET(COALESCE(extra, JSON_OBJECT()), '$.agency', ?)`,
+        [userId, fullName, roleRow.role_id, passwordHash, b.is_active === false ? 0 : 1, agency, agency]
+      );
+      return created({ user_id: userId });
+    }
+
+    const userSingle = path.match(/^\/users\/([^/]+)$/);
+    if (userSingle) {
+      const userId = decodeURIComponent(userSingle[1]).trim().toUpperCase();
+
+      if (method === "PUT") {
+        const b = parseBody(event);
+        const fields = [];
+        const params = [];
+
+        if (b.full_name != null || b.fullName != null) {
+          fields.push("full_name = ?");
+          params.push(String(b.full_name || b.fullName || "").trim());
+        }
+        if (b.role != null || b.role_key != null) {
+          const roleKey = String(b.role || b.role_key || "").trim().toLowerCase();
+          const [[roleRow]] = await pool.query(
+            "SELECT role_id FROM roles WHERE role_key = ? LIMIT 1",
+            [roleKey]
+          );
+          if (!roleRow) return bad("Invalid role");
+          fields.push("role_id = ?");
+          params.push(roleRow.role_id);
+        }
+        if (b.password) {
+          fields.push("password_hash = ?");
+          params.push(await bcrypt.hash(String(b.password), 10));
+        }
+        if (b.agency != null || b.agency_name != null || b.teamName != null || b.team_name != null) {
+          fields.push("extra = JSON_SET(COALESCE(extra, JSON_OBJECT()), '$.agency', ?)");
+          params.push(String(b.agency || b.agency_name || b.teamName || b.team_name || "").trim());
+        }
+        if (b.is_active != null || b.isActive != null) {
+          fields.push("is_active = ?");
+          params.push((b.is_active ?? b.isActive) ? 1 : 0);
+        }
+        if (!fields.length) return bad("No user fields to update");
+
+        params.push(userId);
+        await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE user_id = ?`, params);
+        return ok({ updated: userId });
+      }
+
+      if (method === "DELETE") {
+        await pool.query("UPDATE users SET is_active = 0 WHERE user_id = ?", [userId]);
+        return ok({ deleted: userId });
+      }
+    }
+
+    if (method === "POST" && path === "/performance/bulk") {
+      const b = parseBody(event);
+      const rows = Array.isArray(b.rows) ? b.rows : [];
+      const periodYear = Number(b.periodYear || new Date().getFullYear());
+      const periodLabel = String(b.periodLabel || "current");
+      if (!rows.length) return ok({ inserted: 0, updated: 0 });
+
+      const [[agentRole]] = await pool.query(
+        "SELECT role_id FROM roles WHERE role_key = 'agent' LIMIT 1"
+      );
+      if (!agentRole) return fail("Agent role not found");
+
+      const [existingUsers] = await pool.query("SELECT user_id, full_name FROM users");
+      const nameToId = new Map(
+        existingUsers
+          .filter((u) => u.full_name)
+          .map((u) => [String(u.full_name).trim().toLowerCase(), u.user_id])
+      );
+      const passwordHash = process.env.IMPORTED_USER_PASSWORD_HASH ||
+        "$2a$10$S7xkYQ7fYiHAOqYxlBfSOuJmF0lQu2KbKrN5JRn0GomxJ5yc0Jv5K";
+
+      const missingAgentCodes = rows
+        .map((row) => {
+          const name = String(row.name || row.agent || "").trim();
+          if (!name) return "";
+          const importedId = normalizeImportedAgentId(row.agentId || row.agent_id || row.agentCode || row.agent_code);
+          const existingId = nameToId.get(name.toLowerCase());
+          return importedId || existingId ? "" : name;
+        })
+        .filter(Boolean);
+      if (missingAgentCodes.length) {
+        return bad(
+          `Agent code required for ${missingAgentCodes.length} production row(s): ${missingAgentCodes.slice(0, 5).join(", ")}`
+        );
+      }
+
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        let changed = 0;
+
+        for (const row of rows) {
+          const name = String(row.name || row.agent || "").trim();
+          if (!name) continue;
+
+          const importedId = normalizeImportedAgentId(row.agentId || row.agent_id || row.agentCode || row.agent_code);
+          const existingId = nameToId.get(name.toLowerCase());
+          const agentId = String(importedId || existingId).slice(0, 10);
+          nameToId.set(name.toLowerCase(), agentId);
+
+          await conn.query(
+            `INSERT INTO users (user_id, full_name, role_id, password_hash, is_active, extra)
+             VALUES (?,?,?,?,1,JSON_OBJECT('source','production_excel_import'))
+             ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), is_active = 1`,
+            [agentId, name, agentRole.role_id, passwordHash]
+          );
+
+          const extra = {
+            agentCode: importedId || agentId,
+            agency: row.agency || row.teamName || row.team_name || null,
+            teamName: row.teamName || row.team_name || row.agency || null,
+            mtdCases: asNumber(row.mtdCases || row.mtd_cases),
+            ytdFyp: asNumber(row.ytdFyp || row.ytd_fyp),
+            todo: asNumber(row.todo),
+            monthlyYtd: Array.isArray(row.monthlyYtd) ? row.monthlyYtd : [],
+            weekly: Array.isArray(row.weekly) ? row.weekly : [],
+            menteeStatus: row.menteeStatus || row.mentee_status || null,
+            importedAt: new Date().toISOString(),
+          };
+
+          await conn.query(
+            `INSERT INTO agent_performance
+               (agent_id, period_year, period_label, ytd_fyc, yearly_target,
+                weekly_fyc, last_week_fyc, district_rank, delta_pct,
+                total_cases, team_name, extra)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+               ytd_fyc       = VALUES(ytd_fyc),
+               yearly_target = VALUES(yearly_target),
+               weekly_fyc    = VALUES(weekly_fyc),
+               last_week_fyc = VALUES(last_week_fyc),
+               district_rank = VALUES(district_rank),
+               delta_pct     = VALUES(delta_pct),
+               total_cases   = VALUES(total_cases),
+               team_name     = VALUES(team_name),
+               extra         = VALUES(extra)`,
+            [
+              agentId,
+              periodYear,
+              periodLabel,
+              asNumber(row.ytdFyc || row.ytd_fyc),
+              asNumber(row.target || row.yearlyTarget || row.yearly_target),
+              asNumber(row.mtdFyc || row.mtd_fyc || row.weeklyFyc || row.weekly_fyc),
+              asNumber(row.lastWeekFyc || row.last_week_fyc),
+              row.rank || row.districtRank || row.district_rank || null,
+              asNumber(row.delta || row.deltaPct || row.delta_pct),
+              asNumber(row.ytdCases || row.ytd_cases || row.totalCases || row.total_cases),
+              row.agency || row.teamName || row.team_name || null,
+              JSON.stringify(extra),
+            ]
+          );
+          changed += 1;
+        }
+
+        await conn.commit();
+        return ok({ inserted: changed, updated: changed });
+      } catch (err) {
+        await conn.rollback();
+        throw err;
+      } finally {
+        conn.release();
+      }
     }
 
     // ────────────────────────────────────────────────────────────────────────

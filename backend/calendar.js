@@ -393,7 +393,7 @@ function getPublicHolidayEvents(year) {
 // References global `leadData` var declared in dashboard.js.
 function getLeadEvents(role = "agent", options = { showPersonal: true, showAgency: false }) {
   const personalLeads = leadData
-    .filter((lead) => (role === "district_manager" ? lead.owner === "district" : lead.owner === "agent"))
+    .filter((lead) => (role === "admin" ? lead.owner === "district" : lead.owner === "agent"))
     .map((lead) => ({
       id: `lead-${lead.id}`,
       leadId: lead.id,
@@ -479,15 +479,15 @@ function notifyUpcomingEvents(events) {
 function renderCalendarPermissions(role) {
   const list = document.getElementById("calendar-permissions");
   if (!list) return;
-  if (role === "district_manager") {
+  if (role === "admin") {
     list.innerHTML = `
       <li><span class="dot blue"></span><div class="activity-body"><p class="activity-desc">Can view and edit agent calendars.</p></div></li>
-      <li><span class="dot red"></span><div class="activity-body"><p class="activity-desc">Can view and edit district calendars.</p></div></li>
+      <li><span class="dot red"></span><div class="activity-body"><p class="activity-desc">Can view and edit agency calendars.</p></div></li>
     `;
   } else {
     list.innerHTML = `
       <li><span class="dot blue"></span><div class="activity-body"><p class="activity-desc">Can view and edit own calendar only.</p></div></li>
-      <li><span class="dot orange"></span><div class="activity-body"><p class="activity-desc">Can view district-level events (read-only).</p></div></li>
+      <li><span class="dot orange"></span><div class="activity-body"><p class="activity-desc">Can view agency events (read-only).</p></div></li>
     `;
   }
 }
@@ -579,7 +579,7 @@ function wireCalendarPage() {
   if (!prevBtn || !nextBtn || !personalCheckbox || !agencyCheckbox) return;
   const role = localStorage.getItem("calendarRole") || "agent";
   const userRole = sessionStorage.getItem("dashboardRole") || "agent";
-  const canManageAgency = userRole === "district";
+  const canManageAgency = userRole === "admin";
   const _now = new Date();
   const state = { viewDate: new Date(_now.getFullYear(), _now.getMonth(), 1), showPersonal: true, showAgency: false, showHolidays: true, selectedDate: null, canManageAgency };
 
@@ -966,7 +966,7 @@ function openPersonalEventDialog(date, existingEvent = null) {
   if (typeInput) typeInput.value = currentType;
 
   if (sourceToggle) {
-    const canChooseSource = userRole === "district" && !isEdit;
+    const canChooseSource = userRole === "admin" && !isEdit;
     sourceToggle.style.display = canChooseSource ? "block" : "none";
     const sourceInput = document.getElementById("personal-event-dialog-source");
     if (sourceInput) sourceInput.value = "personal";
@@ -1130,7 +1130,7 @@ function wireAgencyEventManager(userRole, refreshCalendar) {
   const accessNote = document.getElementById("agency-events-access-note");
   if (!form || !typeInput || !dateInput || !titleInput || !editIdInput || !submitBtn || !cancelBtn || !list || !accessNote) return;
 
-  const canManage = userRole === "district";
+  const canManage = userRole === "admin";
 
   const setEditMode = (eventItem) => {
     if (!eventItem) {
@@ -1189,8 +1189,8 @@ function wireAgencyEventManager(userRole, refreshCalendar) {
   };
 
   accessNote.textContent = canManage
-    ? "You have District access and can add or edit agency-level events."
-    : "Agency-level events are read-only. Only District users can add or edit.";
+    ? "You have admin access and can add or edit agency-level events."
+    : "Agency-level events are read-only. Only admins can add or edit.";
   form.style.display = canManage ? "grid" : "none";
 
   const typeButtons = form.querySelectorAll(".event-type-btn");
