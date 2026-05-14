@@ -5,22 +5,9 @@
       var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
       var isManager = role === "district" || role === "leader";
       var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
-      var agentNames = {
-        A123: "Alicia Tan",
-        A124: "Brandon Lee",
-        A125: "Chloe Ong",
-        A126: "Darren Lim",
-        A127: "Farah Rahim"
-      };
-      var activityTypes = [
-        { id: "activity", label: "Activity", points: 3 },
-        { id: "contact", label: "Contact", points: 1 },
-        { id: "schedule", label: "Schedule Appt", points: 2 },
-        { id: "casual", label: "Casual Meetup", points: 2 },
-        { id: "insurance", label: "Insurance Appt", points: 5 },
-        { id: "referral", label: "Referral", points: 3 },
-        { id: "case", label: "Case Closed", points: 10 }
-      ];
+      // GET /users → { user_id, full_name }; GET /sales-settings → { activityTypes, weeklyTarget }
+      var agentNames = {};
+      var activityTypes = [];
       var currentFilter = isManager ? "all" : user;
       var selectedWeekOffset = 0;
       var salesEntriesCache = [];
@@ -307,7 +294,7 @@
           var type = activityTypes.find(function (item) { return item.id === activityId; });
           var entryDate = document.getElementById("sales-entry-date").value;
           var count = Number(document.getElementById("sales-entry-count").value || 1);
-          await apiPost('/sales', {
+          await apiPost('/sales-entries', {
             agent_id: user,
             entry_date: entryDate,
             activity_type_id: activityId,
@@ -360,7 +347,22 @@
         });
       }
 
-      salesEntriesCache = (await apiGet('/sales')).map(function(r) { return mapSalesEntry(r, activityTypes); });
+      try {
+        var users = await apiGet('/users');
+        if (Array.isArray(users)) {
+          users.forEach(function(u) { agentNames[u.user_id] = u.full_name || u.user_id; });
+        }
+      } catch (e) { console.warn('Failed to load users:', e); }
+      try {
+        var settings = await apiGet('/sales-settings');
+        if (settings && Array.isArray(settings.activityTypes)) {
+          activityTypes = settings.activityTypes.map(function(t) {
+            return { id: t.activity_type_id || t.id, label: t.label, points: Number(t.points || 0) };
+          });
+        }
+        if (settings && settings.weeklyTarget) DAILY_TARGET = Math.round(settings.weeklyTarget / 7) || DAILY_TARGET;
+      } catch (e) { console.warn('Failed to load sales settings:', e); }
+      salesEntriesCache = (await apiGet('/sales-entries')).map(function(r) { return mapSalesEntry(r, activityTypes); });
       renderMeta();
       renderActivityOptions();
       renderAgentFilter();

@@ -1,4 +1,4 @@
-﻿(function () {
+﻿(async function () {
       var role = (sessionStorage.getItem("dashboardRole") || "").toLowerCase();
       if (role === "agent") {
         window.location.replace("index.html");
@@ -120,17 +120,39 @@
           return;
         }
 
-        list.push({
-          agentId: idRaw,
-          name: name,
-          notes: notes,
-          joined: new Date().toISOString()
-        });
+        var member = { agentId: idRaw, name: name, notes: notes, joined: new Date().toISOString() };
+        list.push(member);
         setList(list);
+        if (typeof apiPost === "function") {
+          apiPost("/teams/" + encodeURIComponent(managerId), { agent_id: idRaw, notes: notes }).catch(function() {});
+        }
         document.getElementById("team-add-form").reset();
         showMsg(msgEl, "success", "Added " + idRaw + " to your team.");
         render();
       });
+
+      // Wire remove buttons to also call API
+      document.getElementById("team-roster-body").addEventListener("click", function(e) {
+        var btn = e.target.closest(".team-remove-btn[data-agent-id]");
+        if (!btn) return;
+        var aid = (btn.getAttribute("data-agent-id") || "").toUpperCase();
+        if (typeof apiDelete === "function") {
+          apiDelete("/teams/" + encodeURIComponent(managerId) + "/" + encodeURIComponent(aid)).catch(function() {});
+        }
+      });
+
+      // Load team roster from GET /teams/:managerId
+      if (typeof apiGet === "function" && managerId) {
+        try {
+          var members = await apiGet("/teams/" + encodeURIComponent(managerId));
+          if (Array.isArray(members) && members.length > 0) {
+            var mapped = members.map(function(m) {
+              return { agentId: String(m.agent_id || "").toUpperCase(), name: m.full_name || m.name || "", notes: m.notes || "", joined: m.joined_at || "" };
+            });
+            setList(mapped);
+          }
+        } catch (e) { console.warn("Failed to load team roster:", e); }
+      }
 
       render();
     })();

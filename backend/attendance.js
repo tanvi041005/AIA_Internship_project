@@ -1,4 +1,4 @@
-﻿(function () {
+﻿(async function () {
       var EVENTS_KEY = "attendanceEvents";
       var RECORDS_KEY = "attendanceRecords";
       var params = new URLSearchParams(window.location.search);
@@ -11,10 +11,8 @@
       var role = signedInRole;
       var isHostView = role === "district";
       var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
-      var fallbackEvents = [
-        { id: "agency-1", title: "District Training Session", date: "2026-05-12", startTime: "09:00", endTime: "11:00", location: "District Training Room", type: "Training" },
-        { id: "agency-2", title: "District Sales Review", date: "2026-05-25", startTime: "14:00", endTime: "15:30", location: "Main Meeting Room", type: "Meeting" }
-      ];
+      // GET /attendance-events → calendar_events with attendance_token set
+      var apiAttendanceEvents = [];
 
       function readList(key) {
         try {
@@ -74,7 +72,7 @@
           stored.unshift(urlEvent);
           writeList(EVENTS_KEY, stored);
         }
-        var merged = stored.concat(calendarEventsFromStorage()).concat(fallbackEvents);
+        var merged = stored.concat(calendarEventsFromStorage()).concat(apiAttendanceEvents);
         var seen = {};
         return merged.filter(function (item) {
           if (!item || !item.id || seen[item.id]) return false;
@@ -352,6 +350,19 @@
         renderRecords();
       }
 
+      if (typeof apiGet === "function") {
+        try {
+          var raw = await apiGet("/attendance-events");
+          if (Array.isArray(raw)) {
+            apiAttendanceEvents = raw.map(function(r) {
+              var d = r.event_date;
+              if (d && typeof d !== "string") d = new Date(d).toISOString().slice(0, 10);
+              else if (d) d = String(d).slice(0, 10);
+              return { id: r.event_id, title: r.title, date: d || "", startTime: r.start_time ? String(r.start_time).slice(0, 5) : "", endTime: r.end_time ? String(r.end_time).slice(0, 5) : "", location: r.location || "", type: r.event_type || "Calendar Event", attendanceToken: r.attendance_token || "", category: r.category || "agency" };
+            });
+          }
+        } catch (e) { console.warn("Failed to load attendance events:", e); }
+      }
       renderUserMeta();
       renderRoleView();
       renderSelector();

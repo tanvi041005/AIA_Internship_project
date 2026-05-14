@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C c:/Users/sc/Downloads/AIA_Internship_project log --oneline -5)"
+    ]
+  }
+}

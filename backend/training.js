@@ -1,53 +1,9 @@
-﻿(function () {
-      var TOPICS = [
-        {
-          id: "t1",
-          title: "AIA Agent Foundations: Protection Planning",
-          youtubeId: "x3MBoq2b33k",
-          quiz: [
-            { id: "q1", question: "During client fact-finding, what should an AIA agent confirm first?", options: [
-              { id: "a", label: "Client protection needs and priorities", correct: true },
-              { id: "b", label: "Client social media profile only" },
-              { id: "c", label: "Only premium discount preference" }
-            ]},
-            { id: "q2", question: "Which action best matches responsible AIA advisory practice?", options: [
-              { id: "a", label: "Recommend plans that fit goals, affordability, and risk profile", correct: true },
-              { id: "b", label: "Push the highest premium product regardless of need" },
-              { id: "c", label: "Skip needs analysis if client is in a hurry" }
-            ]},
-            { id: "q3", question: "Before proposal confirmation, what should the agent do?", options: [
-              { id: "a", label: "Clearly explain coverage, exclusions, and payment commitment", correct: true },
-              { id: "b", label: "Ask the client to sign without discussion" },
-              { id: "c", label: "Focus only on commission details" }
-            ]}
-          ]
-        },
-        {
-          id: "t2",
-          title: "AIA Agent Practice: Objection Handling and Follow-up",
-          youtubeId: "zRSSQycVdzo",
-          quiz: [
-            { id: "q1", question: "When a client says 'I need time to think', what is the best response?", options: [
-              { id: "a", label: "Acknowledge concern, clarify questions, and agree on follow-up date", correct: true },
-              { id: "b", label: "Close the case immediately and stop follow-up" },
-              { id: "c", label: "Pressure for same-day payment only" }
-            ]},
-            { id: "q2", question: "Which follow-up habit supports stronger AIA conversion quality?", options: [
-              { id: "a", label: "Document concerns and next actions after each meeting", correct: true },
-              { id: "b", label: "Wait for clients to message first every time" },
-              { id: "c", label: "Use one script for every client scenario" }
-            ]},
-            { id: "q3", question: "For leadership visibility, what should agent updates include?", options: [
-              { id: "a", label: "Training completion status and key client follow-up outcomes", correct: true },
-              { id: "b", label: "Only personal notes with no next steps" },
-              { id: "c", label: "No records, only verbal updates" }
-            ]}
-          ]
-        }
-      ];
-
-      var TEAM_MAP = { L123: ["A123", "A124", "A125"], D123: ["A123", "A124", "A125", "A126", "A127"] };
-      var DEFAULT_AGENT_POOL = ["A123", "A124", "A125", "A126", "A127"];
+﻿(async function () {
+      // GET /training/topics → { topic_id, title, youtube_id, questions: [{ question_id, question_text, options: [{ option_id, option_label, is_correct }] }] }
+      var TOPICS = [];
+      // GET /teams/:managerId → team roster; TEAM_MAP and DEFAULT_AGENT_POOL replaced by API
+      var TEAM_MAP = {};
+      var DEFAULT_AGENT_POOL = [];
       var role = sessionStorage.getItem("dashboardRole") || "agent";
       var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
       var activeTopicIndex = 0;
@@ -308,5 +264,37 @@
         renderProgress();
       }
 
+      if (typeof apiGet === "function") {
+        try {
+          var raw = await apiGet("/training/topics");
+          if (Array.isArray(raw)) {
+            TOPICS = raw.map(function(t) {
+              return {
+                id: String(t.topic_id),
+                title: t.title || "",
+                youtubeId: t.youtube_id || "",
+                quiz: (t.questions || []).map(function(q) {
+                  return {
+                    id: String(q.question_id),
+                    question: q.question_text || "",
+                    options: (q.options || []).map(function(o) {
+                      return { id: String(o.option_id), label: o.option_label || "", correct: !!o.is_correct };
+                    })
+                  };
+                })
+              };
+            });
+          }
+        } catch (e) { console.warn("Failed to load training topics:", e); }
+        try {
+          var managerId = (role === "leader" || role === "district") ? user : null;
+          if (managerId) {
+            var team = await apiGet("/teams/" + encodeURIComponent(managerId));
+            if (Array.isArray(team)) {
+              DEFAULT_AGENT_POOL = team.map(function(m) { return String(m.agent_id || "").toUpperCase(); }).filter(Boolean);
+            }
+          }
+        } catch (e) { console.warn("Failed to load team roster:", e); }
+      }
       render();
     })();

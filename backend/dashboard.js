@@ -1,95 +1,8 @@
-﻿const leadData = [
-  {
-    id: 1,
-    name: "Tan Wei Ming",
-    age: 34,
-    contactProfile: "weiming.tan@email.com | +65 8123 4456",
-    meetupDate: "2026-05-06",
-    meetupLocation: "Makati Office",
-    meetingType: "F2F",
-    urgency: "Urgent",
-    remarks: "Could not close the deal on first meeting. Requested revised premium options.",
-    planType: "Life Insurance - Term",
-    premium: 120000,
-    commissionType: "Upfront",
-    stage: "Negotiation",
-    owner: "agent",
-    agency: "Agency Alpha"
-  },
-  {
-    id: 2,
-    name: "Nur Aisyah Rahman",
-    age: 42,
-    contactProfile: "aisyah.rahman@email.com | +65 8234 5567",
-    meetupDate: "2026-05-08",
-    meetupLocation: "Online - Teams",
-    meetingType: "Non-F2F",
-    urgency: "Non-Urgent",
-    remarks: "Requested plan options with family package.",
-    planType: "Health Insurance - Family",
-    premium: 98000,
-    commissionType: "Recurring",
-    stage: "Qualified",
-    owner: "agent",
-    agency: "Agency Beta"
-  },
-  {
-    id: 3,
-    name: "Marcus Lim",
-    age: 29,
-    contactProfile: "marcus.lim@email.com | +65 8345 6678",
-    meetupDate: "2026-05-10",
-    meetupLocation: "BGC Cafe",
-    meetingType: "F2F",
-    urgency: "Urgent",
-    remarks: "Strong intent to sign by next week after discussing riders.",
-    planType: "Auto Insurance - Premium",
-    premium: 76000,
-    commissionType: "Tiered",
-    stage: "Proposal Sent",
-    owner: "agent",
-    agency: "Agency Alpha"
-  },
-  {
-    id: 4,
-    name: "Priya Nair",
-    age: 38,
-    contactProfile: "priya.nair@email.com | +65 8456 7789",
-    meetupDate: "2026-05-18",
-    meetupLocation: "District Office",
-    meetingType: "F2F",
-    urgency: "Non-Urgent",
-    remarks: "Follow-up required after spouse review.",
-    planType: "Property Insurance",
-    premium: 142000,
-    commissionType: "Upfront",
-    stage: "Follow-up",
-    owner: "district",
-    agency: "Agency Gamma"
-  },
-  {
-    id: 5,
-    name: "Daniel Koh",
-    age: 46,
-    contactProfile: "daniel.koh@email.com | +65 8567 8890",
-    meetupDate: "2026-05-21",
-    meetupLocation: "Online - Zoom",
-    meetingType: "Non-F2F",
-    urgency: "Urgent",
-    remarks: "Appointment set to finalize terms and payment channel.",
-    planType: "Life Insurance - Whole",
-    premium: 186000,
-    commissionType: "Hybrid",
-    stage: "Closing",
-    owner: "district",
-    agency: "Agency Beta"
-  }
-];
+﻿// Lead and performance data loaded dynamically from API on overview page init.
+// GET /leads?userId=...  GET /performance  GET /cpf?agentId=...
+let leadData = [];
 
-const districtEventsSeed = [
-  { id: "agency-1", date: "2026-05-12", title: "District Training Session", type: "District Event" },
-  { id: "agency-2", date: "2026-05-25", title: "District Sales Review", type: "District Event" }
-];
+const districtEventsSeed = [];
 
 // Offline fallback for 2026 in case the API is unreachable
 const _sgHolidays2026Fallback = [
@@ -163,69 +76,19 @@ async function ensureSGHolidaysLoaded(year, onLoaded) {
   }
 }
 
-const cpfTrackerData = [
-  {
-    name: "Tan Wei Ming",
-    accountFocus: "OA allocation",
-    status: "Review due",
-    amount: 42000,
-    note: "Confirm CPF nomination and protection gap before revised proposal."
-  },
-  {
-    name: "Nur Aisyah Rahman",
-    accountFocus: "MA buffer",
-    status: "On track",
-    amount: 28000,
-    note: "Family health plan discussion includes MediSave affordability check."
-  },
-  {
-    name: "Marcus Lim",
-    accountFocus: "SA planning",
-    status: "Action needed",
-    amount: 36000,
-    note: "Prepare retirement income projection before next F2F meeting."
-  }
-];
+// GET /cpf?agentId=... → maps to { name, accountFocus, status, amount, note }
+let cpfTrackerData = [];
 
-const performanceData = {
-  yearlyFyc: 111800,
-  yearlyTarget: 1500000,
-  weeklyFyc: 6913,
-  lastWeekFyc: 5187,
-  leaderboard: [
-    { agent: "Alicia Tan", monthlyProduction: 0, ytdFyc: 34525, delta: 435 },
-    { agent: "Brandon Lee", monthlyProduction: 0, ytdFyc: 23210, delta: 44 },
-    { agent: "Chloe Ong", monthlyProduction: 0, ytdFyc: 9400, delta: -39 },
-    { agent: "Darren Lim", monthlyProduction: 0, ytdFyc: 8025, delta: 0 },
-    { agent: "Farah Rahim", monthlyProduction: 0, ytdFyc: 7627, delta: -26 },
-    { agent: "Gavin Teo", monthlyProduction: 0, ytdFyc: 6577, delta: 346 },
-    { agent: "Hui Min Chua", monthlyProduction: 0, ytdFyc: 6100, delta: 76 },
-    { agent: "Isaac Wong", monthlyProduction: 0, ytdFyc: 5240, delta: -55 },
-    { agent: "Jia En Low", monthlyProduction: 0, ytdFyc: 4941, delta: -56 },
-    { agent: "Kumar Singh", monthlyProduction: 0, ytdFyc: 2022, delta: 0 }
-  ],
-  monthlyYtd: [
-    { month: "Jan", value: 6200 },
-    { month: "Feb", value: 12400 },
-    { month: "Mar", value: 18800 },
-    { month: "Apr", value: 33100 },
-    { month: "May", value: 45500 },
-    { month: "Jun", value: 58600 },
-    { month: "Jul", value: 68800 },
-    { month: "Aug", value: 74200 },
-    { month: "Sep", value: 87500 },
-    { month: "Oct", value: 96800 },
-    { month: "Nov", value: 104600 },
-    { month: "Dec", value: 111800 }
-  ],
-  menteeStatuses: ["Top producer", "Consistent follow-up", "Needs weekly coaching", "Pipeline review due"],
-  weekly: [
-    { day: "Mon", fyc: 4200, cases: 2 },
-    { day: "Tue", fyc: 6800, cases: 3 },
-    { day: "Wed", fyc: 2600, cases: 1 },
-    { day: "Thu", fyc: 9100, cases: 4 },
-    { day: "Fri", fyc: 5600, cases: 2 }
-  ]
+// GET /performance → leaderboard rows; yearlyFyc summed from ytd_fyc; monthly/weekly not yet in API
+let performanceData = {
+  yearlyFyc: 0,
+  yearlyTarget: 0,
+  weeklyFyc: 0,
+  lastWeekFyc: 0,
+  leaderboard: [],
+  monthlyYtd: [],
+  menteeStatuses: [],
+  weekly: []
 };
 
 const overviewScopeCopy = {
@@ -277,6 +140,62 @@ async function loadCalendarEventsFromApi() {
 }
 const ATTENDANCE_EVENTS_STORAGE_KEY = "attendanceEvents";
 
+async function loadOverviewData() {
+  if (typeof apiGet !== 'function') return;
+  const userId = sessionStorage.getItem('dashboardUser');
+  if (!userId) return;
+  try {
+    const rows = await apiGet('/leads?userId=' + encodeURIComponent(userId));
+    if (Array.isArray(rows)) {
+      leadData = rows.map(mapLead).map(function(r) {
+        var u = r.urgency || '';
+        return {
+          id: r.id,
+          name: r.name,
+          age: r.age,
+          contactProfile: [r.email, r.contact].filter(Boolean).join(' | '),
+          meetupDate: r.meetDate || '',
+          meetupLocation: r.location || '',
+          meetingType: r.meetType || '',
+          urgency: u === 'urgent' ? 'Urgent' : u === 'non-urgent' ? 'Non-Urgent' : (u ? u.charAt(0).toUpperCase() + u.slice(1) : 'Non-Urgent'),
+          remarks: r.remarks || '',
+          planType: r.planType || '',
+          premium: r.premium || 0,
+          commissionType: r.commission || '',
+          stage: r.stage || '',
+          owner: r.ownerId === userId ? 'agent' : 'district',
+          agency: r.agency || ''
+        };
+      });
+    }
+  } catch (e) { console.warn('Failed to load leads for overview:', e); }
+  try {
+    const perf = await apiGet('/performance');
+    if (Array.isArray(perf) && perf.length > 0) {
+      performanceData = {
+        yearlyFyc: perf.reduce(function(s, r) { return s + Number(r.ytd_fyc || 0); }, 0),
+        yearlyTarget: 0,
+        weeklyFyc: 0,
+        lastWeekFyc: 0,
+        leaderboard: perf.map(function(r) {
+          return { agent: r.full_name || r.agent_id, monthlyProduction: 0, ytdFyc: Number(r.ytd_fyc || 0), delta: Number(r.delta || 0) };
+        }),
+        monthlyYtd: [],
+        menteeStatuses: [],
+        weekly: []
+      };
+    }
+  } catch (e) { console.warn('Failed to load performance for overview:', e); }
+  try {
+    const cpf = await apiGet('/cpf?agentId=' + encodeURIComponent(userId));
+    if (Array.isArray(cpf)) {
+      cpfTrackerData = cpf.map(function(r) {
+        return { name: r.client_name || r.name || '', accountFocus: r.account_focus || '', status: r.status || '', amount: Number(r.amount || 0), note: r.note || r.notes || '' };
+      });
+    }
+  } catch (e) { console.warn('Failed to load CPF tracker:', e); }
+}
+
 function isOverviewPage() {
   return document.getElementById("lead-table-body") !== null;
 }
@@ -308,13 +227,13 @@ function compactMoney(value) {
 function getAgencyEvents() {
   try {
     const raw = localStorage.getItem(AGENCY_EVENTS_STORAGE_KEY);
-    if (!raw) return [...districtEventsSeed];
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
   } catch (error) {
-    // Fall back to seed events if storage is invalid.
+    // fall through
   }
-  return [...districtEventsSeed];
+  return [];
 }
 
 function saveAgencyEvents(events) {
@@ -2299,11 +2218,14 @@ function wireOverviewPdfExport() {
 }
 
 if (isHomeDashboardPage()) {
-  wireOverviewTabs();
-  wireOverviewPdfExport();
-  wireRoleControl();
-  wirePersonalTodo();
-  wireFloatingTodo();
+  (async function() {
+    await loadOverviewData();
+    wireOverviewTabs();
+    wireOverviewPdfExport();
+    wireRoleControl();
+    wirePersonalTodo();
+    wireFloatingTodo();
+  })();
 }
 
 if (isCalendarPage()) {

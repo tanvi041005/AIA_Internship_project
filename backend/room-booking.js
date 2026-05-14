@@ -1,12 +1,6 @@
 ﻿// ── Data ────────────────────────────────────────────────────────────────────
-    const ROOMS = [
-      { id: 'eagle', label: 'Eagle Boardroom', cls: 'room-eagle', dot: '#93c5fd' },
-      { id: 'summit', label: 'Summit Event Hall', cls: 'room-summit', dot: '#fca5a5' },
-      { id: 'ark', label: 'Ark (near Eagle)', cls: 'room-ark', dot: '#6ee7b7' },
-      { id: 'armour', label: 'Armour (beside Pigeon)', cls: 'room-armour', dot: '#d1d5db' },
-      { id: 'inspiration', label: 'Inspiration Lounge', cls: 'room-inspiration', dot: '#c4b5fd' },
-      { id: 'nest', label: 'Nest / Nursing Room', cls: 'room-nest', dot: '#fde68a' },
-    ];
+    // Loaded from GET /rooms on init
+    let ROOMS = [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -18,7 +12,7 @@
     let currentView = 'week';
     let currentDate = new Date(today);
     let miniDate = new Date(today);
-    let visibleRooms = new Set(ROOMS.map((r) => r.id));
+    let visibleRooms = new Set();
     let editingId = null;
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -478,9 +472,10 @@
         const idx = bookings.findIndex((b) => b.id === editingId);
         if (idx > -1) {
           bookings[idx] = { ...bookings[idx], title, room, date, start, end, by, notes, recurrence: recurrence !== 'none' ? recurrence : null, recurrenceEnd: recurrence !== 'none' ? recurrenceEnd : null };
+          apiPut('/room-bookings/' + editingId, { title, room_id: room, booking_date: date, start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes }).catch(function() {});
         }
       } else {
-        const saved = await apiPost('/bookings', {
+        const saved = await apiPost('/room-bookings', {
           title,
           room_id: room,
           booking_date: date,
@@ -494,7 +489,7 @@
         bookings.push(mapBooking(saved));
 
         if (recurrence !== 'none') {
-          const refreshed = await apiGet('/bookings');
+          const refreshed = await apiGet('/room-bookings');
           bookings = refreshed.map(mapBooking);
         }
       }
@@ -538,7 +533,7 @@
 
     async function deleteBooking(id) {
       if (!confirm('Delete this booking?')) return;
-      await apiDelete('/bookings/' + id);
+      await apiDelete('/room-bookings/' + id);
       bookings = bookings.filter((b) => b.id !== id);
       closeDetail();
       render();
@@ -561,7 +556,11 @@
 
     // ── Init ──────────────────────────────────────────────────────────────────────
     (async function() {
-      const data = await apiGet('/bookings');
-      bookings = data.map(mapBooking);
+      const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
+      ROOMS = roomsData.map(function(r) {
+        return { id: r.room_id, label: r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.color || '#93c5fd' };
+      });
+      visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
+      bookings = bookingsData.map(mapBooking);
       render();
     })();

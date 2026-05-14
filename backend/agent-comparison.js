@@ -1,21 +1,9 @@
-﻿// ─── Dataset ──────────────────────────────────────────────────────────
-    const AGENTS = [
-      { name: "Alicia Tan",   rank: 1,  ytdFyc: 34525, delta: 435,  cases: 14, team: "SP-ALPHA-GABY"   },
-      { name: "Brandon Lee",  rank: 2,  ytdFyc: 23210, delta: 44,   cases: 10, team: "SP-BETA-GABY"    },
-      { name: "Chloe Ong",    rank: 3,  ytdFyc: 9400,  delta: -39,  cases:  5, team: "SP-GAMMA-GABY"   },
-      { name: "Darren Lim",   rank: 4,  ytdFyc: 8025,  delta:   0,  cases:  4, team: "SP-DELTA-GABY"   },
-      { name: "Farah Rahim",  rank: 5,  ytdFyc: 7627,  delta: -26,  cases:  4, team: "SP-EPSILON-GABY" },
-      { name: "Gavin Teo",    rank: 6,  ytdFyc: 6577,  delta: 346,  cases:  3, team: "SP-ZETA-GABY"    },
-      { name: "Hui Min Chua", rank: 7,  ytdFyc: 6100,  delta:  76,  cases:  3, team: "SP-ETA-GABY"     },
-      { name: "Isaac Wong",   rank: 8,  ytdFyc: 5240,  delta: -55,  cases:  2, team: "SP-THETA-GABY"   },
-      { name: "Jia En Low",   rank: 9,  ytdFyc: 4941,  delta: -56,  cases:  2, team: "SP-IOTA-GABY"    },
-      { name: "Kumar Singh",  rank: 10, ytdFyc: 2022,  delta:   0,  cases:  1, team: "SP-KAPPA-GABY"   }
-    ];
-
-    // Cumulative district YTD by month (Jan–May actual, Jun–Dec projected)
-    const DISTRICT_CUM = [6200,12400,18800,33100,45500,58600,68800,74200,87500,96800,104600,111800];
+﻿// ─── Dataset — loaded from GET /performance ───────────────────────────
+    let AGENTS = [];
+    // DISTRICT_CUM (12-month cumulative) not yet returned by /performance; needs monthly breakdown endpoint
+    let DISTRICT_CUM = new Array(12).fill(0);
     const MONTHS       = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const TOTAL_YTD    = AGENTS.reduce((s, a) => s + a.ytdFyc, 0);
+    let TOTAL_YTD    = 0;
     const SLOT_COLORS  = ["#a6192e", "#374151", "#6d5bd0", "#059669"];
 
     // ─── Helpers ──────────────────────────────────────────────────────────
@@ -349,6 +337,19 @@
       });
     });
 
-    // ─── Init ─────────────────────────────────────────────────────────────
-    addAgent(0);
-    addAgent(1);
+    // ─── Init — load agents from GET /performance ─────────────────────────
+    (async function() {
+      if (typeof apiGet === "function") {
+        try {
+          const rows = await apiGet("/performance");
+          if (Array.isArray(rows) && rows.length > 0) {
+            AGENTS = rows.map(function(r) {
+              return { name: r.full_name || r.agent_id, rank: r.district_rank || 0, ytdFyc: Number(r.ytd_fyc || 0), delta: Number(r.delta || 0), cases: Number(r.cases || 0), team: r.team_code || r.agent_id };
+            });
+            TOTAL_YTD = AGENTS.reduce((s, a) => s + a.ytdFyc, 0);
+          }
+        } catch (e) { console.warn("Failed to load performance data:", e); }
+      }
+      if (AGENTS.length >= 2) { addAgent(0); addAgent(1); }
+      else { render(); }
+    })();

@@ -1,22 +1,32 @@
-﻿(function () {
-      var allocationBands = [
-        { maxAge: 35, oa: 0.6217, sa: 0.1621, ma: 0.2162 },
-        { maxAge: 45, oa: 0.5677, sa: 0.1891, ma: 0.2432 },
-        { maxAge: 50, oa: 0.5136, sa: 0.2162, ma: 0.2702 },
-        { maxAge: 55, oa: 0.4055, sa: 0.3108, ma: 0.2837 },
-        { maxAge: 60, oa: 0.3694, sa: 0.3076, ma: 0.3230 },
-        { maxAge: 65, oa: 0.1490, sa: 0.4042, ma: 0.4468 },
-        { maxAge: 70, oa: 0.0607, sa: 0.3030, ma: 0.6363 },
-        { maxAge: 120, oa: 0.0800, sa: 0.0800, ma: 0.8400 }
-      ];
+﻿(async function () {
+      // GET /cpf-rates → { allocationRates, contributionRates, retirementSums }
+      var allocationBands = [];
+      var contributionBands = [];
 
-      var contributionBands = [
-        { maxAge: 55, employer: 0.17, employee: 0.20 },
-        { maxAge: 60, employer: 0.155, employee: 0.17 },
-        { maxAge: 65, employer: 0.12, employee: 0.115 },
-        { maxAge: 70, employer: 0.09, employee: 0.075 },
-        { maxAge: 120, employer: 0.075, employee: 0.05 }
-      ];
+      function parseMaxAge(g) {
+        var s = String(g || "").trim();
+        if (/^[≤<]/.test(s)) return parseInt(s.replace(/[^0-9]/g, ""), 10) || 120;
+        var m = s.match(/(\d+)-(\d+)/);
+        if (m) return parseInt(m[2], 10);
+        if (s.startsWith(">")) return 120;
+        return 120;
+      }
+
+      if (typeof apiGet === "function") {
+        try {
+          var rates = await apiGet("/cpf-rates");
+          if (rates && rates.allocationRates) {
+            allocationBands = rates.allocationRates.map(function (r) {
+              return { maxAge: parseMaxAge(r.ageGroup), oa: r.oa / 100, sa: r.sa / 100, ma: r.ma / 100 };
+            });
+          }
+          if (rates && rates.contributionRates) {
+            contributionBands = rates.contributionRates.map(function (r) {
+              return { maxAge: parseMaxAge(r.ageGroup), employer: r.employer / 100, employee: r.employee / 100 };
+            });
+          }
+        } catch (e) { console.warn("Failed to load CPF rates:", e); }
+      }
 
       function money(value) {
         return new Intl.NumberFormat("en-SG", { style: "currency", currency: "SGD", maximumFractionDigits: 0 }).format(value);
