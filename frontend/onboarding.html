@@ -18,6 +18,7 @@
       margin-bottom: 0.3rem;
     }
     .team-form-grid input,
+    .team-form-grid select,
     .team-form-grid textarea {
       width: 100%;
       padding: 0.55rem 0.7rem;
@@ -125,18 +126,73 @@
   </div>
 
   <main id="main">
-    <h1 class="page-title">Onboarding page</h1>
-    <p class="page-lede">Add new joiners to your team roster. Agent IDs use the format A### (e.g. A128).</p>
+    <h1 class="page-title" id="onboarding-title">Onboarding page</h1>
+    <p class="page-lede" id="onboarding-lede">Add new joiners to your team roster using their assigned agent code.</p>
 
-    <section class="panel" style="max-width: 720px;">
+    <section class="panel" id="admin-user-editor-panel" style="max-width: 820px;" hidden>
+      <div class="panel-head">
+        <h2 id="admin-user-form-title">Create user</h2>
+        <span class="summary-line">Admin user and role management</span>
+      </div>
+      <form id="admin-user-form" class="team-form-grid">
+        <input type="hidden" id="admin-user-editing-id" />
+        <div>
+          <label for="admin-user-id">User ID <span aria-hidden="true">*</span></label>
+          <input type="text" id="admin-user-id" required maxlength="20" placeholder="Agent code, e.g. 39449 or ARIEL" autocomplete="off" />
+        </div>
+        <div>
+          <label for="admin-user-name">Full name <span aria-hidden="true">*</span></label>
+          <input type="text" id="admin-user-name" required maxlength="120" placeholder="e.g. Ariel Tan" />
+        </div>
+        <div>
+          <label for="admin-user-role">Role <span aria-hidden="true">*</span></label>
+          <select id="admin-user-role" required>
+            <option value="agent">Agent</option>
+            <option value="leader">Agency Leader</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label for="admin-user-password">Password</label>
+          <input type="password" id="admin-user-password" maxlength="120" placeholder="Required for new users, optional when editing" autocomplete="new-password" />
+        </div>
+        <div class="team-form-actions">
+          <button type="submit" class="upload-btn" style="cursor:pointer;border:none;" id="admin-user-submit-btn">Create user</button>
+          <button type="button" class="team-remove-btn" id="admin-user-cancel-btn" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <p id="admin-user-form-msg" class="team-msg" role="status"></p>
+    </section>
+
+    <section class="panel" id="admin-users-panel" style="margin-top: 1.25rem;" hidden>
+      <div class="panel-head">
+        <h2>All users</h2>
+        <span class="summary-line" id="admin-users-count">0 users</span>
+      </div>
+      <div class="team-table-wrap">
+        <table class="team-table lead-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th aria-label="Actions"></th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="team-add-panel" style="max-width: 720px;">
       <div class="panel-head">
         <h2>Add team member</h2>
-        <span class="summary-line">Saved per leader / district account</span>
+        <span class="summary-line">Saved per agency leader account</span>
       </div>
       <form id="team-add-form" class="team-form-grid">
         <div>
           <label for="team-agent-id">Agent ID <span aria-hidden="true">*</span></label>
-          <input type="text" id="team-agent-id" required maxlength="12" placeholder="e.g. A128" autocomplete="off" />
+          <input type="text" id="team-agent-id" required maxlength="20" placeholder="Agent code, e.g. 39449" autocomplete="off" />
         </div>
         <div>
           <label for="team-name">Full name <span aria-hidden="true">*</span></label>
@@ -153,7 +209,7 @@
       <p id="team-form-msg" class="team-msg" role="status"></p>
     </section>
 
-    <section class="panel" style="margin-top: 1.25rem;">
+    <section class="panel" id="team-roster-panel" style="margin-top: 1.25rem;">
       <div class="panel-head">
         <h2>Current roster</h2>
         <span class="summary-line" id="team-roster-count">0 members</span>

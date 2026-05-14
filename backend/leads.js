@@ -24,7 +24,7 @@ let filtered = [];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 
 async function init(){
-  const userId = sessionStorage.getItem("dashboardUser") || "A123";
+  const userId = sessionStorage.getItem("dashboardUser") || "";
   LEADS = (await apiGet('/leads?userId=' + userId)).map(mapLead);
   filtered = [...LEADS];
   renderKPIs();

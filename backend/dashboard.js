@@ -6,6 +6,7 @@ const districtEventsSeed = [];
 
 // GET /cpf?agentId=... → maps to { name, accountFocus, status, amount, note }
 let cpfTrackerData = [];
+let performanceRows = [];
 
 // GET /performance → leaderboard rows; yearlyFyc summed from ytd_fyc; monthly/weekly not yet in API
 let performanceData = {
@@ -20,8 +21,8 @@ let performanceData = {
 };
 
 const overviewScopeCopy = {
-  district: "District-wide performance across all agents, leads, and FYC activity.",
-  agency: "Department view for agency production, selected agents, and active lead movement.",
+  district: "All-agency performance across agents, leads, and FYC activity.",
+  agency: "Agency production, selected agents, and active lead movement.",
   personal: "Your personal production, appointments, lead pipeline, and weekly case activity."
 };
 
@@ -30,7 +31,7 @@ async function loadOverviewData() {
   const userId = sessionStorage.getItem('dashboardUser');
   if (!userId) return;
   try {
-    const rows = await apiGet('/leads?userId=' + encodeURIComponent(userId));
+    const rows = await apiGet('/leads');
     if (Array.isArray(rows)) {
       leadData = rows.map(mapLead).map(function(r) {
         var u = r.urgency || '';
@@ -48,6 +49,7 @@ async function loadOverviewData() {
           premium: r.premium || 0,
           commissionType: r.commission || '',
           stage: r.stage || '',
+          ownerId: r.ownerId || '',
           owner: r.ownerId === userId ? 'agent' : 'district',
           agency: r.agency || ''
         };
@@ -55,20 +57,10 @@ async function loadOverviewData() {
     }
   } catch (e) { console.warn('Failed to load leads for overview:', e); }
   try {
-    const perf = await apiGet('/performance');
+    const perf = await apiGet('/performance?year=' + new Date().getFullYear() + '&period=current');
     if (Array.isArray(perf) && perf.length > 0) {
-      performanceData = {
-        yearlyFyc: perf.reduce(function(s, r) { return s + Number(r.ytd_fyc || 0); }, 0),
-        yearlyTarget: 0,
-        weeklyFyc: 0,
-        lastWeekFyc: 0,
-        leaderboard: perf.map(function(r) {
-          return { agent: r.full_name || r.agent_id, monthlyProduction: 0, ytdFyc: Number(r.ytd_fyc || 0), delta: Number(r.delta || 0) };
-        }),
-        monthlyYtd: [],
-        menteeStatuses: [],
-        weekly: []
-      };
+      performanceRows = perf.map(mapPerformanceRow);
+      performanceData = buildPerformanceDataset(performanceRows);
     }
   } catch (e) { console.warn('Failed to load performance for overview:', e); }
   try {
@@ -79,6 +71,142 @@ async function loadOverviewData() {
       });
     }
   } catch (e) { console.warn('Failed to load CPF tracker:', e); }
+}
+
+function localParseExtra(r) {
+  if (!r || !r.extra) return {};
+  if (typeof r.extra === "string") {
+    try { return JSON.parse(r.extra) || {}; } catch (e) { return {}; }
+  }
+  return r.extra || {};
+}
+
+function mapPerformanceRow(r) {
+  var extra = localParseExtra(r);
+  return {
+    agentId: r.agent_id,
+    agent: r.full_name || r.agent_id || "",
+    teamName: r.team_name || extra.teamName || extra.agency || "",
+    ytdFyc: Number(r.ytd_fyc || 0),
+    yearlyTarget: Number(r.yearly_target || 0),
+    monthlyProduction: Number(r.weekly_fyc || extra.mtdFyc || 0),
+    lastWeekFyc: Number(r.last_week_fyc || 0),
+    delta: Number(r.delta_pct || 0),
+    ytdCases: Number(r.total_cases || extra.ytdCases || 0),
+    mtdCases: Number(extra.mtdCases || 0),
+    monthlyYtd: Array.isArray(extra.monthlyYtd) ? extra.monthlyYtd : [],
+    weekly: Array.isArray(extra.weekly) ? extra.weekly : [],
+    menteeStatus: extra.menteeStatus || "Production tracked",
+    extra: extra
+  };
+}
+
+function buildPerformanceDataset(rows) {
+  var sorted = rows.slice().sort(function(a, b) {
+    return Number(b.ytdFyc || 0) - Number(a.ytdFyc || 0);
+  });
+  var yearlyFyc = rows.reduce(function(sum, r) { return sum + Number(r.ytdFyc || 0); }, 0);
+  var yearlyTarget = rows.reduce(function(sum, r) { return sum + Number(r.yearlyTarget || 0); }, 0);
+  var weeklyFyc = rows.reduce(function(sum, r) { return sum + Number(r.monthlyProduction || 0); }, 0);
+  var lastWeekFyc = rows.reduce(function(sum, r) { return sum + Number(r.lastWeekFyc || 0); }, 0);
+  var mtdCases = rows.reduce(function(sum, r) { return sum + Number(r.mtdCases || 0); }, 0);
+  var ytdCases = rows.reduce(function(sum, r) { return sum + Number(r.ytdCases || 0); }, 0);
+  var firstMonthly = rows.find(function(r) { return r.monthlyYtd && r.monthlyYtd.length; });
+  var firstWeekly = rows.find(function(r) { return r.weekly && r.weekly.length; });
+  return {
+    yearlyFyc: yearlyFyc,
+    yearlyTarget: yearlyTarget,
+    weeklyFyc: weeklyFyc,
+    lastWeekFyc: lastWeekFyc,
+    totalCases: mtdCases,
+    ytdCases: ytdCases,
+    leaderboard: sorted.map(function(r) {
+      return {
+        agent: r.agent,
+        agentId: r.agentId,
+        teamName: r.teamName,
+        monthlyProduction: r.monthlyProduction,
+        ytdFyc: r.ytdFyc,
+        ytdCases: r.ytdCases,
+        mtdCases: r.mtdCases,
+        delta: r.delta
+      };
+    }),
+    monthlyYtd: firstMonthly ? firstMonthly.monthlyYtd : [],
+    menteeStatuses: sorted.map(function(r) { return r.menteeStatus; }),
+    weekly: firstWeekly ? firstWeekly.weekly : []
+  };
+}
+
+function sameId(a, b) {
+  return String(a || "").trim().toUpperCase() === String(b || "").trim().toUpperCase();
+}
+
+function getAvailableAgencyNames() {
+  return performanceRows
+    .map(function(row) { return row.teamName; })
+    .filter(function(team, index, teams) { return team && teams.indexOf(team) === index; })
+    .sort();
+}
+
+function getCurrentPerformanceRow() {
+  var userId = sessionStorage.getItem("dashboardUser");
+  var selectedAgentId = localStorage.getItem("overviewAgentId");
+  return performanceRows.find(function(row) { return sameId(row.agentId, userId); }) ||
+    performanceRows.find(function(row) { return sameId(row.agentId, selectedAgentId); }) ||
+    performanceRows[0] ||
+    null;
+}
+
+function getActiveAgencyName(currentRow) {
+  var selectedAgency = localStorage.getItem("overviewAgency");
+  var agencies = getAvailableAgencyNames();
+  if (selectedAgency && agencies.indexOf(selectedAgency) !== -1) return selectedAgency;
+  if (currentRow && currentRow.teamName) return currentRow.teamName;
+  return agencies[0] || "";
+}
+
+function initializeOverviewAgencyPreference() {
+  var userId = sessionStorage.getItem("dashboardUser") || "";
+  var currentRow = getCurrentPerformanceRow();
+  var agencies = getAvailableAgencyNames();
+  var ownAgency = currentRow && sameId(currentRow.agentId, userId) ? currentRow.teamName : "";
+  var initializedKey = "overviewAgencyInitializedFor";
+
+  if (ownAgency && sessionStorage.getItem(initializedKey) !== userId) {
+    localStorage.setItem("overviewAgency", ownAgency);
+    localStorage.setItem("overviewScope", "agency");
+    sessionStorage.setItem(initializedKey, userId);
+    return;
+  }
+
+  var selectedAgency = localStorage.getItem("overviewAgency");
+  if (selectedAgency && agencies.indexOf(selectedAgency) !== -1) return;
+  if (ownAgency) {
+    localStorage.setItem("overviewAgency", ownAgency);
+    localStorage.setItem("overviewScope", "agency");
+  } else if (agencies.length) {
+    localStorage.setItem("overviewAgency", agencies[0]);
+  }
+}
+
+function syncOverviewAgencySelect(scope) {
+  var select = document.getElementById("overview-agency-select");
+  if (!select) return;
+  var control = select.closest(".overview-agency-control");
+  if (control) control.hidden = scope !== "agency";
+  var agencies = getAvailableAgencyNames();
+  var selectedAgency = getActiveAgencyName(getCurrentPerformanceRow());
+
+  select.innerHTML = agencies.map(function(agency) {
+    return "<option value=\"" + agency.replace(/"/g, "&quot;") + "\">" + agency + "</option>";
+  }).join("");
+
+  if (selectedAgency && agencies.indexOf(selectedAgency) !== -1) {
+    select.value = selectedAgency;
+  } else if (agencies.length) {
+    select.value = agencies[0];
+  }
 }
 
 function isOverviewPage() {
@@ -280,67 +408,49 @@ function renderOverviewCards() {
 }
 
 function getOverviewDataset(scope = "district") {
+  var currentRow = getCurrentPerformanceRow();
+  var userId = sessionStorage.getItem("dashboardUser");
   if (scope === "personal") {
-    const personalLeads = leadData.filter((lead) => lead.owner === "agent");
-    const personalFyc = 34525;
+    var personalRows = currentRow ? [currentRow] : [];
+    var isSessionUserRow = currentRow && sameId(currentRow.agentId, userId);
+    var personalLeads = currentRow
+      ? leadData.filter(function(lead) { return sameId(lead.ownerId, currentRow.agentId) || (isSessionUserRow && lead.owner === "agent"); })
+      : [];
     return {
       scope,
       leads: personalLeads,
-      data: {
-        yearlyFyc: personalFyc,
-        yearlyTarget: 180000,
-        weeklyFyc: 4200,
-        lastWeekFyc: 3600,
-        leaderboard: [
-          { agent: "You", monthlyProduction: 4200, ytdFyc: personalFyc, delta: 18 },
-          { agent: "Team Average", monthlyProduction: 3100, ytdFyc: 23210, delta: 9 },
-          { agent: "Best Peer", monthlyProduction: 5600, ytdFyc: 52400, delta: 27 }
-        ],
-        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.31) })),
-        menteeStatuses: ["Follow-up due", "Proposal pending", "Closing conversation"],
-        weekly: [
-          { day: "Mon", fyc: 1200, cases: 1 },
-          { day: "Tue", fyc: 0, cases: 0 },
-          { day: "Wed", fyc: 2100, cases: 1 },
-          { day: "Thu", fyc: 900, cases: 1 },
-          { day: "Fri", fyc: 0, cases: 0 }
-        ]
-      }
+      data: buildPerformanceDataset(personalRows)
     };
   }
 
   if (scope === "agency") {
-    const agencyLeads = leadData.filter((lead) => lead.owner === "agent");
-    const agencyLeaderboard = performanceData.leaderboard.slice(0, 6);
+    var teamName = getActiveAgencyName(currentRow);
+    var agencyRows = teamName
+      ? performanceRows.filter(function(row) { return row.teamName === teamName; })
+      : [];
+    var agencyLeads = teamName
+      ? leadData.filter(function(lead) { return lead.agency === teamName; })
+      : [];
     return {
       scope,
       leads: agencyLeads,
-      data: {
-        yearlyFyc: 83540,
-        yearlyTarget: 650000,
-        weeklyFyc: 5200,
-        lastWeekFyc: 4800,
-        leaderboard: agencyLeaderboard,
-        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.72) })),
-        menteeStatuses: ["Top producer", "Strong pipeline", "Needs weekly coaching", "Follow-up discipline"],
-        weekly: [
-          { day: "Mon", fyc: 2900, cases: 1 },
-          { day: "Tue", fyc: 4500, cases: 2 },
-          { day: "Wed", fyc: 1800, cases: 1 },
-          { day: "Thu", fyc: 6100, cases: 3 },
-          { day: "Fri", fyc: 3400, cases: 1 }
-        ]
-      }
+      data: buildPerformanceDataset(agencyRows)
     };
   }
 
-  return { scope: "district", leads: leadData, data: performanceData };
+  return { scope: "district", leads: leadData, data: buildPerformanceDataset(performanceRows) };
 }
 
 function renderPerformanceOverview(scope = localStorage.getItem("overviewScope") || "agency") {
   const { data, leads } = getOverviewDataset(scope);
   const lede = document.getElementById("overview-scope-lede");
-  if (lede) lede.textContent = overviewScopeCopy[scope] || overviewScopeCopy.district;
+  if (lede) {
+    var activeAgency = getActiveAgencyName(getCurrentPerformanceRow());
+    lede.textContent = scope === "agency" && activeAgency
+      ? activeAgency + " performance across agents, leads, and FYC activity."
+      : overviewScopeCopy[scope] || overviewScopeCopy.district;
+  }
+  syncOverviewAgencySelect(scope);
   toggleOverviewPanels(scope);
   updateAgentPanelLabels(scope);
   renderFycKpis(data, leads);
@@ -385,7 +495,7 @@ function wireOverviewTabs() {
   const isOverviewDashboard = document.getElementById("total-leads-card") !== null;
   const overviewLink = document.querySelector(".overview-nav-menu a[href='index.html']");
   const scopeLabels = {
-    district: "District Overview",
+    district: "All Agencies Overview",
     agency: "Agency Overview",
     personal: "Personal Overview"
   };
@@ -413,7 +523,19 @@ function wireOverviewTabs() {
     window.addEventListener("overviewScopeChanged", (event) => setScope(event.detail.scope));
   }
 
+  initializeOverviewAgencyPreference();
   setScope(localStorage.getItem("overviewScope") || "agency");
+}
+
+function wireOverviewAgencySelector() {
+  const select = document.getElementById("overview-agency-select");
+  if (!select) return;
+  select.addEventListener("change", function() {
+    localStorage.setItem("overviewAgency", select.value);
+    localStorage.setItem("overviewScope", "agency");
+    window.dispatchEvent(new CustomEvent("overviewScopeChanged", { detail: { scope: "agency" } }));
+    renderPerformanceOverview("agency");
+  });
 }
 
 function wireChartInteractions(container, insightElement) {
@@ -447,11 +569,15 @@ function renderFycKpis(data = performanceData, leads = leadData) {
   const urgentLeads = document.getElementById("urgent-leads-count");
   const nearClose = document.getElementById("near-close-count");
 
-  const targetPercent = Math.min(100, Math.round((data.yearlyFyc / data.yearlyTarget) * 1000) / 10);
+  const targetPercent = data.yearlyTarget
+    ? Math.min(100, Math.round((data.yearlyFyc / data.yearlyTarget) * 1000) / 10)
+    : 0;
   const weekDelta = data.lastWeekFyc
     ? Math.round(((data.weeklyFyc - data.lastWeekFyc) / data.lastWeekFyc) * 1000) / 10
     : 0;
-  const totalCases = data.weekly.reduce((sum, item) => sum + item.cases, 0);
+  const totalCases = Number.isFinite(data.totalCases)
+    ? data.totalCases
+    : (data.weekly || []).reduce((sum, item) => sum + item.cases, 0);
 
   if (yearlyValue) yearlyValue.textContent = compactMoney(data.yearlyFyc);
   if (yearlyProgress) yearlyProgress.style.width = `${targetPercent}%`;
@@ -468,6 +594,10 @@ function renderFycKpis(data = performanceData, leads = leadData) {
 function renderLeaderboard(data = performanceData) {
   const tbody = document.getElementById("leaderboard-table-body");
   if (!tbody) return;
+  if (!data.leaderboard.length) {
+    tbody.innerHTML = `<tr><td colspan="4">No performance data loaded yet.</td></tr>`;
+    return;
+  }
   tbody.innerHTML = data.leaderboard
     .map(
       (item, index) => `
@@ -491,6 +621,12 @@ function renderAgentFycChart(data = performanceData, scope = "agency") {
   const chart = document.getElementById("agent-fyc-chart");
   const insight = document.getElementById("agent-fyc-insight");
   if (!chart) return;
+  if (!data.leaderboard.length) {
+    chart.className = "bar-chart";
+    chart.innerHTML = `<p class="prod-placeholder">No performance data loaded yet.</p>`;
+    if (insight) insight.textContent = "Upload a production Excel file to populate this view.";
+    return;
+  }
   if (scope === "district") {
     chart.className = "table-wrap compact-table";
     chart.innerHTML = `
@@ -526,7 +662,7 @@ function renderAgentFycChart(data = performanceData, scope = "agency") {
   }
 
   chart.className = "bar-chart";
-  const maxValue = Math.max(...data.leaderboard.map((item) => item.ytdFyc));
+  const maxValue = Math.max(...data.leaderboard.map((item) => item.ytdFyc), 1);
   const colors = ["#a6192e", "#e8decf", "#c69a67", "#4a4a4a", "#aaa7a2"];
   chart.innerHTML = data.leaderboard
     .slice(0, 9)
@@ -548,7 +684,12 @@ function renderMonthlyYtdChart(data = performanceData) {
   const chart = document.getElementById("monthly-ytd-chart");
   const insight = document.getElementById("monthly-ytd-insight");
   if (!chart) return;
-  const maxValue = Math.max(...data.monthlyYtd.map((item) => item.value));
+  if (!data.monthlyYtd.length) {
+    chart.innerHTML = `<p class="prod-placeholder">No monthly data loaded yet.</p>`;
+    if (insight) insight.textContent = "Upload a report with monthly breakdown data to populate this chart.";
+    return;
+  }
+  const maxValue = Math.max(...data.monthlyYtd.map((item) => item.value), 1);
   chart.innerHTML = data.monthlyYtd
     .map((item) => {
       const height = Math.max(4, Math.round((item.value / maxValue) * 100));
@@ -627,6 +768,11 @@ function renderWeeklyFycCaseChart(data = performanceData) {
   const chart = document.getElementById("weekly-fyc-case-chart");
   const insight = document.getElementById("weekly-fyc-case-insight");
   if (!chart) return;
+  if (!data.weekly.length) {
+    chart.innerHTML = `<p class="prod-placeholder">No weekly data loaded yet.</p>`;
+    if (insight) insight.textContent = "Upload a report with weekly FYC and case data to populate this chart.";
+    return;
+  }
   const maxFyc = Math.max(...data.weekly.map((item) => item.fyc), 1);
   const maxCases = Math.max(...data.weekly.map((item) => item.cases), 1);
   chart.innerHTML = data.weekly
@@ -660,267 +806,57 @@ function wireRoleControl() {
   roleSelect.addEventListener("change", syncRole);
 }
 
-function wirePersonalTodo() {
-  const form = document.getElementById("personal-task-form");
-  const input = document.getElementById("personal-task-input");
-  const list = document.getElementById("personal-task-list");
-  if (!form || !input || !list) return;
 
-  const renderTasks = () => {
-    const tasks = getPersonalTasks();
-    list.innerHTML = tasks
-      .map(
-        (task, index) => `
-        <li class="${task.done ? "is-done" : ""}">
-          <label><input type="checkbox" data-task-index="${index}" ${task.done ? "checked" : ""}> <span>${task.title}</span>${task.dueDate || task.eventTitle ? `<small class="linked-info">${task.dueDate ? `Due ${task.dueDate}` : ""}${task.dueDate && task.eventTitle ? " · " : ""}${task.eventTitle ? task.eventTitle : ""}</small>` : ""}</label>
-        </li>
-      `
-      )
-      .join("");
-
-    list.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
-      checkbox.addEventListener("change", (event) => {
-        const taskIndex = Number(event.target.dataset.taskIndex);
-        const tasksList = getPersonalTasks();
-        tasksList[taskIndex].done = event.target.checked;
-        savePersonalTasks(tasksList);
-      });
-    });
-  };
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const value = input.value.trim();
-    if (!value) return;
-    addPersonalTask({ title: value });
-    input.value = "";
-    renderTasks();
-  });
-
-  window.addEventListener("personalTasksUpdated", renderTasks);
-  renderTasks();
-}
-
-function wireFloatingTodo() {
-  if (document.getElementById("floating-task-form")) return;
-  const main = document.getElementById("main");
-  if (!main) return;
-
-  const widget = document.createElement("aside");
-  widget.className = "todo-sidebar is-collapsed";
-  widget.setAttribute("aria-label", "Personal planner");
-  widget.innerHTML = `
-    <button type="button" class="todo-sidebar-toggle" id="todo-sidebar-toggle" aria-expanded="false" aria-controls="todo-sidebar-panel">
-      <span class="todo-toggle-short">Planner</span>
-      <span class="todo-toggle-count" id="todo-sidebar-count">0</span>
-    </button>
-    <div class="todo-sidebar-panel" id="todo-sidebar-panel">
-      <div class="todo-sidebar-head">
-        <div>
-          <h2>My Planner</h2>
-          <p id="todo-sidebar-progress">0 open tasks</p>
-        </div>
-        <button type="button" class="ghost-btn" id="todo-sidebar-close">Close</button>
-      </div>
-      <div id="todo-controls" style="display:flex;gap:0.5rem;align-items:center;margin-top:0.6rem;">
-        <label style="display:flex;gap:0.35rem;align-items:center;font-size:0.9rem;">
-          Window:
-          <select id="todo-reminder-window" class="reminder-select">
-            <option value="1">1d</option>
-            <option value="3">3d</option>
-            <option value="7" selected>7d</option>
-            <option value="14">14d</option>
-          </select>
-        </label>
-        <label style="display:flex;gap:0.35rem;align-items:center;font-size:0.9rem;">
-          <input type="checkbox" id="todo-notify-toggle" /> Desktop
-        </label>
-      </div>
-      <div class="todo-section" id="todo-upcoming-section">
-        <div class="todo-section-head">
-          <h3 class="todo-section-title">Upcoming Events</h3>
-        </div>
-        <ul id="todo-reminder-list" class="todo-list" style="margin-top:0.45rem;"></ul>
-      </div>
-      <div class="todo-section" id="todo-tasks-section">
-        <div class="todo-section-head">
-          <h3 class="todo-section-title">To-Do</h3>
-        </div>
-        <form id="floating-task-form" class="floating-task-form">
-          <input id="floating-task-input" type="text" placeholder="Add a task" required />
-          <button type="submit">Add</button>
-        </form>
-        <ul id="floating-task-list" class="todo-list"></ul>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(widget);
-
-  const toggle = document.getElementById("todo-sidebar-toggle");
-  const close = document.getElementById("todo-sidebar-close");
-  const count = document.getElementById("todo-sidebar-count");
-  const progress = document.getElementById("todo-sidebar-progress");
-  const form = document.getElementById("floating-task-form");
-  const input = document.getElementById("floating-task-input");
-  const list = document.getElementById("floating-task-list");
-  const reminderList = document.getElementById("todo-reminder-list");
-
-  const setExpanded = (expanded) => {
-    widget.classList.toggle("is-collapsed", !expanded);
-    toggle.setAttribute("aria-expanded", String(expanded));
-    localStorage.setItem("todoSidebarExpanded", expanded ? "true" : "false");
-    if (expanded) input.focus();
-  };
-
-  const renderTasks = () => {
-    const tasks = getPersonalTasks().filter((t) => !t.done);
-    const openTasks = tasks.length;
-    count.textContent = String(openTasks);
-    progress.textContent = `${openTasks} open task${openTasks === 1 ? "" : "s"}`;
-    list.innerHTML = tasks
-      .map(
-        (task) => `
-        <li data-task-id="${task.id}">
-          <label><input type="checkbox" data-task-id="${task.id}" ${task.done ? "checked" : ""}> <span>${task.title}${task.dueDate ? `<small>Due ${task.dueDate}${task.eventTitle ? ` · ${task.eventTitle}` : ""}</small>` : ""}</span></label>
-        </li>
-      `
-      )
-      .join("");
-
-    list.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
-      checkbox.addEventListener("change", (event) => {
-        if (!event.target.checked) return;
-        const taskId = event.target.dataset.taskId;
-        const li = event.target.closest("li");
-        if (li) li.classList.add("is-removing");
-        setTimeout(() => {
-          const tasksList = getPersonalTasks().filter((t) => t.id !== taskId);
-          savePersonalTasks(tasksList);
-          renderTasks();
-        }, 480);
-      });
-    });
-
-    renderReminders();
-  };
-
-  toggle.addEventListener("click", () => setExpanded(widget.classList.contains("is-collapsed")));
-  close.addEventListener("click", () => setExpanded(false));
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const value = input.value.trim();
-    if (!value) return;
-    addPersonalTask({ title: value });
-    input.value = "";
-    renderTasks();
-  });
-
-  const renderReminders = () => {
-    if (!reminderList) return;
-    const role = localStorage.getItem("calendarRole") || "agent";
-    const windowDays = Number(localStorage.getItem("todoReminderWindow") || 7);
-    const reminders = getUpcomingCalendarReminders(role, windowDays);
-    reminderList.innerHTML = reminders
-      .map((ev) => {
-        const label = `${ev.date} · ${ev.title}`;
-        return `<li><button type="button" class="ghost-btn" data-ev-id="${ev.id}" style="width:100%;text-align:left;padding:0.5rem;border:none;background:transparent;">${label}</button></li>`;
-      })
-      .join("");
-    reminderList.querySelectorAll("button[data-ev-id]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.evId;
-        const role = localStorage.getItem("calendarRole") || "agent";
-        const all = getCalendarEventsForView(role, { showPersonal: true, showAgency: true });
-        let ev = all.find((e) => e.id && id && e.id === id);
-        if (!ev) {
-          const [datePart, ...rest] = btn.textContent.split(" · ");
-          const titlePart = rest.join(" · ").trim();
-          ev = all.find((e) => e.date === datePart && e.title === titlePart);
-        }
-        if (ev) openCalendarEventDialog(ev.date, [ev]);
-        else openPersonalEventDialog(btn.textContent.split(" · ")[0]);
-      });
-    });
-  };
-
-  window.addEventListener("personalTasksUpdated", renderTasks);
-  window.addEventListener("calendarEventAdded", (e) => {
-    renderReminders();
-    try {
-      const role = localStorage.getItem("calendarRole") || "agent";
-      const windowDays = Number(localStorage.getItem("todoReminderWindow") || 7);
-      const upcoming = getUpcomingCalendarReminders(role, windowDays);
-      notifyUpcomingEvents([...(e && e.detail && e.detail.event ? [e.detail.event] : []), ...upcoming]);
-    } catch (err) {}
-  });
-  setExpanded(localStorage.getItem("todoSidebarExpanded") === "true");
-  renderTasks();
-
-  const windowSelect = document.getElementById("todo-reminder-window");
-  const notifyToggle = document.getElementById("todo-notify-toggle");
-  if (windowSelect) {
-    windowSelect.value = localStorage.getItem("todoReminderWindow") || "7";
-    windowSelect.addEventListener("change", () => {
-      localStorage.setItem("todoReminderWindow", windowSelect.value);
-      renderReminders();
-    });
-  }
-  if (notifyToggle) {
-    notifyToggle.checked = localStorage.getItem("todoNotifyEnabled") === "true";
-    notifyToggle.addEventListener("change", () => {
-      localStorage.setItem("todoNotifyEnabled", notifyToggle.checked ? "true" : "false");
-      if (notifyToggle.checked) requestNotificationPermission();
-    });
-  }
-}
 
 if (isOverviewPage()) {
   wireLeadFilters();
   wireRoleControl();
-  wirePersonalTodo();
-  wireFloatingTodo();
-}
-
-function wireOverviewPdfExport() {
-  const btn = document.getElementById("overview-download-pdf-btn");
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
-    // Use native browser print flow for a simple, reliable Save-to-PDF action.
-    window.print();
-  });
 }
 
 if (isHomeDashboardPage()) {
   (async function() {
     await loadOverviewData();
+    wireOverviewAgencySelector();
     wireOverviewTabs();
-    wireOverviewPdfExport();
     wireRoleControl();
-    wirePersonalTodo();
-    wireFloatingTodo();
-  })();
+      })();
 }
-
-
-wireFloatingTodo();
 
 
 
 // Production Report
 
 function wireProductionReport() {
+  var panel = document.getElementById("production-report-panel");
+  var isAdmin = (sessionStorage.getItem("dashboardRole") || "").toLowerCase() === "admin";
+  if (!isAdmin) {
+    if (panel) panel.hidden = true;
+    return;
+  }
+  if (panel) panel.hidden = false;
   var input = document.getElementById("production-file-input");
   if (!input) return;
-  input.addEventListener("change", function(e) {
+  input.addEventListener("change", async function(e) {
     var file = e.target.files[0];
     if (!file) return;
     var reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = async function(ev) {
       try {
         var wb = XLSX.read(ev.target.result, { type: "array" });
         var ws = wb.Sheets["Summary"] || wb.Sheets[wb.SheetNames[0]];
-        renderProductionViz(ws, file.name);
+        var agents = parseProductionRows(wb);
+        if (typeof apiPost === "function" && agents.length) {
+          var label = document.getElementById("production-report-label");
+          if (label) label.textContent = "Uploading " + agents.length + " rows to database...";
+          await apiPost("/performance/bulk", {
+            periodYear: new Date().getFullYear(),
+            periodLabel: "current",
+            rows: agents
+          });
+          await loadOverviewData();
+          renderPerformanceOverview(localStorage.getItem("overviewScope") || "agency");
+        }
+        renderProductionViz(ws, file.name, agents);
       } catch (err) {
         document.getElementById("production-report-content").innerHTML =
           "<p class='prod-placeholder' style='color:var(--brand)'>Could not parse file: " + err.message + "</p>";
@@ -930,33 +866,59 @@ function wireProductionReport() {
   });
 }
 
-function renderProductionViz(ws, fileName) {
-  var content = document.getElementById("production-report-content");
-  var label   = document.getElementById("production-report-label");
-  if (!content) return;
+function normalizeImportText(value) {
+  return String(value == null ? "" : value).trim();
+}
 
+function normalizeAgentCode(value) {
+  var raw = normalizeImportText(value);
+  if (!raw) return "";
+  if (/^\d+(\.0+)?$/.test(raw)) return String(Math.round(Number(raw)));
+  return raw.toUpperCase();
+}
+
+function getWorksheetCellValue(ws, col, row) {
+  var cell = ws[XLSX.utils.encode_cell({ c: col, r: row })];
+  return cell ? cell.v : "";
+}
+
+function buildAgentCodeLookup(wb) {
+  var lookup = {};
+  var candidateSheets = ["YTD Cases", "Summary (Performance Bonus)", "YTD SPI", "YTD PA", "YTD AI"];
+  candidateSheets.forEach(function(sheetName) {
+    var ws = wb.Sheets[sheetName];
+    if (!ws || !ws["!ref"]) return;
+    var range = XLSX.utils.decode_range(ws["!ref"]);
+    for (var row = 1; row <= range.e.r; row++) {
+      var code = normalizeAgentCode(getWorksheetCellValue(ws, 1, row)); // Agent Code, col B
+      var name = normalizeImportText(getWorksheetCellValue(ws, 3, row)); // Agent Name, col D
+      if (code && name && name.toLowerCase() !== "agent name") {
+        lookup[name.toLowerCase()] = code;
+      }
+    }
+  });
+  return lookup;
+}
+
+function parseProductionRows(source) {
+  var wb = source && source.Sheets ? source : null;
+  var ws = wb ? (wb.Sheets["Summary"] || wb.Sheets[wb.SheetNames[0]]) : source;
+  var agentCodeByName = wb ? buildAgentCodeLookup(wb) : {};
   var range = XLSX.utils.decode_range(ws["!ref"] || "A1");
 
   function cellVal(col, row) {
-    var cell = ws[XLSX.utils.encode_cell({ c: col, r: row })];
-    return cell ? cell.v : "";
+    return getWorksheetCellValue(ws, col, row);
   }
   function toNum(v) { return parseFloat(v) || 0; }
-  function fmtK(v) {
-    if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
-    if (v >= 1000)    return (v / 1000).toFixed(1) + "K";
-    return String(Math.round(v));
-  }
-
-  // Parse agents — forward-fill agency name (col A is blank for rows after first in group)
   var agents = [];
   var lastAgency = "";
   for (var row = 2; row <= range.e.r; row++) {
-    var agtNm = String(cellVal(1, row)).trim();  // col B
+    var agtNm = normalizeImportText(cellVal(1, row));  // col B
     if (!agtNm) continue;
-    var agyCel = String(cellVal(0, row)).trim();  // col A
+    var agyCel = normalizeImportText(cellVal(0, row));  // col A
     if (agyCel) lastAgency = agyCel;
     agents.push({
+      agentId:  agentCodeByName[agtNm.toLowerCase()] || "",
       agency:   lastAgency,
       name:     agtNm,
       mtdFyc:   toNum(cellVal(2, row)),
@@ -968,6 +930,21 @@ function renderProductionViz(ws, fileName) {
       todo:     toNum(cellVal(8, row))
     });
   }
+  return agents;
+}
+
+function renderProductionViz(ws, fileName, parsedAgents) {
+  var content = document.getElementById("production-report-content");
+  var label   = document.getElementById("production-report-label");
+  if (!content) return;
+
+  function fmtK(v) {
+    if (v >= 1000000) return (v / 1000000).toFixed(1) + "M";
+    if (v >= 1000)    return (v / 1000).toFixed(1) + "K";
+    return String(Math.round(v));
+  }
+
+  var agents = parsedAgents || parseProductionRows(ws);
 
   if (!agents.length) {
     content.innerHTML = "<p class='prod-placeholder'>No agent rows found. Make sure data starts on row 3 with agent names in column B.</p>";

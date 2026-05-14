@@ -1,7 +1,7 @@
 ﻿(async function announcementsPage() {
       var role = (sessionStorage.getItem("dashboardRole") || "").toLowerCase();
-      var user = (sessionStorage.getItem("dashboardUser") || "A123").toUpperCase();
-      var canCreate = role === "leader" || role === "district";
+      var user = (sessionStorage.getItem("dashboardUser") || "").toUpperCase();
+      var canCreate = role === "leader" || role === "admin";
       var RESPONSES_KEY = "fm_announcement_responses_v1";
       var announcementsCache = null;
 
@@ -133,7 +133,7 @@
           '<form class="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50" data-agent-response-form="' + announcement.id + '">' +
           '<p class="text-sm font-semibold text-slate-700 mb-2">Your response (' + esc(typeLabel(announcement.responseType)) + ")</p>" +
           '<div class="mb-2">' + options + "</div>" +
-          '<textarea name="note" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" rows="2" maxlength="220" placeholder="Optional note for leader/district">' + esc(note) + "</textarea>" +
+          '<textarea name="note" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" rows="2" maxlength="220" placeholder="Optional note for agency leader/admin">' + esc(note) + "</textarea>" +
           '<div class="mt-3 flex items-center justify-between"><button type="submit" class="bg-aia-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">' + buttonLabel + "</button>" + updatedLabel + "</div>" +
           "</form>"
         );

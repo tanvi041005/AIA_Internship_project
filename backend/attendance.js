@@ -9,8 +9,8 @@
       if (!signedInRole) return;
       var user = (sessionStorage.getItem("dashboardUser") || "User").toUpperCase();
       var role = signedInRole;
-      var isHostView = role === "district";
-      var roleLabels = { agent: "Agent", leader: "Leader", district: "District Manager" };
+      var isHostView = role === "admin";
+      var roleLabels = { agent: "Agent", leader: "Agency Leader", admin: "Admin Super User" };
       // GET /attendance-events → calendar_events with attendance_token set
       var apiAttendanceEvents = [];
 
@@ -195,7 +195,7 @@
         if (pageTitle) pageTitle.textContent = isHostView ? "Presenter Attendance View" : "Attendee Check-in";
         if (pageLede) {
           pageLede.textContent = isHostView
-            ? "The District host view automatically selects the current or next event and generates the attendance QR."
+            ? "The admin host view automatically selects the current or next event and generates the attendance QR."
             : "Agents can only check in after scanning the host QR and signing in.";
         }
       }

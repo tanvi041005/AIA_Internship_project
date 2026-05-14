@@ -115,7 +115,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: 0 8px 28px rgba(32,33,36,0.13);
-      width: 270px;
+      width: 360px;
       overflow: hidden;
     }
     .comp-search {
@@ -164,9 +164,21 @@
       color: #fff;
       flex-shrink: 0;
     }
-    .list-info          { flex: 1; }
+    .list-info          { flex: 1; min-width: 0; }
     .list-name          { font-weight: 600; display: block; }
     .list-rank          { font-size: 0.7rem; color: var(--text-muted); }
+    .list-rank-badge {
+      min-width: 48px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.18rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--brand);
+      background: var(--brand-light);
+      flex-shrink: 0;
+    }
 
     /* Period tabs */
     .period-tabs { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
@@ -183,6 +195,7 @@
       transition: all 0.15s;
       white-space: nowrap;
     }
+    .period-tabs .period-tab { cursor: default; }
     .period-tab:hover        { border-color: var(--brand); color: var(--brand); }
     .period-tab.active       { background: var(--brand); border-color: var(--brand); color: #fff; }
     .period-tab.year-tab     { background: var(--surface-subtle); color: var(--text-muted); }
@@ -209,6 +222,7 @@
       vertical-align: top;
       position: relative;
       min-width: 180px;
+      text-align: center;
     }
     .comp-table thead th.th-lbl,
     .comp-table thead th.th-crn {
@@ -217,6 +231,7 @@
     .agent-col-wrap {
       display: flex;
       align-items: flex-start;
+      justify-content: center;
       gap: 0.6rem;
     }
     .agent-col-avatar {
@@ -231,7 +246,7 @@
       color: #fff;
       flex-shrink: 0;
     }
-    .agent-col-info    { flex: 1; }
+    .agent-col-info    { flex: 0 1 auto; text-align: center; }
     .agent-col-name    { font-size: 0.88rem; font-weight: 700; color: var(--text); margin: 0 0 0.15rem; line-height: 1.2; display: block; }
     .agent-col-team    { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
     .agent-col-remove  {
@@ -257,7 +272,7 @@
     }
     .m-sublabel { font-size: 0.68rem; color: var(--text-muted); opacity: 0.7; margin-top: 0.05rem; }
 
-    .comp-table td.td-val { padding: 0.85rem 1.25rem; vertical-align: top; }
+    .comp-table td.td-val { padding: 0.85rem 1.25rem; vertical-align: top; text-align: center; }
     .m-value {
       display: block;
       font-size: 1rem;
@@ -268,57 +283,6 @@
     .m-value.is-winner  { color: var(--brand); }
     .m-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; display: block; }
 
-
-    /* ── Monthly breakdown ───────────────────────────────────────── */
-    .monthly-wrap {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow-x: auto;
-    }
-    .monthly-head {
-      padding: 0.85rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .monthly-head h2 {
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin: 0;
-    }
-    .monthly-table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 420px;
-    }
-    .monthly-table th {
-      padding: 0.55rem 1.25rem;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      background: var(--surface-subtle);
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-    }
-    .monthly-table td {
-      padding: 0.6rem 1.25rem;
-      font-size: 0.85rem;
-      color: var(--text);
-      border-top: 1px solid var(--border);
-    }
-    .monthly-table tr:hover td { background: var(--surface-subtle); }
-    .monthly-table .td-month {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .monthly-table .td-best { color: var(--brand); font-weight: 700; }
 
     /* ── Empty state ─────────────────────────────────────────────── */
     .comp-empty {
@@ -344,7 +308,7 @@
   <main id="main">
     <p class="comp-category">Tools</p>
     <h1 class="comp-title">Agent Comparison</h1>
-    <p class="comp-subtitle">Place up to four agents side by side. Totals at the top, month-by-month below.</p>
+    <p class="comp-subtitle">Place up to four agents side by side using imported YTD production data.</p>
 
     <!-- Controls: chips + period tabs -->
     <div class="comp-controls">
@@ -360,22 +324,14 @@
         </div>
       </div>
 
-      <div class="period-tabs" role="group" aria-label="Period">
-        <button class="period-tab active" data-period="ytd">YTD</button>
-        <button class="period-tab" data-period="month">This month</button>
-        <button class="period-tab" data-period="q1">Q1</button>
-        <button class="period-tab" data-period="q2">Q2</button>
-        <button class="period-tab" data-period="q3">Q3</button>
-        <button class="period-tab" data-period="q4">Q4</button>
-        <button class="period-tab year-tab" disabled aria-disabled="true">2026</button>
+      <div class="period-tabs" aria-label="Period">
+        <span class="period-tab active">YTD</span>
       </div>
     </div>
 
     <!-- Comparison table (rendered by JS) -->
     <div id="comp-table-wrap" class="comp-table-wrap"></div>
 
-    <!-- Month-by-month (rendered by JS) -->
-    <div id="comp-monthly"></div>
   </main>
 
   <footer class="site-footer">

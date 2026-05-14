@@ -23,9 +23,14 @@
       <div class="overview-tabs-panel-head">
         <div>
           <h1 class="page-title">Overview</h1>
-          <p class="page-lede" id="overview-scope-lede">District-wide performance across all agents, leads, and FYC activity.</p>
+          <p class="page-lede" id="overview-scope-lede">All-agency performance across agents, leads, and FYC activity.</p>
         </div>
-        <button type="button" class="overview-download-pdf-btn" id="overview-download-pdf-btn">Download PDF</button>
+        <label class="overview-agency-control">
+          <span>Agency</span>
+          <select id="overview-agency-select" aria-label="Select agency for overview">
+            <option value="">Loading agencies</option>
+          </select>
+        </label>
       </div>
     </section>
 

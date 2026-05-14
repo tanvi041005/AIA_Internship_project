@@ -10,11 +10,11 @@
   <main id="main">
     <section class="panel form-card login-role-card">
       <h1 class="page-title">Sign in to Dashboard</h1>
-      <p class="page-lede">Login type is automatically tagged from the User ID.</p>
+      <p class="page-lede">Use your assigned agent code. Admin assigns the dashboard role.</p>
 
       <form id="role-login-form">
         <label for="login-username">User ID</label>
-        <input id="login-username" type="text" placeholder="e.g. AGT1024 / LDR2040 / DST3001" required />
+        <input id="login-username" type="text" placeholder="Agent code, e.g. 39449 or ARIEL" required />
 
         <label for="login-password">Password</label>
         <input id="login-password" type="password" placeholder="Enter password" required />
@@ -25,6 +25,7 @@
     </section>
   </main>
 
+  <script src="../backend/api.js"></script>
   <script src="../backend/auth.js"></script>
 </body>
 </html>

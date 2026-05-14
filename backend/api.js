@@ -39,6 +39,21 @@ async function apiDelete(path) {
 // spreads `extra` first, then lets fixed columns override — so future fields
 // surface automatically without code changes.
 
+// Convert any date value (ISO string, Date object, "YYYY-MM-DD") to a
+// Singapore-local YYYY-MM-DD string.  This handles the mysql2 behaviour where
+// a DATE column can arrive as "2026-05-14T16:00:00.000Z" (UTC midnight that is
+// actually 2026-05-15 00:00 SGT) and .slice(0,10) would give the wrong day.
+function toSGDate(raw) {
+  if (raw == null || raw === '') return '';
+  var s = raw instanceof Date ? raw.toISOString() : String(raw);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;  // already "YYYY-MM-DD"
+  try {
+    return new Date(s).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+  } catch (e) {
+    return s.slice(0, 10);
+  }
+}
+
 function parseExtra(r) {
   if (!r || !r.extra) return {};
   if (typeof r.extra === 'string') {
@@ -141,12 +156,45 @@ function mapBooking(r) {
     id:            r.booking_id,
     title:         r.title,
     room:          r.room_id,
-    date:          r.booking_date,
+    date:          toSGDate(r.booking_date),
     start:         (r.start_time || '').slice(0, 5),
     end:           (r.end_time   || '').slice(0, 5),
     by:            r.booked_by_name || '',
     notes:         r.notes || '',
     recurrence:    r.recurrence || 'none',
     recurrenceEnd: r.recurrence_end || '',
+    recurrenceId:  r.recurrence_id  || '',
+  });
+}
+
+function mapCalendarEvent(r) {
+  var extra = parseExtra(r);
+  return Object.assign({}, extra, {
+    // Accept both raw DB snake_case and pre-mapped camelCase from Lambda
+    id:           r.event_id         || r.id,
+    title:        r.title,
+    date:         toSGDate(r.event_date != null ? r.event_date : r.date),
+    startTime:    (r.start_time || r.startTime || '').slice(0, 5),
+    endTime:      (r.end_time   || r.endTime   || '').slice(0, 5),
+    location:     r.location                   || '',
+    type:         r.event_type  || r.type      || '',
+    category:     r.category,
+    notes:        r.notes                      || '',
+    recurrenceId: r.recurrence_id  || r.recurrenceId  || '',
+    taskId:       r.linked_task_id || r.taskId || '',
+    editable:     r.is_editable !== false,
+  });
+}
+
+function mapPersonalTask(r) {
+  var extra = parseExtra(r);
+  return Object.assign({}, extra, {
+    // Accept both raw DB snake_case and pre-mapped camelCase from Lambda
+    id:         r.task_id  || r.id,
+    title:      r.title,
+    done:       !!(r.is_done || r.done),
+    source:     r.source                      || 'manual',
+    dueDate:    toSGDate(r.due_date != null ? r.due_date : r.dueDate),
+    eventTitle: r.linked_event_title || r.eventTitle || '',
   });
 }
