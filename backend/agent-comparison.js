@@ -1,8 +1,5 @@
 ﻿// ─── Dataset — loaded from GET /performance ───────────────────────────
     let AGENTS = [];
-    // DISTRICT_CUM (12-month cumulative) not yet returned by /performance; needs monthly breakdown endpoint
-    let DISTRICT_CUM = new Array(12).fill(0);
-    const MONTHS       = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     let TOTAL_YTD    = 0;
     const SLOT_COLORS  = ["#a6192e", "#374151", "#6d5bd0", "#059669"];
 
@@ -13,54 +10,36 @@
     }
     function fmt(n)    { return "SGD " + Math.round(n).toLocaleString("en-SG"); }
     function slotColor(i) { return SLOT_COLORS[i % SLOT_COLORS.length]; }
-
-    function agentCum(agent) {
-      const r = agent.ytdFyc / TOTAL_YTD;
-      return DISTRICT_CUM.map(v => Math.round(v * r));
-    }
-    function agentInc(agent) {
-      const c = agentCum(agent);
-      return c.map((v, i) => i === 0 ? v : v - c[i - 1]);
+    function hasNumber(value) { return typeof value === "number" && Number.isFinite(value); }
+    function numOrNull(value) {
+      if (value == null || value === "") return null;
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
     }
 
-    // ─── Period helpers ────────────────────────────────────────────────────
-    function periodInfo(period) {
-      const ranges = {
-        ytd:   { start: 0, end: 4, label: "Jan – May · 2026",              future: false },
-        month: { start: 4, end: 4, label: "May · 2026",                    future: false },
-        q1:    { start: 0, end: 2, label: "Jan – Mar · 2026",              future: false },
-        q2:    { start: 3, end: 4, label: "Apr – May · 2026 (partial)",    future: false },
-        q3:    { start: 6, end: 8, label: "Jul – Sep · 2026",              future: true  },
-        q4:    { start: 9, end: 11, label: "Oct – Dec · 2026",             future: true  },
-      };
-      return ranges[period] || ranges.ytd;
+    function parseExtra(row) {
+      if (!row || !row.extra) return {};
+      if (typeof row.extra === "object") return row.extra;
+      try { return JSON.parse(row.extra); }
+      catch { return {}; }
     }
 
-    function agentPeriodMetrics(agent, period) {
-      const { start, end, label, future } = periodInfo(period);
-      if (future) return { label, available: false };
+    function applyDerivedDistrictRanks() {
+      AGENTS
+        .slice()
+        .filter(agent => hasNumber(agent.ytdFyc))
+        .sort((a, b) => b.ytdFyc - a.ytdFyc || a.name.localeCompare(b.name))
+        .forEach((agent, i) => {
+          agent.rank = i + 1;
+        });
+    }
 
-      const inc     = agentInc(agent);
-      const slice   = inc.slice(start, end + 1);
-      const fyc     = slice.reduce((s, v) => s + v, 0);
-      const months  = slice.length;
-      const bestVal = Math.max(...slice);
-      const bestIdx = start + slice.indexOf(bestVal);
-      const anp     = Math.round(fyc * 4.25);
-
-      let cases;
-      if (period === "ytd")   cases = agent.cases;
-      else if (period === "q1") cases = Math.round(agent.cases * 3 / 5);
-      else if (period === "q2") cases = Math.round(agent.cases * 2 / 5);
-      else                    cases = Math.max(0, Math.round(agent.cases / 5));
-
+    function agentPeriodMetrics(agent) {
       return {
-        label, available: true,
-        fyc, anp, cases,
-        avgMonthly: Math.round(fyc / months),
-        bestMonth: bestVal,
-        bestMonthName: MONTHS[bestIdx],
-        months
+        label: "YTD",
+        fyc: agent.ytdFyc,
+        anp: agent.ytdAnp,
+        cases: agent.cases
       };
     }
 
@@ -101,10 +80,18 @@
       ul.innerHTML = "";
       const lq = q.trim().toLowerCase();
       let count = 0;
-      AGENTS.forEach((a, idx) => {
+      AGENTS
+        .map((agent, idx) => ({ agent, idx }))
+        .sort((a, b) => {
+          const ar = a.agent.rank > 0 ? a.agent.rank : Number.MAX_SAFE_INTEGER;
+          const br = b.agent.rank > 0 ? b.agent.rank : Number.MAX_SAFE_INTEGER;
+          return ar - br || a.agent.name.localeCompare(b.agent.name);
+        })
+        .forEach(({ agent: a, idx }) => {
         if (lq && !a.name.toLowerCase().includes(lq) && !a.team.toLowerCase().includes(lq)) return;
         const added = selected.includes(idx);
         const nextColor = slotColor(selected.length);
+        const rankText = a.rank > 0 ? `#${a.rank}` : "Unranked";
         const li = document.createElement("li");
         if (added) li.className = "already-added";
         li.setAttribute("role", "option");
@@ -112,8 +99,9 @@
           <span class="list-avatar" style="background:${added ? "#c9c3b8" : nextColor}">${initials(a.name)}</span>
           <span class="list-info">
             <span class="list-name">${a.name}</span>
-            <span class="list-rank">Rank #${a.rank} · ${a.team}</span>
+            <span class="list-rank">District rank ${rankText} · ${a.team}</span>
           </span>
+          <span class="list-rank-badge">${rankText}</span>
           ${added ? '<span style="font-size:0.7rem;color:#c0b0a0">Added</span>' : ""}
         `;
         if (!added) li.addEventListener("click", () => { addAgent(idx); closeDropdown(); });
@@ -173,12 +161,10 @@
     }
 
     function renderTable() {
-      const wrap    = document.getElementById("comp-table-wrap");
-      const monthly = document.getElementById("comp-monthly");
+      const wrap = document.getElementById("comp-table-wrap");
 
       if (selected.length === 0) {
         wrap.innerHTML = `<div class="comp-empty"><strong>No agents selected</strong>Click "+ Add another agent" above to get started.</div>`;
-        monthly.innerHTML = "";
         return;
       }
 
@@ -186,59 +172,30 @@
         agent:   AGENTS[idx],
         color:   slotColor(slot),
         slot,
-        metrics: agentPeriodMetrics(AGENTS[idx], period)
+        metrics: agentPeriodMetrics(AGENTS[idx])
       }));
 
       // Metric definitions
       const metrics = [
         {
-          key: "period",
-          label: "PERIOD", sub: "",
-          vals: cols.map(c => ({ text: c.metrics.label || "—", num: null })),
-          noWinner: true
-        },
-        {
           key: "fyc",
           label: "FYC", sub: "",
-          vals: cols.map(c => ({ text: c.metrics.available ? fmt(c.metrics.fyc) : "—", num: c.metrics.fyc ?? null }))
+          vals: cols.map(c => ({ text: hasNumber(c.metrics.fyc) ? fmt(c.metrics.fyc) : "—", num: c.metrics.fyc }))
         },
         {
           key: "anp",
           label: "ANP", sub: "",
-          vals: cols.map(c => ({ text: c.metrics.available ? fmt(c.metrics.anp) : "—", num: c.metrics.anp ?? null }))
+          vals: cols.map(c => ({ text: hasNumber(c.metrics.anp) ? fmt(c.metrics.anp) : "—", num: c.metrics.anp }))
         },
         {
           key: "cases",
           label: "CASES", sub: "",
-          vals: cols.map(c => ({ text: c.metrics.available ? c.metrics.cases : "—", num: c.metrics.cases ?? null }))
-        },
-        {
-          key: "avg",
-          label: "AVG MONTHLY FYC",
-          sub: cols[0]?.metrics.available ? `across ${cols[0].metrics.months} month${cols[0].metrics.months !== 1 ? "s" : ""}` : "",
-          vals: cols.map(c => ({ text: c.metrics.available ? fmt(c.metrics.avgMonthly) : "—", num: c.metrics.avgMonthly ?? null }))
-        },
-        {
-          key: "best",
-          label: "BEST MONTH", sub: "Highest FYC",
-          vals: cols.map(c => ({
-            text:    c.metrics.available ? fmt(c.metrics.bestMonth) : "—",
-            subtext: c.metrics.available ? c.metrics.bestMonthName : "",
-            num:     c.metrics.bestMonth ?? null
-          }))
+          vals: cols.map(c => ({ text: hasNumber(c.metrics.cases) ? c.metrics.cases : "—", num: c.metrics.cases }))
         },
         {
           key: "rank",
           label: "DISTRICT RANK", sub: "",
-          vals: cols.map(c => ({ text: "#" + c.agent.rank, num: -c.agent.rank })) // lower rank = better
-        },
-        {
-          key: "delta",
-          label: "DELTA", sub: "vs last period",
-          vals: cols.map(c => ({
-            text: c.agent.delta === 0 ? "—" : (c.agent.delta > 0 ? "+" : "") + c.agent.delta + "%",
-            num: c.agent.delta
-          }))
+          vals: cols.map(c => ({ text: hasNumber(c.agent.rank) ? "#" + c.agent.rank : "—", num: hasNumber(c.agent.rank) ? -c.agent.rank : null })) // lower rank = better
         }
       ];
 
@@ -290,66 +247,31 @@
         btn.addEventListener("click", () => removeAgent(+btn.dataset.slot));
       });
 
-      renderMonthly(cols);
     }
-
-    function renderMonthly(cols) {
-      const section = document.getElementById("comp-monthly");
-      const { start, end, future } = periodInfo(period);
-      if (future || start === end) { section.innerHTML = ""; return; }
-
-      const monthIdxs = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-      const agentIncs = cols.map(c => agentInc(c.agent));
-
-      let html = `<div class="monthly-wrap">
-        <div class="monthly-head"><h2>Month-by-month FYC</h2></div>
-        <table class="monthly-table">
-          <colgroup>
-            <col style="width:80px" />
-            ${cols.map(() => `<col />`).join("")}
-          </colgroup>
-          <thead><tr>
-            <th>Month</th>
-            ${cols.map(c => `<th>${c.agent.name.split(" ")[0]}</th>`).join("")}
-          </tr></thead>
-          <tbody>`;
-
-      monthIdxs.forEach(mi => {
-        const vals = agentIncs.map(inc => inc[mi]);
-        const wi   = winnerIdx(vals);
-        html += `<tr>
-          <td class="td-month">${MONTHS[mi]}</td>
-          ${vals.map((v, i) => `<td class="${i === wi ? "td-best" : ""}">${fmt(v)}</td>`).join("")}
-        </tr>`;
-      });
-
-      html += `</tbody></table></div>`;
-      section.innerHTML = html;
-    }
-
-    // ─── Period tab wiring ────────────────────────────────────────────────
-    document.querySelectorAll(".period-tab[data-period]").forEach(tab => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".period-tab").forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        period = tab.dataset.period;
-        renderTable();
-      });
-    });
 
     // ─── Init — load agents from GET /performance ─────────────────────────
     (async function() {
       if (typeof apiGet === "function") {
         try {
-          const rows = await apiGet("/performance");
+          const rows = await apiGet("/performance?year=" + new Date().getFullYear() + "&period=current");
           if (Array.isArray(rows) && rows.length > 0) {
-            AGENTS = rows.map(function(r) {
-              return { name: r.full_name || r.agent_id, rank: r.district_rank || 0, ytdFyc: Number(r.ytd_fyc || 0), delta: Number(r.delta || 0), cases: Number(r.cases || 0), team: r.team_code || r.agent_id };
-            });
-            TOTAL_YTD = AGENTS.reduce((s, a) => s + a.ytdFyc, 0);
+            AGENTS = rows
+              .filter(function(r) { return !/^A\d+$/i.test(String(r.agent_id || "")); })
+              .map(function(r) {
+                const extra = parseExtra(r);
+                return {
+                  name: r.full_name || r.agent_id,
+                rank: numOrNull(r.district_rank),
+                ytdFyc: numOrNull(r.ytd_fyc),
+                ytdAnp: numOrNull(r.ytd_fyp != null ? r.ytd_fyp : extra.ytdFyp),
+                cases: numOrNull(r.total_cases != null ? r.total_cases : extra.ytdCases),
+                team: r.team_name || extra.teamName || extra.agency || r.agent_id
+              };
+              });
+            applyDerivedDistrictRanks();
+            TOTAL_YTD = AGENTS.reduce((s, a) => s + (a.ytdFyc || 0), 0);
           }
         } catch (e) { console.warn("Failed to load performance data:", e); }
       }
-      if (AGENTS.length >= 2) { addAgent(0); addAgent(1); }
-      else { render(); }
+      render();
     })();
