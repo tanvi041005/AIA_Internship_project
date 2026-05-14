@@ -1,4 +1,4 @@
-﻿(async function () {
+(async function () {
       var REFLECTION_KEY = "salesTrackerReflections";
       var DAILY_TARGET = 15;
       var role = sessionStorage.getItem("dashboardRole") || "agent";
@@ -12,8 +12,19 @@
       var selectedWeekOffset = 0;
       var salesEntriesCache = [];
 
+      function ymdLocal(d) {
+        var y = d.getFullYear();
+        var mo = String(d.getMonth() + 1);
+        if (mo.length === 1) mo = '0' + mo;
+        var da = String(d.getDate());
+        if (da.length === 1) da = '0' + da;
+        return y + '-' + mo + '-' + da;
+      }
+
       function todayISO() {
-        return new Date().toISOString().slice(0, 10);
+        var n = new Date();
+        n.setHours(0, 0, 0, 0);
+        return ymdLocal(n);
       }
 
       function readList(key) {
@@ -106,12 +117,13 @@
 
       function renderPointChart(rows) {
         var root = document.getElementById("sales-point-chart");
-        var today = new Date(todayISO() + "T00:00:00");
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
         var days = [];
         for (var i = 6; i >= 0; i -= 1) {
           var d = new Date(today);
           d.setDate(today.getDate() - i);
-          days.push(d.toISOString().slice(0, 10));
+          days.push(ymdLocal(d));
         }
         var maxValue = Math.max(DAILY_TARGET, rows.reduce(function (max, row) { return Math.max(max, points(row)); }, 0));
         root.innerHTML = days.map(function (day) {
@@ -159,7 +171,8 @@
       }
 
       function weekDays() {
-        var today = new Date(todayISO() + "T00:00:00");
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
         var monday = new Date(today);
         var day = monday.getDay();
         var diff = day === 0 ? -6 : 1 - day;
@@ -169,7 +182,7 @@
         for (var i = 0; i < 7; i += 1) {
           var date = new Date(monday);
           date.setDate(monday.getDate() + i);
-          days.push(date.toISOString().slice(0, 10));
+          days.push(ymdLocal(date));
         }
         return days;
       }
@@ -362,7 +375,15 @@
         }
         if (settings && settings.weeklyTarget) DAILY_TARGET = Math.round(settings.weeklyTarget / 7) || DAILY_TARGET;
       } catch (e) { console.warn('Failed to load sales settings:', e); }
-      salesEntriesCache = (await apiGet('/sales-entries')).map(function(r) { return mapSalesEntry(r, activityTypes); });
+      try {
+        var rawEntries = await apiGet('/sales-entries');
+        salesEntriesCache = Array.isArray(rawEntries)
+          ? rawEntries.map(function (r) { return mapSalesEntry(r, activityTypes); })
+          : [];
+      } catch (e) {
+        console.warn('Failed to load sales entries:', e);
+        salesEntriesCache = [];
+      }
       renderMeta();
       renderActivityOptions();
       renderAgentFilter();

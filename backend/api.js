@@ -47,6 +47,22 @@ function parseExtra(r) {
   return r.extra;
 }
 
+/** Calendar YYYY-MM-DD in local TZ (matches HTML date inputs & weekly grid). */
+function ymdLocalDate(value) {
+  if (value == null || value === '') return '';
+  var d = new Date(value);
+  if (isNaN(d.getTime())) {
+    var m = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  }
+  var y = d.getFullYear();
+  var mo = String(d.getMonth() + 1);
+  if (mo.length === 1) mo = '0' + mo;
+  var da = String(d.getDate());
+  if (da.length === 1) da = '0' + da;
+  return y + '-' + mo + '-' + da;
+}
+
 function mapLead(r) {
   var extra = parseExtra(r);
   return Object.assign({}, extra, {
@@ -102,13 +118,15 @@ function mapAnnouncement(r) {
 function mapSalesEntry(r, activityTypes) {
   var extra = parseExtra(r);
   var type = (activityTypes || []).find(function(t) { return t.id === r.activity_type_id; });
+  var labelFromJoin = r.activity_label != null ? r.activity_label : null;
+  var pointsFromJoin = r.points != null ? Number(r.points) : null;
   return Object.assign({}, extra, {
     id:            r.entry_id,
     agentId:       r.agent_id,
-    date:          r.entry_date,
+    date:          ymdLocalDate(r.entry_date),
     activityId:    r.activity_type_id,
-    activityLabel: type ? type.label : r.activity_type_id,
-    pointValue:    type ? type.points : 0,
+    activityLabel: type ? type.label : (labelFromJoin || r.activity_type_id),
+    pointValue:    type ? type.points : (pointsFromJoin != null ? pointsFromJoin : 0),
     count:         r.count,
     client:        r.client_name || '-',
     status:        r.status,
