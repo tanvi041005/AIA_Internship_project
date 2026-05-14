@@ -237,6 +237,44 @@ const overviewScopeCopy = {
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
 const PERSONAL_TASKS_STORAGE_KEY = "personalTasks";
+
+function mapCalendarEvent(r) {
+  const toDate = (v) => { const s = v instanceof Date ? v.toISOString() : String(v || ''); return s.slice(0, 10); };
+  return {
+    id: r.event_id,
+    title: r.title,
+    date: toDate(r.event_date),
+    startTime: r.start_time ? String(r.start_time).slice(0, 5) : '',
+    endTime: r.end_time ? String(r.end_time).slice(0, 5) : '',
+    location: r.location || '',
+    notes: r.notes || '',
+    type: r.event_type || 'Appointment',
+    category: r.category,
+    recurrenceId: r.recurrence_id || '',
+    taskId: r.linked_task_id || '',
+    editable: r.is_editable !== false,
+  };
+}
+
+async function loadCalendarEventsFromApi() {
+  if (typeof apiGet !== 'function') return;
+  const userId = sessionStorage.getItem("dashboardUser");
+  if (!userId) return;
+  try {
+    const rows = await apiGet('/events?userId=' + encodeURIComponent(userId));
+    if (!Array.isArray(rows)) return;
+    const personal = [], agency = [];
+    for (const r of rows) {
+      const ev = mapCalendarEvent(r);
+      if (ev.category === 'agency') agency.push(ev);
+      else if (ev.category === 'personal') personal.push(ev);
+    }
+    localStorage.setItem(PERSONAL_EVENTS_STORAGE_KEY, JSON.stringify(personal));
+    if (agency.length > 0) localStorage.setItem(AGENCY_EVENTS_STORAGE_KEY, JSON.stringify(agency));
+  } catch (e) {
+    console.warn('Failed to load calendar events from API:', e);
+  }
+}
 const ATTENDANCE_EVENTS_STORAGE_KEY = "attendanceEvents";
 
 function isOverviewPage() {
@@ -363,6 +401,17 @@ function addPersonalTask(payload) {
   const tasks = getPersonalTasks();
   tasks.unshift(task);
   savePersonalTasks(tasks);
+  const userId = sessionStorage.getItem("dashboardUser");
+  if (typeof apiPost === 'function' && userId) {
+    apiPost('/tasks', {
+      task_id: task.id,
+      user_id: userId,
+      title: task.title,
+      due_date: task.dueDate || null,
+      source: task.source || 'manual',
+      event_title: task.eventTitle || null,
+    }).catch(function() {});
+  }
   return task;
 }
 
@@ -385,6 +434,22 @@ function addPersonalEvent(payload) {
   };
   events.push(eventItem);
   savePersonalEvents(events);
+  const _userId = sessionStorage.getItem("dashboardUser");
+  if (typeof apiPost === 'function' && _userId) {
+    apiPost('/events', {
+      event_id: eventItem.id,
+      title: eventItem.title,
+      event_date: eventItem.date,
+      start_time: eventItem.startTime || null,
+      end_time: eventItem.endTime || null,
+      location: eventItem.location || null,
+      event_type: eventItem.type || null,
+      category: 'personal',
+      notes: eventItem.notes || null,
+      recurrence_id: eventItem.recurrenceId || null,
+      user_id: _userId,
+    }).catch(function() {});
+  }
   // Notify other parts of the app that a calendar event was added
   try {
     window.dispatchEvent(new CustomEvent("calendarEventAdded", { detail: { type: "personal", event: eventItem } }));
@@ -409,6 +474,21 @@ function addAgencyEvent(payload) {
   };
   events.push(eventItem);
   saveAgencyEvents(events);
+  const _agencyUserId = sessionStorage.getItem("dashboardUser");
+  if (typeof apiPost === 'function' && _agencyUserId) {
+    apiPost('/events', {
+      event_id: eventItem.id,
+      title: eventItem.title,
+      event_date: eventItem.date,
+      start_time: eventItem.startTime || null,
+      end_time: eventItem.endTime || null,
+      location: eventItem.location || null,
+      event_type: eventItem.type || null,
+      category: 'agency',
+      notes: eventItem.notes || null,
+      user_id: _agencyUserId,
+    }).catch(function() {});
+  }
   try {
     window.dispatchEvent(new CustomEvent("calendarEventAdded", { detail: { type: "agency", event: eventItem } }));
   } catch (e) {}
@@ -1380,14 +1460,31 @@ function getPublicHolidayEvents(year) {
 function updatePersonalEvent(id, payload) {
   const events = getPersonalEvents().map((e) => (e.id === id ? { ...e, ...payload } : e));
   savePersonalEvents(events);
+  if (typeof apiPut === 'function') {
+    apiPut('/events/' + id, {
+      title: payload.title,
+      event_date: payload.date,
+      start_time: payload.startTime ?? null,
+      end_time: payload.endTime ?? null,
+      location: payload.location ?? null,
+      event_type: payload.type || null,
+      notes: payload.notes ?? null,
+    }).catch(function() {});
+  }
 }
 
 function deletePersonalEvent(id) {
   savePersonalEvents(getPersonalEvents().filter((e) => e.id !== id));
+  if (typeof apiDelete === 'function') {
+    apiDelete('/events/' + id).catch(function() {});
+  }
 }
 
 function deletePersonalEventSeries(recurrenceId) {
   savePersonalEvents(getPersonalEvents().filter((e) => e.recurrenceId !== recurrenceId));
+  if (typeof apiDelete === 'function') {
+    apiDelete('/events?recurrenceId=' + encodeURIComponent(recurrenceId)).catch(function() {});
+  }
 }
 
 function generateRecurringDates(startDate, recurrenceType, untilDate) {
@@ -1475,8 +1572,10 @@ function wireCalendarPage() {
   wireCalendarEventDialog();
   wireAgencyEventManager(userRole, update);
   wireAgencyEventEditDialog(update);
-  update();
-  showTodayRemindersOnce(state);
+  loadCalendarEventsFromApi().then(function() {
+    update();
+    showTodayRemindersOnce(state);
+  });
 }
 
 function wireCalendarDateClicks(state) {
@@ -1729,6 +1828,9 @@ function wireAgencyEventEditDialog(refreshCalendar) {
     const endTime = (dialog.querySelector("#agency-edit-dialog-end-time") || {}).value || "";
     if (!date || !title) return;
     saveAgencyEvents(getAgencyEvents().map((ev) => (ev.id === id ? { ...ev, date, title, startTime, endTime } : ev)));
+    if (typeof apiPut === 'function') {
+      apiPut('/events/' + id, { event_date: date, title, start_time: startTime || null, end_time: endTime || null }).catch(function() {});
+    }
     dialog.close();
     if (refreshCalendar) refreshCalendar();
   });
@@ -1738,6 +1840,9 @@ function wireAgencyEventEditDialog(refreshCalendar) {
       const id = dialog.querySelector("#agency-edit-dialog-id").value;
       if (!confirm("Delete this agency event?")) return;
       saveAgencyEvents(getAgencyEvents().filter((ev) => ev.id !== id));
+      if (typeof apiDelete === 'function') {
+        apiDelete('/events/' + id).catch(function() {});
+      }
       dialog.close();
       if (refreshCalendar) refreshCalendar();
     });

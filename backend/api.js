@@ -16,6 +16,16 @@ async function apiPost(path, data) {
   return res.json();
 }
 
+async function apiPut(path, data) {
+  const res = await fetch(API_BASE + path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('API ' + res.status + ': PUT ' + path);
+  return res.json();
+}
+
 async function apiDelete(path) {
   const res = await fetch(API_BASE + path, { method: 'DELETE' });
   if (!res.ok) throw new Error('API ' + res.status + ': DELETE ' + path);
