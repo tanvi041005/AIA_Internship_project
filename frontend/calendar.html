@@ -32,7 +32,7 @@
             Personal
           </label>
           <label class="calendar-both-toggle">
-            <input type="checkbox" id="calendar-show-agency" />
+            <input type="checkbox" id="calendar-show-agency" checked />
             Agency
           </label>
           <label class="calendar-both-toggle">
@@ -46,13 +46,61 @@
       </div>
       <p class="calendar-legend">
         <span class="event-indicator personal">Personal</span>
-        <span class="event-indicator agency">Agency</span>
+        <span class="event-indicator agency">Event</span>
+        <span class="event-indicator agency-meeting">Meeting</span>
+        <span class="event-indicator agency-training">Training</span>
         <span class="event-indicator holiday">Holidays</span>
       </p>
 
       <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Lead meet-up calendar"></div>
 
     </section>
+
+    <section class="panel" id="agency-events-panel">
+      <div class="panel-head">
+        <h2>Agency Events</h2>
+      </div>
+      <p id="agency-events-access-note" class="activity-desc" style="margin-bottom:1rem;"></p>
+
+      <form id="agency-event-form" style="display:none;gap:1rem;margin-bottom:1.5rem;">
+        <input type="hidden" id="agency-event-edit-id" />
+        <div>
+          <label for="agency-event-date" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Date</label>
+          <input type="date" id="agency-event-date" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+        </div>
+        <div>
+          <label for="agency-event-title" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Event Title</label>
+          <input type="text" id="agency-event-title" placeholder="District Training Session" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+        </div>
+        <div>
+          <label style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.5rem;">Type</label>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+            <button type="button" class="event-type-btn active" data-type="Event">Event</button>
+            <button type="button" class="event-type-btn" data-type="Meeting">Meeting</button>
+            <button type="button" class="event-type-btn" data-type="Training">Training</button>
+          </div>
+          <input type="hidden" id="agency-event-type" value="Event" />
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button type="submit" id="agency-event-submit-btn" style="background:var(--brand);color:#fff;border:1px solid var(--brand);padding:0.5rem 1rem;border-radius:8px;cursor:pointer;font-weight:600;">Add Event</button>
+          <button type="button" id="agency-event-cancel-btn" class="ghost-btn">Cancel</button>
+        </div>
+      </form>
+
+      <div id="agency-events-import-section" style="display:none;margin-bottom:1.5rem;padding:1rem;border:1px dashed var(--border);border-radius:8px;">
+        <p style="font-weight:700;font-size:0.9rem;margin-bottom:0.5rem;">Import from CSV / Excel</p>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">CSV columns: date, title, type, location, startTime, endTime. Excel: month name in column A, day number + event title in columns A–B.</p>
+        <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="agency-events-upload" accept=".csv,.xlsx" style="font-size:0.9rem;" />
+          <label for="agency-events-year" style="font-size:0.9rem;font-weight:600;">Year:</label>
+          <input type="number" id="agency-events-year" value="2026" min="2020" max="2099" style="width:5rem;padding:0.4rem;border:1px solid var(--border);border-radius:8px;" />
+          <button type="button" id="agency-events-import-btn" class="ghost-btn">Import</button>
+        </div>
+      </div>
+
+      <ul id="agency-events-editor-list" class="activity-list"></ul>
+    </section>
+
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
@@ -87,20 +135,22 @@
 
         <div>
           <label for="personal-event-dialog-date" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Date</label>
-          <input type="text" id="personal-event-dialog-date" readonly style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          <input type="date" id="personal-event-dialog-date" required style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
         </div>
 
         <div id="personal-event-extra-fields">
           <div class="event-dialog-row" style="grid-template-columns:1fr 1fr;">
             <div>
-              <label for="personal-event-dialog-start-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">From</label>
-              <input type="time" id="personal-event-dialog-start-time" style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+              <label for="personal-event-dialog-start-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">From <span style="color:var(--danger,#dc2626)">*</span></label>
+              <input type="time" id="personal-event-dialog-start-time" required style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
             </div>
             <div>
-              <label for="personal-event-dialog-end-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Until</label>
-              <input type="time" id="personal-event-dialog-end-time" style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+              <label for="personal-event-dialog-end-time" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Until <span style="color:var(--danger,#dc2626)">*</span></label>
+              <input type="time" id="personal-event-dialog-end-time" required style="padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
             </div>
           </div>
+          <p id="personal-event-time-error" style="display:none;color:#dc2626;font-size:0.85rem;margin-top:0.25rem;">Please set both a start and end time.</p>
+          <p id="personal-event-save-error" style="display:none;color:#dc2626;font-size:0.85rem;margin-top:0.25rem;"></p>
 
           <label for="personal-event-dialog-location" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Location</label>
           <input type="text" id="personal-event-dialog-location" placeholder="Office / Zoom / Client site" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
@@ -108,8 +158,10 @@
           <label for="personal-event-dialog-notes" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Notes</label>
           <textarea id="personal-event-dialog-notes" rows="3" placeholder="Optional notes..." style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;"></textarea>
 
-          <label for="personal-event-dialog-task" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Linked Task</label>
-          <input type="text" id="personal-event-dialog-task" placeholder="Follow up after meeting" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          <div id="personal-event-task-section">
+            <label for="personal-event-dialog-task" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Linked Task</label>
+            <input type="text" id="personal-event-dialog-task" placeholder="Follow up after meeting" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          </div>
 
           <div id="personal-event-repeat-section">
             <label for="personal-event-dialog-repeat" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Repeat</label>
@@ -128,6 +180,8 @@
         </div>
 
         <input type="hidden" id="personal-event-dialog-edit-id" />
+        <input type="hidden" id="personal-event-dialog-edit-series" value="" />
+        <p id="personal-event-series-note" style="display:none;font-size:0.83rem;color:#7c3aed;background:#ede9fe;border-radius:6px;padding:0.4rem 0.65rem;margin:0.5rem 0 0;">Editing all events in this recurring series</p>
 
         <div class="event-dialog-actions" style="display:flex;justify-content:space-between;gap:0.5rem;margin-top:1rem;">
           <button type="button" id="personal-event-dialog-delete-btn" style="display:none;color:#b91c1c;background:#fff;border:1px solid #fecaca;border-radius:8px;padding:0.4rem 0.7rem;cursor:pointer;font:inherit;font-weight:600;">Delete</button>
@@ -187,10 +241,11 @@
     </article>
   </dialog>
 
+  <script src="../backend/api.js"></script>
+  <script src="../backend/dashboard.js"></script>
+  <script src="../backend/calendar.js"></script>
+  <script src="../backend/planner.js"></script>
   <script src="../backend/nav.js"></script>
   <script src="../backend/auth.js"></script>
-  <script src="../backend/api.js"></script>
-  <script src="../backend/calendar.js"></script>
-  <script src="../backend/dashboard.js"></script>
 </body>
 </html>

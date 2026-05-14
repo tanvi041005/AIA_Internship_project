@@ -1667,6 +1667,14 @@ main {
   background: #22c55e;
 }
 
+.dot.purple {
+  background: #7c3aed;
+}
+
+.dot.teal {
+  background: #0f766e;
+}
+
 .activity-body {
   flex: 1;
   min-width: 0;
@@ -1941,6 +1949,16 @@ table.data tr:last-child td {
   color: #c2410c;
 }
 
+.event-indicator.agency-training {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.event-indicator.agency-meeting {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
 .event-indicator.holiday {
   background: #dcfce7;
   color: #166534;
@@ -1976,6 +1994,16 @@ table.data tr:last-child td {
 .event-tag.agency {
   background: #ffedd5;
   color: #c2410c;
+}
+
+.event-tag.agency-training {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.event-tag.agency-meeting {
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
 .event-tag.holiday {
@@ -2321,7 +2349,8 @@ table.data tr:last-child td {
   letter-spacing: 0.03em;
 }
 
-.todo-toggle-count {
+.todo-toggle-count,
+.todo-sidebar-count {
   min-width: 22px;
   height: 22px;
   border-radius: 999px;
@@ -2382,13 +2411,18 @@ table.data tr:last-child td {
 
 .floating-task-form {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.45rem;
-  margin-top: 1rem;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
 }
 
-.floating-task-form input,
-.floating-task-form button {
+.floating-task-form-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.floating-task-form input[type="text"] {
+  flex: 1;
   min-width: 0;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
@@ -2396,11 +2430,52 @@ table.data tr:last-child td {
   font: inherit;
 }
 
-.floating-task-form button {
+.floating-task-due {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.floating-task-form button[type="submit"] {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  font: inherit;
   background: var(--brand);
-  border-color: var(--brand);
   color: #fff;
   cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.floating-task-form button[type="submit"]:hover {
+  background: var(--brand-dark, #8b0000);
+}
+
+.task-priority-btn {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.task-priority-btn.is-high {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
   font-weight: 600;
 }
 
@@ -2472,6 +2547,420 @@ table.data tr:last-child td {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+}
+
+/* ── Planner controls ──────────────────────────────────────────────────── */
+
+.todo-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg, #f8f9fa);
+  border-radius: 8px;
+}
+
+.todo-controls-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.planner-day-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.planner-day-select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.todo-notify-label {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Task list items ───────────────────────────────────────────────────── */
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-item-check {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+
+.task-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.task-item-title {
+  font-size: 0.87rem;
+  line-height: 1.4;
+  word-break: break-word;
+  flex: 1;
+}
+
+.task-high-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #dc2626;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.task-due-label {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.18rem;
+  color: var(--text-muted);
+}
+
+.task-overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.task-due-today {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.1rem;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.task-item:hover .task-actions {
+  opacity: 1;
+}
+
+.task-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 1rem;
+  padding: 0.1rem 0.25rem;
+  line-height: 1;
+  border-radius: 3px;
+}
+
+.task-icon-btn:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.task-delete-btn:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* ── Day popup (non-blocking event list) ──────────────────────────────── */
+
+.day-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.day-popup-date {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.day-popup-close {
+  background: none;
+  border: none;
+  font-size: 1.15rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0 0.15rem;
+}
+
+.day-popup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.day-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-popup-item:last-child {
+  border-bottom: none;
+}
+
+.day-popup-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.day-popup-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.day-popup-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-popup-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.day-popup-type {
+  font-size: 0.72rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.day-popup-edit-btn,
+.day-popup-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  color: #9ca3af;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.day-popup-item:hover .day-popup-edit-btn,
+.day-popup-item:hover .day-popup-del-btn {
+  opacity: 1;
+}
+
+.day-popup-edit-btn:hover { color: #374151; background: #f3f4f6; }
+.day-popup-del-btn:hover  { color: #dc2626; background: #fee2e2; }
+
+.day-popup-footer {
+  padding: 0.6rem 0.9rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.day-popup-add-btn {
+  width: 100%;
+  padding: 0.45rem;
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.day-popup-add-btn:hover {
+  background: var(--brand-dark, #8b0000);
+}
+
+/* ── Reminder list items ───────────────────────────────────────────────── */
+
+.reminder-empty {
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  padding: 0.5rem 0;
+  list-style: none;
+}
+
+.reminder-item {
+  list-style: none;
+}
+
+.reminder-btn {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.4rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  border-bottom: 1px solid var(--border);
+}
+
+.reminder-btn:hover {
+  background: var(--bg, #f8f9fa);
+}
+
+.reminder-accent {
+  display: block;
+  width: 3px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 36px;
+}
+
+.reminder-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-title {
+  font-weight: 600;
+  font-size: 0.87rem;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reminder-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.reminder-dot-sep {
+  opacity: 0.4;
+}
+
+.reminder-type-tag {
+  font-weight: 600;
+}
+
+.today-evt-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  line-height: 1.4;
+}
+
+/* ── Completed tasks ───────────────────────────────────────────────────── */
+
+.completed-toggle {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+  display: block;
+  border-top: 1px solid var(--border);
+  margin-top: 0.6rem;
+  box-sizing: border-box;
+}
+
+.completed-toggle:hover {
+  color: var(--text);
+}
+
+.completed-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.2rem 0 0;
+}
+
+.completed-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  opacity: 0.6;
+}
+
+.completed-list li span {
+  font-size: 0.85rem;
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.completed-list li input {
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+
+.clear-completed-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #dc2626;
+  padding: 0.4rem 0;
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.clear-completed-btn:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 720px) {
