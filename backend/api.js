@@ -138,13 +138,14 @@ function mapBooking(r) {
     id:            r.booking_id,
     title:         r.title,
     room:          r.room_id,
-    date:          r.booking_date,
+    date:          toSGDate(r.booking_date),
     start:         (r.start_time || '').slice(0, 5),
     end:           (r.end_time   || '').slice(0, 5),
     by:            r.booked_by_name || '',
     notes:         r.notes || '',
     recurrence:    r.recurrence || 'none',
     recurrenceEnd: r.recurrence_end || '',
+    recurrenceId:  r.recurrence_id  || '',
   });
 }
 
