@@ -57,7 +57,8 @@ function renderKPIs(){
 function applyFilters(){
   const search = document.getElementById("search-input").value.toLowerCase();
   const urg = document.getElementById("urgency-filter").value;
-  const typ = document.getElementById("type-filter").value;
+  const typFilter = document.getElementById("type-filter");
+  const typ = typFilter ? typFilter.value : "";
   const dt = document.getElementById("date-filter").value;
   filtered = LEADS.filter(l => {
     if(search && !l.name.toLowerCase().includes(search) && !l.location.toLowerCase().includes(search)) return false;
@@ -92,7 +93,7 @@ function render(){
   });
   const tbody = document.getElementById("lead-tbody");
   if(!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map(l => `
@@ -102,8 +103,6 @@ function render(){
       <td class="lead-contact">${l.contact}</td>
       <td class="lead-date">${formatDate(l.meetDate)}</td>
       <td class="lead-date">${formatDate(getNextMeetDate(l))}</td>
-      <td class="lead-location" title="${l.location}">${l.location}</td>
-      <td><span class="badge ${l.meetType.toLowerCase()}">${l.meetType}</span></td>
       <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
       <td><span class="stage-pill ${stageClass(l.stage)}">${l.stage}</span></td>
       <td class="lead-remarks" title="${l.remarks}">${l.remarks}</td>
@@ -155,10 +154,8 @@ function openDrawer(id){
         <div class="detail-item"><label>Phone</label><strong>${lead.contact}</strong></div>
         <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">${lead.email}</strong></div>
         <div class="detail-item"><label>Urgency</label><span class="status-pill ${lead.urgency}">${cap(lead.urgency)}</span></div>
-        <div class="detail-item"><label>Meeting Type</label><span class="badge ${lead.meetType.toLowerCase()}">${lead.meetType}</span></div>
         <div class="detail-item"><label>First Appointment</label><strong>${formatDate(lead.meetDate)}</strong></div>
         <div class="detail-item"><label>Follow-up Date</label><strong>${formatDate(getNextMeetDate(lead))}</strong></div>
-        <div class="detail-item"><label>Location</label><strong style="font-size:.84rem">${lead.location}</strong></div>
       </div>
     </div>
     <div class="detail-section">
@@ -217,10 +214,198 @@ function renderClosure(){
     </tr>`).join("");
 }
 
+function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        
+        if (!rows || rows.length === 0) {
+          reject(new Error("No data found in Excel file"));
+          return;
+        }
+        
+        // Get the first row
+        const rowData = rows[0];
+        resolve(rowData);
+      } catch (error) {
+        reject(new Error("Failed to parse Excel file: " + error.message));
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsBinaryString(file);
+  });
+}
+
+function mapExcelDataToLead(excelData) {
+  // Mapping of Excel column headers to lead object properties
+  const columnMapping = {
+    'Full Name': 'name',
+    'Name': 'name',
+    'Age': 'age',
+    'Contact Number': 'contact',
+    'Contact': 'contact',
+    'Email Address': 'email',
+    'Email': 'email',
+    'Meet-up Date': 'meetDate',
+    'Meeting Date': 'meetDate',
+    'Date': 'meetDate',
+    'Meeting Type': 'meetType',
+    'Type': 'meetType',
+    'Location': 'location',
+    'Urgency': 'urgency',
+    'Stage': 'stage',
+    'Pipeline Stage': 'stage',
+    'Occupation': 'occupation',
+    'Job Title': 'occupation',
+    'Monthly Income': 'income',
+    'Income': 'income',
+    'General Expense': 'generalExpense',
+    'Expense': 'generalExpense',
+    'Surplus': 'surplus',
+    'CPF OA Balance': 'cpfOA',
+    'CPF OA': 'cpfOA',
+    'CPF SA Balance': 'cpfSA',
+    'CPF SA': 'cpfSA',
+    'General Plan Type': 'generalPlanType',
+    'Plan Category': 'generalPlanType',
+    'Specific Plan Type': 'specificPlanType',
+    'Plan Type': 'specificPlanType',
+    'Product': 'specificPlanType',
+    'Currency': 'currency',
+    'Sum Assured': 'sumAssured',
+    'Coverage Amount': 'sumAssured',
+    'Premium': 'premium',
+    'Premium (Yearly)': 'premium',
+    'Annual Premium': 'premium',
+    'Commission Rate': 'commissionRate',
+    'Referred By': 'referredBy',
+    'Referrer': 'referredBy',
+    'Existing Plans': 'existingPlans',
+    'Plans': 'existingPlans',
+    'Remarks': 'remarks',
+    'Notes': 'remarks'
+  };
+
+  const lead = {
+    id: Date.now(),
+    name: '',
+    age: 0,
+    contact: '',
+    email: '',
+    meetDate: '',
+    meetType: 'Physical',
+    location: '',
+    urgency: 'non-urgent',
+    stage: 'Prospecting',
+    occupation: '',
+    income: '',
+    generalExpense: '',
+    surplus: '',
+    cpfOA: 0,
+    cpfSA: 0,
+    currency: 'SGD',
+    generalPlanType: '',
+    specificPlanType: '',
+    planType: '',
+    sumAssured: 0,
+    premium: 0,
+    commissionRate: 0,
+    commissionAmount: 0,
+    referredBy: '',
+    existingPlansList: [],
+    existingPlans: '',
+    remarks: '',
+    owner: 'agent',
+    followUps: [
+      {label: "Lead Created", date: new Date().toISOString().split('T')[0], done: true}
+    ]
+  };
+
+  // Map Excel data to lead object
+  for (const [excelHeader, value] of Object.entries(excelData)) {
+    const fieldName = columnMapping[excelHeader];
+    
+    if (!fieldName || !value) continue;
+
+    const stringValue = String(value).trim();
+    
+    if (fieldName === 'existingPlans') {
+      const plansArray = stringValue
+        .split(/\r?\n|,|;/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+      lead.existingPlansList = plansArray;
+      lead.existingPlans = plansArray.join(", ");
+    } else if (fieldName === 'age' || fieldName === 'cpfOA' || fieldName === 'cpfSA' || fieldName === 'sumAssured' || fieldName === 'premium') {
+      lead[fieldName] = parseInt(stringValue, 10) || 0;
+    } else if (fieldName === 'commissionRate') {
+      lead[fieldName] = parseFloat(stringValue) || 0;
+    } else {
+      lead[fieldName] = stringValue;
+    }
+  }
+
+  // Calculate commission amount
+  if (lead.premium && lead.commissionRate) {
+    lead.commissionAmount = (lead.premium * lead.commissionRate) / 100;
+  }
+
+  return lead;
+}
+
+function handleExcelFileUpload(file, closeModalCallback) {
+  const uploadSuccess = document.getElementById("upload-success-modal");
+  const uploadError = document.getElementById("upload-error-modal");
+  
+  // Validate file type
+  const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+  if (!validTypes.includes(file.type)) {
+    uploadError.textContent = '✗ Invalid file type. Please upload an Excel file (.xlsx or .xls)';
+    uploadError.style.display = 'block';
+    return;
+  }
+
+  // Parse Excel and create lead
+  parseExcelFile(file)
+    .then((excelData) => {
+      const newLead = mapExcelDataToLead(excelData);
+      
+      // Save lead to localStorage
+      const LEADS_STORAGE_KEY = "financial_leads_data";
+      let savedLeads = [];
+      try {
+        savedLeads = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || [];
+      } catch (e) {
+        savedLeads = [];
+      }
+      savedLeads.push(newLead);
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(savedLeads));
+      
+      // Show success message
+      uploadSuccess.style.display = 'block';
+      
+      // Redirect to client profile after short delay
+      setTimeout(() => {
+        window.location.href = `client-profile.html?id=${newLead.id}`;
+      }, 1000);
+    })
+    .catch((error) => {
+      uploadError.textContent = '✗ ' + error.message;
+      uploadError.style.display = 'block';
+    });
+}
+
 function bindEvents(){
   document.getElementById("search-input").addEventListener("input", applyFilters);
   document.getElementById("urgency-filter").addEventListener("change", applyFilters);
-  document.getElementById("type-filter").addEventListener("change", applyFilters);
+  const typeFilter = document.getElementById("type-filter");
+  if (typeFilter) typeFilter.addEventListener("change", applyFilters);
   document.getElementById("date-filter").addEventListener("change", applyFilters);
   document.getElementById("sort-select").addEventListener("change", e => {
     sortDir = e.target.value; sortData(); render();
@@ -228,14 +413,125 @@ function bindEvents(){
   document.getElementById("clear-btn").addEventListener("click", () => {
     document.getElementById("search-input").value = "";
     document.getElementById("urgency-filter").value = "";
-    document.getElementById("type-filter").value = "";
+    if (typeFilter) typeFilter.value = "";
     document.getElementById("date-filter").value = "";
     stageFilter = null;
     filtered = [...LEADS]; sortData(); render();
   });
+  
+  // Excel Import Modal
+  const modal = document.getElementById("excel-import-modal");
+  const dropzone = document.getElementById("excel-dropzone-modal");
+  const fileInput = document.getElementById("excel-upload-input-modal");
+  const modalCloseBtn = document.getElementById("modal-close-btn");
+  const modalOverlay = document.querySelector(".modal-overlay");
+  const uploadSuccess = document.getElementById("upload-success-modal");
+  const uploadError = document.getElementById("upload-error-modal");
+  const manualFillBtn = document.getElementById("manual-fill-btn");
+
+  // Open modal on "Add Lead" button click
   document.getElementById("add-lead-btn").addEventListener("click", () => {
-    window.location.href = "create-profile.html";
+    modal.style.display = "flex";
+    uploadSuccess.style.display = "none";
+    uploadError.style.display = "none";
   });
+
+  // Close modal
+  function closeModal() {
+    modal.style.display = "none";
+    uploadSuccess.style.display = "none";
+    uploadError.style.display = "none";
+    fileInput.value = "";
+  }
+
+  modalCloseBtn.addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", closeModal);
+  
+  // Manual fill button - create new lead and navigate to client profile
+  manualFillBtn.addEventListener("click", () => {
+    const newLeadId = Date.now();
+    
+    // Create empty lead
+    const newLead = {
+      id: newLeadId,
+      name: '',
+      age: '',
+      contact: '',
+      email: '',
+      meetDate: '',
+      meetType: 'Physical',
+      location: '',
+      urgency: 'non-urgent',
+      stage: 'Prospecting',
+      occupation: '',
+      income: '',
+      generalExpense: '',
+      surplus: '',
+      cpfOA: 0,
+      cpfSA: 0,
+      currency: 'SGD',
+      generalPlanType: '',
+      specificPlanType: '',
+      planType: '',
+      sumAssured: 0,
+      premium: 0,
+      commissionRate: 0,
+      commissionAmount: 0,
+      referredBy: '',
+      existingPlansList: [],
+      existingPlans: '',
+      remarks: '',
+      owner: 'agent',
+      followUps: [
+        {label: "Lead Created", date: new Date().toISOString().split('T')[0], done: true}
+      ]
+    };
+    
+    // Save to localStorage
+    const LEADS_STORAGE_KEY = "financial_leads_data";
+    let savedLeads = [];
+    try {
+      savedLeads = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || [];
+    } catch (e) {
+      savedLeads = [];
+    }
+    savedLeads.push(newLead);
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(savedLeads));
+    
+    // Navigate to client profile page where each section can be edited independently
+    window.location.href = `client-profile.html?id=${newLeadId}`;
+  });
+
+  // Dropzone interactions
+  dropzone.addEventListener("click", () => fileInput.click());
+
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.add("active");
+  });
+
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("active");
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.remove("active");
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleExcelFileUpload(files[0], closeModal);
+    }
+  });
+
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handleExcelFileUpload(e.target.files[0], closeModal);
+    }
+  });
+  
   document.getElementById("drawer-close-btn").addEventListener("click", closeDrawer);
   document.getElementById("overlay").addEventListener("click", closeDrawer);
   document.getElementById("btn-edit-lead").addEventListener("click", () => {

@@ -2211,6 +2211,129 @@ table.data tr:last-child td {
   color: var(--text-muted);
 }
 
+/* Profile Edit Form Styles */
+.profile-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: 0.875rem inherit;
+  color: var(--text);
+}
+
+.profile-form input::placeholder,
+.profile-form textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.profile-form textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+}
+
+.profile-form small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.form-actions .btn-primary {
+  padding: 0.58rem 1.2rem;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font: 0.875rem 600 inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-actions .btn-primary:hover {
+  background: var(--brand-dark);
+}
+
+.ghost-btn {
+  padding: 0.58rem 1.2rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: 0.875rem 600 inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.ghost-btn:hover {
+  border-color: var(--text);
+  background: var(--surface-subtle);
+}
+
+.form-error {
+  padding: 0.75rem 1rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  display: none;
+}
+
+.form-success {
+  display: none;
+  padding: 0.75rem 1rem;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .header-actions {
   display: grid;
   gap: 1rem;

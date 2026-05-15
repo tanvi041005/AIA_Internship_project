@@ -160,10 +160,110 @@
       font-family: inherit;
       font-weight: 400;
     }
+    
+    /* Excel Upload Dropzone Styles */
+    .excel-upload-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .excel-upload-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+      font-family: inherit;
+    }
+    
+    .excel-upload-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-family: inherit;
+    }
+    
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, rgba(166, 25, 46, 0.02) 0%, rgba(198, 154, 103, 0.02) 100%);
+      font-family: inherit;
+    }
+    
+    .dropzone:hover {
+      border-color: var(--brand);
+      background: linear-gradient(135deg, rgba(166, 25, 46, 0.05) 0%, rgba(198, 154, 103, 0.05) 100%);
+    }
+    
+    .dropzone.active {
+      border-color: var(--brand);
+      background: var(--brand-light);
+      transform: scale(1.02);
+    }
+    
+    .dropzone-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--brand);
+      font-family: inherit;
+    }
+    
+    .dropzone-text {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+      font-family: inherit;
+    }
+    
+    .dropzone-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: inherit;
+    }
+    
+    .excel-upload-input {
+      display: none;
+    }
+    
+    .upload-success {
+      padding: 0.75rem 1rem;
+      background: #d1fae5;
+      color: #065f46;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+      display: none;
+      font-family: inherit;
+    }
+    
+    .upload-error {
+      padding: 0.75rem 1rem;
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+      display: none;
+      font-family: inherit;
+    }
+    
     @media (max-width: 600px) { 
       .form-row { 
         grid-template-columns: 1fr; 
-      } 
+      }
+      .dropzone {
+        padding: 1.5rem;
+      }
+      .dropzone-icon {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
@@ -374,6 +474,7 @@
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use</footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
   <script src="../backend/nav.js"></script>
   <script src="../backend/auth.js"></script>
   <script src="../backend/create-profile.js"></script>

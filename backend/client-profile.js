@@ -14,6 +14,10 @@
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
   }
 
+  function normalizeId(value) {
+    return String(value == null ? "" : value).trim();
+  }
+
   function initials(name) {
     return String(name || "")
       .split(" ")
@@ -105,7 +109,7 @@
   function renderTimelineView(followUps) {
     const items = Array.isArray(followUps) ? followUps : [];
     if (!items.length) {
-      return '<p class="timeline-empty">No follow-up steps yet. Click Edit Timeline to add one.</p>';
+      return '<p class="timeline-empty">No follow-up steps yet. Click Edit Section to add one.</p>';
     }
 
     return items.map((item) => `
@@ -155,7 +159,7 @@
 
   function updateLead(leadId, updater) {
     const leads = getLeads();
-    const leadIndex = leads.findIndex((lead) => lead.id === leadId);
+    const leadIndex = leads.findIndex((lead) => normalizeId(lead.id) === normalizeId(leadId));
     if (leadIndex === -1) return null;
     const updatedLead = updater({ ...leads[leadIndex] });
     leads[leadIndex] = updatedLead;
@@ -171,10 +175,277 @@
     })).filter((item) => item.label || item.date || item.done);
   }
 
-  function renderProfile(leadId, editTimeline = false) {
+  function renderProfileEditForm(leadId) {
     const profileContent = document.getElementById("profileContent");
     const leads = getLeads();
-    const lead = leads.find((item) => item.id === leadId);
+    const lead = leads.find((item) => normalizeId(item.id) === normalizeId(leadId));
+
+    if (!lead) {
+      profileContent.innerHTML = '<div class="error-message">Lead not found</div>';
+      return;
+    }
+
+    const avatarColor = AVATAR_COLORS[(lead.id - 1) % AVATAR_COLORS.length];
+
+    profileContent.innerHTML = `
+      <div class="profile-header" style="background: linear-gradient(135deg, ${avatarColor}15 0%, ${avatarColor}08 100%);">
+        <div class="profile-info">
+          <h1>Fill Client Profile</h1>
+          <p class="profile-subtitle">Complete all the details to create this lead profile</p>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <form id="profile-edit-form" class="profile-form" novalidate>
+          <div class="form-row">
+            <div>
+              <label for="ep-name">Full Name <span aria-hidden="true">*</span></label>
+              <input type="text" id="ep-name" required placeholder="e.g. Jane Doe" value="${escapeHtml(lead.name || '')}" />
+            </div>
+            <div>
+              <label for="ep-age">Age <span aria-hidden="true">*</span></label>
+              <input type="number" id="ep-age" required min="18" max="99" placeholder="e.g. 35" value="${lead.age || ''}" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-contact">Contact Number <span aria-hidden="true">*</span></label>
+              <input type="text" id="ep-contact" required placeholder="e.g. 9123-4567" value="${escapeHtml(lead.contact || '')}" />
+            </div>
+            <div>
+              <label for="ep-email">Email Address <span aria-hidden="true">*</span></label>
+              <input type="email" id="ep-email" required placeholder="e.g. jane@email.com" value="${escapeHtml(lead.email || '')}" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-meetup-date">Meet-up Date <span aria-hidden="true">*</span></label>
+              <input type="date" id="ep-meetup-date" required value="${lead.meetDate || ''}" />
+            </div>
+            <div>
+              <label for="ep-meeting-type">Meeting Type</label>
+              <select id="ep-meeting-type">
+                <option value="Physical" ${lead.meetType === "Physical" ? "selected" : ""}>Physical</option>
+                <option value="Online" ${lead.meetType === "Online" ? "selected" : ""}>Online</option>
+                <option value="Hybrid" ${lead.meetType === "Hybrid" ? "selected" : ""}>Hybrid</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="ep-location">Location</label>
+            <input type="text" id="ep-location" placeholder="📍 location: Makati Office or Marina Bay" value="${escapeHtml(lead.location || '')}" />
+            <small>Office, mall, or district name</small>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-urgency">Urgency</label>
+              <select id="ep-urgency">
+                <option value="urgent" ${lead.urgency === "urgent" ? "selected" : ""}>Urgent</option>
+                <option value="medium" ${lead.urgency === "medium" ? "selected" : ""}>Medium</option>
+                <option value="non-urgent" ${lead.urgency === "non-urgent" ? "selected" : ""}>Non-Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label for="ep-stage">Stage</label>
+              <select id="ep-stage">
+                <option value="Prospecting" ${lead.stage === "Prospecting" ? "selected" : ""}>Prospecting</option>
+                <option value="Fact-Find" ${lead.stage === "Fact-Find" ? "selected" : ""}>Fact-Find</option>
+                <option value="Needs Analysis" ${lead.stage === "Needs Analysis" ? "selected" : ""}>Needs Analysis</option>
+                <option value="Proposal Sent" ${lead.stage === "Proposal Sent" ? "selected" : ""}>Proposal Sent</option>
+                <option value="Closing" ${lead.stage === "Closing" ? "selected" : ""}>Closing</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-occupation">Occupation</label>
+              <input type="text" id="ep-occupation" placeholder="Job title: Software Engineer" value="${escapeHtml(lead.occupation || '')}" />
+              <small>Current job/profession</small>
+            </div>
+            <div>
+              <label for="ep-income">Monthly Income</label>
+              <input type="text" id="ep-income" placeholder="$ format: SGD 7,000 or 7000" value="${escapeHtml(lead.income || '')}" />
+              <small>Include currency code (SGD/USD) or numbers only</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-general-expense">General Expense</label>
+              <input type="text" id="ep-general-expense" placeholder="$ format: SGD 3,200 or 3200" value="${escapeHtml(lead.generalExpense || '')}" />
+              <small>Monthly expenses</small>
+            </div>
+            <div>
+              <label for="ep-surplus">Surplus</label>
+              <input type="text" id="ep-surplus" placeholder="$ format: SGD 3,800 or 3800" value="${escapeHtml(lead.surplus || '')}" />
+              <small>Income minus expenses</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-cpf-oa">CPF OA Balance</label>
+              <input type="number" id="ep-cpf-oa" placeholder="# numbers only: 50000" value="${lead.cpfOA || ''}" />
+              <small>Ordinary Account balance</small>
+            </div>
+            <div>
+              <label for="ep-cpf-sa">CPF SA Balance</label>
+              <input type="number" id="ep-cpf-sa" placeholder="# numbers only: 20000" value="${lead.cpfSA || ''}" />
+              <small>Special Account balance</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-general-plan-type">General Plan Type</label>
+              <input type="text" id="ep-general-plan-type" placeholder="Category: Protection" value="${escapeHtml(lead.generalPlanType || '')}" />
+              <small>e.g., Protection, Savings, Investment, Wealth, Retirement</small>
+            </div>
+            <div>
+              <label for="ep-plan-type">Specific Plan Type</label>
+              <input type="text" id="ep-plan-type" placeholder="Product: Whole Life" value="${escapeHtml(lead.specificPlanType || '')}" />
+              <small>e.g., Term Life, Whole Life, Endowment, ILP</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-currency">Currency</label>
+              <select id="ep-currency">
+                <option value="SGD" ${lead.currency === "SGD" ? "selected" : ""}>SGD</option>
+                <option value="USD" ${lead.currency === "USD" ? "selected" : ""}>USD</option>
+              </select>
+            </div>
+            <div>
+              <label>&nbsp;</label>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-sum-assured">Sum Assured</label>
+              <input type="number" id="ep-sum-assured" min="0" placeholder="# numbers only: 300000" value="${lead.sumAssured || ''}" />
+              <small>Total coverage amount</small>
+            </div>
+            <div>
+              <label for="ep-premium">Premium (Yearly)</label>
+              <input type="number" id="ep-premium" min="0" placeholder="# numbers only: 12000" value="${lead.premium || ''}" />
+              <small>Annual premium payment</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="ep-commission-rate">Commission Rate (%)</label>
+              <input type="number" id="ep-commission-rate" min="0" step="0.01" placeholder="% enter number: 12" value="${lead.commissionRate || ''}" />
+              <small>Percentage rate</small>
+            </div>
+            <div>
+              <label>&nbsp;</label>
+            </div>
+          </div>
+
+          <div>
+            <label for="ep-referred">Referred By</label>
+            <input type="text" id="ep-referred" placeholder="Name or referrer: John Tan" value="${escapeHtml(lead.referredBy || '')}" />
+            <small>Who referred this lead to you?</small>
+          </div>
+
+          <div>
+            <label for="ep-remarks">Remarks / Notes</label>
+            <textarea id="ep-remarks" placeholder="e.g. Interested in term life protection, family of 4, wife expecting..."></textarea>
+            <small>Add any additional notes, preferences, or follow-up items</small>
+          </div>
+
+          <p id="form-error" class="form-error" aria-live="polite"></p>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="ep-submit-btn">Save Profile</button>
+            <a href="leads.html" class="ghost-btn">Cancel</a>
+          </div>
+
+          <p id="form-success" class="form-success" aria-live="polite">Profile saved! Redirecting…</p>
+        </form>
+      </div>
+    `;
+
+    // Form submission handler
+    const form = document.getElementById("profile-edit-form");
+    const errorEl = document.getElementById("form-error");
+    const successEl = document.getElementById("form-success");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      errorEl.textContent = "";
+
+      const name = document.getElementById("ep-name").value.trim();
+      const age = parseInt(document.getElementById("ep-age").value, 10);
+      const contact = document.getElementById("ep-contact").value.trim();
+      const email = document.getElementById("ep-email").value.trim();
+      const meetDate = document.getElementById("ep-meetup-date").value;
+
+      if (!name || !contact || !email || !meetDate || isNaN(age)) {
+        errorEl.textContent = "Please fill in all required fields.";
+        return;
+      }
+
+      const updatedLead = {
+        ...lead,
+        name,
+        age,
+        contact,
+        email,
+        meetDate,
+        meetType: document.getElementById("ep-meeting-type").value,
+        location: document.getElementById("ep-location").value.trim(),
+        urgency: document.getElementById("ep-urgency").value,
+        stage: document.getElementById("ep-stage").value,
+        occupation: document.getElementById("ep-occupation").value.trim(),
+        generalExpense: document.getElementById("ep-general-expense").value.trim(),
+        surplus: document.getElementById("ep-surplus").value.trim(),
+        cpfOA: parseInt(document.getElementById("ep-cpf-oa").value, 10) || 0,
+        cpfSA: parseInt(document.getElementById("ep-cpf-sa").value, 10) || 0,
+        currency: document.getElementById("ep-currency").value || "SGD",
+        generalPlanType: document.getElementById("ep-general-plan-type").value.trim(),
+        specificPlanType: document.getElementById("ep-plan-type").value.trim(),
+        planType: document.getElementById("ep-plan-type").value.trim(),
+        sumAssured: parseInt(document.getElementById("ep-sum-assured").value, 10) || 0,
+        premium: parseInt(document.getElementById("ep-premium").value, 10) || 0,
+        commissionRate: parseFloat(document.getElementById("ep-commission-rate").value) || 0,
+        referredBy: document.getElementById("ep-referred").value.trim(),
+        remarks: document.getElementById("ep-remarks").value.trim()
+      };
+
+      // Save updated lead
+      const allLeads = getLeads();
+      const idx = allLeads.findIndex((l) => normalizeId(l.id) === normalizeId(leadId));
+      if (idx !== -1) {
+        allLeads[idx] = updatedLead;
+        saveLeads(allLeads);
+
+        successEl.style.display = "block";
+        setTimeout(() => {
+          window.location.href = `client-profile.html?id=${leadId}`;
+        }, 1200);
+      }
+    });
+  }
+
+  function profileUrl(leadId, section = "") {
+    const id = encodeURIComponent(normalizeId(leadId));
+    if (!section) return `client-profile.html?id=${id}`;
+    return `client-profile.html?id=${id}&section=${encodeURIComponent(section)}`;
+  }
+
+  function renderProfile(leadId, editSection = "") {
+    const profileContent = document.getElementById("profileContent");
+    const leads = getLeads();
+    const lead = leads.find((item) => normalizeId(item.id) === normalizeId(leadId));
 
     if (!lead) {
       profileContent.innerHTML = '<div class="error-message">Lead not found</div>';
@@ -185,12 +456,18 @@
     const urgencyColor = lead.urgency === "urgent" ? "#ef4444" : lead.urgency === "medium" ? "#f59e0b" : "#6b7280";
     const currency = getCurrencyCode(lead);
     const followUps = Array.isArray(lead.followUps) ? lead.followUps : [];
+    const isGeneralEdit = editSection === "general";
+    const isFinancialEdit = editSection === "financial";
+    const isProposedEdit = editSection === "proposed";
+    const isTimelineEdit = editSection === "timeline";
+    const isRemarksEdit = editSection === "remarks";
+    const proposedCommissionAmount = Number(lead.commissionAmount || ((Number(lead.premium || 0) * Number(lead.commissionRate || 0)) / 100) || 0);
 
-    const timelineHtml = editTimeline
+    const timelineHtml = isTimelineEdit
       ? renderTimelineEditor(followUps)
       : `<div class="timeline">${renderTimelineView(followUps)}</div>`;
 
-    const timelineActions = editTimeline
+    const timelineActions = isTimelineEdit
       ? `
         <div class="timeline-toolbar-actions">
           <button type="button" class="btn-secondary" id="timeline-cancel-btn">Cancel</button>
@@ -200,9 +477,258 @@
       `
       : `
         <div class="timeline-toolbar-actions">
-          <button type="button" class="btn-secondary" id="timeline-edit-btn">Edit Timeline</button>
+          <button type="button" class="btn-secondary" id="timeline-edit-btn">Edit Section</button>
         </div>
       `;
+
+    const generalSectionBody = isGeneralEdit
+      ? `
+        <form id="general-edit-form" class="section-edit-form" novalidate>
+          <div class="section-form-grid two-col">
+            <label>
+              Full Name
+              <input type="text" id="g-name" value="${escapeHtml(lead.name || "")}" required maxlength="80" pattern="[A-Za-z0-9 .,'-]{2,80}" />
+            </label>
+            <label>
+              Date of Birth
+              <input type="date" id="g-birth-date" value="${escapeHtml(lead.birthDate || "")}" />
+            </label>
+            <label>
+              Age
+              <input type="number" id="g-age" min="0" max="120" step="1" value="${lead.age || ""}" required />
+            </label>
+            <label>
+              Contact
+              <input type="tel" id="g-contact" value="${escapeHtml(lead.contact || "")}" required maxlength="20" pattern="[0-9+()\-\s]{7,20}" />
+            </label>
+            <label>
+              Email
+              <input type="email" id="g-email" value="${escapeHtml(lead.email || "")}" required maxlength="120" />
+            </label>
+            <label>
+              First Appointment
+              <input type="date" id="g-meet-date" value="${escapeHtml(lead.meetDate || "")}" required />
+            </label>
+            <label>
+              Urgency
+              <select id="g-urgency">
+                <option value="urgent" ${lead.urgency === "urgent" ? "selected" : ""}>Urgent</option>
+                <option value="medium" ${lead.urgency === "medium" ? "selected" : ""}>Medium</option>
+                <option value="non-urgent" ${lead.urgency === "non-urgent" ? "selected" : ""}>Non-Urgent</option>
+              </select>
+            </label>
+            <label>
+              Stage
+              <select id="g-stage">
+                <option value="Prospecting" ${lead.stage === "Prospecting" ? "selected" : ""}>Prospecting</option>
+                <option value="Fact Find" ${lead.stage === "Fact Find" ? "selected" : ""}>Fact Find</option>
+                <option value="Fact-Find" ${lead.stage === "Fact-Find" ? "selected" : ""}>Fact-Find</option>
+                <option value="Needs Analysis" ${lead.stage === "Needs Analysis" ? "selected" : ""}>Needs Analysis</option>
+                <option value="Proposal Sent" ${lead.stage === "Proposal Sent" ? "selected" : ""}>Proposal Sent</option>
+                <option value="Closing" ${lead.stage === "Closing" ? "selected" : ""}>Closing</option>
+              </select>
+            </label>
+            <label>
+              Occupation
+              <input type="text" id="g-occupation" value="${escapeHtml(lead.occupation || "")}" maxlength="80" pattern="[A-Za-z0-9 .,'&/-]{0,80}" />
+            </label>
+            <label>
+              Referred By
+              <input type="text" id="g-referred-by" value="${escapeHtml(lead.referredBy || "")}" maxlength="80" pattern="[A-Za-z0-9 .,'&/-]{0,80}" />
+            </label>
+          </div>
+          <p class="section-edit-error" id="general-edit-error"></p>
+          <div class="section-edit-actions">
+            <button type="button" class="btn-secondary" id="general-cancel-btn">Cancel</button>
+            <button type="submit" class="btn-primary">Save General Details</button>
+          </div>
+        </form>
+      `
+      : `
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Occupation</div>
+            <div class="info-value">${escapeHtml(lead.occupation || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Referred By</div>
+            <div class="info-value">${escapeHtml(lead.referredBy || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Stage</div>
+            <div class="info-value">${escapeHtml(lead.stage || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Urgency</div>
+            <div class="info-value" style="color:${urgencyColor}">${escapeHtml((lead.urgency || "").toUpperCase())}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Date of Birth</div>
+            <div class="info-value">${lead.birthDate ? formatDate(lead.birthDate) : "—"}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Age</div>
+            <div class="info-value">${lead.age || "—"} years</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Contact</div>
+            <div class="info-value">${escapeHtml(lead.contact || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Email</div>
+            <div class="info-value" style="font-size: 0.95rem;">${escapeHtml(lead.email || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">First Appointment</div>
+            <div class="info-value">${formatDate(lead.meetDate)}</div>
+          </div>
+        </div>
+      `;
+
+    const financialSectionBody = isFinancialEdit
+      ? `
+        <form id="financial-edit-form" class="section-edit-form" novalidate>
+          <div class="section-form-grid two-col">
+            <label>
+              Monthly Income
+              <input type="number" id="f-income" value="${Number(lead.income || 0)}" min="0" step="0.01" inputmode="decimal" />
+            </label>
+            <label>
+              General Expense
+              <input type="number" id="f-general-expense" value="${Number(lead.generalExpense || 0)}" min="0" step="0.01" inputmode="decimal" />
+            </label>
+            <label>
+              Surplus
+              <input type="number" id="f-surplus" value="${Number(lead.surplus || 0)}" min="0" step="0.01" inputmode="decimal" />
+            </label>
+            <label>
+              Currency
+              <select id="f-currency">
+                <option value="SGD" ${currency === "SGD" ? "selected" : ""}>SGD</option>
+                <option value="USD" ${currency === "USD" ? "selected" : ""}>USD</option>
+              </select>
+            </label>
+            <label>
+              CPF OA Balance
+              <input type="number" id="f-cpf-oa" value="${Number(lead.cpfOA || 0)}" min="0" />
+            </label>
+            <label>
+              CPF SA Balance
+              <input type="number" id="f-cpf-sa" value="${Number(lead.cpfSA || 0)}" min="0" />
+            </label>
+          </div>
+          <div class="section-edit-actions">
+            <button type="button" class="btn-secondary" id="financial-cancel-btn">Cancel</button>
+            <button type="submit" class="btn-primary">Save Financial Portfolio</button>
+          </div>
+        </form>
+      `
+      : `
+        <div class="financial-summary-grid">
+          <div class="financial-summary-item accent-income">
+            <div class="info-label">Monthly Income</div>
+            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.income))}</div>
+          </div>
+          <div class="financial-summary-item accent-expense">
+            <div class="info-label">General Expense</div>
+            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.generalExpense))}</div>
+          </div>
+          <div class="financial-summary-item accent-surplus">
+            <div class="info-label">Surplus</div>
+            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.surplus))}</div>
+          </div>
+        </div>
+
+        <div class="financial-detail-grid">
+          <div class="info-item">
+            <div class="info-label">CPF OA Balance</div>
+            <div class="info-value">SGD ${Number(lead.cpfOA || 0).toLocaleString()}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">CPF SA Balance</div>
+            <div class="info-value">SGD ${Number(lead.cpfSA || 0).toLocaleString()}</div>
+          </div>
+        </div>
+      `;
+
+    const proposedSectionBody = isProposedEdit
+      ? `
+        <form id="proposed-edit-form" class="section-edit-form" novalidate>
+          <div class="section-form-grid two-col">
+            <label>
+              General Plan Type
+              <input type="text" id="p-general-plan-type" value="${escapeHtml(lead.generalPlanType || "")}" />
+            </label>
+            <label>
+              Specific Plan Type
+              <input type="text" id="p-specific-plan-type" value="${escapeHtml(lead.specificPlanType || lead.planType || "")}" />
+            </label>
+            <label>
+              Sum Assured
+              <input type="number" id="p-sum-assured" value="${Number(lead.sumAssured || 0)}" min="0" />
+            </label>
+            <label>
+              Commission Rate (%)
+              <input type="number" id="p-commission-rate" value="${Number(lead.commissionRate || 0)}" min="0" step="0.01" />
+            </label>
+            <label>
+              Est. Premium / yr
+              <input type="number" id="p-premium" value="${Number(lead.premium || 0)}" min="0" />
+            </label>
+            <label>
+              Commission Amount
+              <input type="number" id="p-commission-amount" value="${proposedCommissionAmount}" min="0" readonly />
+            </label>
+          </div>
+          <div class="section-edit-actions">
+            <button type="button" class="btn-secondary" id="proposed-cancel-btn">Cancel</button>
+            <button type="submit" class="btn-primary">Save Proposed Plans</button>
+          </div>
+        </form>
+      `
+      : `
+        <div class="financial-detail-grid">
+          <div class="info-item">
+            <div class="info-label">General Plan Type</div>
+            <div class="info-value">${escapeHtml(lead.generalPlanType || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Specific Plan Type</div>
+            <div class="info-value">${escapeHtml(lead.specificPlanType || lead.planType || "—")}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Sum Assured</div>
+            <div class="info-value">${lead.sumAssured ? `${currency} ${Number(lead.sumAssured).toLocaleString()}` : "—"}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Commission Rate</div>
+            <div class="info-value">${escapeHtml(formatCommissionRate(lead))}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Est. Premium / yr</div>
+            <div class="info-value" style="color: var(--brand);">${currency} ${Number(lead.premium || 0).toLocaleString()}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Commission Amount</div>
+            <div class="info-value">${escapeHtml(formatCommissionAmount(lead, currency))}</div>
+          </div>
+        </div>
+      `;
+
+    const remarksSectionBody = isRemarksEdit
+      ? `
+        <form id="remarks-edit-form" class="section-edit-form" novalidate>
+          <label class="section-form-stack">
+            Remarks
+            <textarea id="r-remarks" rows="6" placeholder="Add client notes, context, and follow-up pointers...">${escapeHtml(lead.remarks || "")}</textarea>
+          </label>
+          <div class="section-edit-actions">
+            <button type="button" class="btn-secondary" id="remarks-cancel-btn">Cancel</button>
+            <button type="submit" class="btn-primary">Save Remarks</button>
+          </div>
+        </form>
+      `
+      : `<p style="font-size: 1rem; line-height: 1.6; color: var(--text);">${escapeHtml(lead.remarks || "")}</p>`;
 
     profileContent.innerHTML = `
       <div class="profile-header" style="background: linear-gradient(135deg, ${avatarColor}15 0%, ${avatarColor}08 100%);">
@@ -211,147 +737,264 @@
         </div>
         <div class="profile-info">
           <h1>${escapeHtml(lead.name)}</h1>
-          <p class="profile-subtitle">${escapeHtml(lead.occupation || "—")} • ${escapeHtml(lead.income || "—")}</p>
-          <div class="profile-meta">
-            <div class="meta-item">
-              <span class="meta-label">Referred By</span>
-              <span class="meta-value">${escapeHtml(lead.referredBy || "—")}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Stage</span>
-              <span class="meta-value">${escapeHtml(lead.stage || "—")}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Urgency</span>
-              <span class="meta-value" style="color: ${urgencyColor};">${escapeHtml((lead.urgency || "").toUpperCase())}</span>
-            </div>
-          </div>
-        </div>
-        <div class="profile-actions">
-          <button class="btn-primary" onclick="window.location.href='create-profile.html?edit=${lead.id}'">Edit Profile</button>
         </div>
       </div>
 
       <div class="content-grid">
         <div class="card">
-          <h2 class="card-title">Client Details</h2>
-          <div class="section-divider"></div>
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">Age</div>
-              <div class="info-value">${lead.age} years</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Contact</div>
-              <div class="info-value">${escapeHtml(lead.contact || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Email</div>
-              <div class="info-value" style="font-size: 0.95rem;">${escapeHtml(lead.email || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Meeting Type</div>
-              <div class="info-value">${escapeHtml(lead.meetType || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">First Appointment</div>
-              <div class="info-value">${formatDate(lead.meetDate)}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Location</div>
-              <div class="info-value">${escapeHtml(lead.location || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Stage</div>
-              <div class="info-value">${escapeHtml(lead.stage || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Urgency</div>
-              <div class="info-value" style="color:${urgencyColor}">${escapeHtml((lead.urgency || "").toUpperCase())}</div>
-            </div>
+          <div class="section-header">
+            <h2 class="card-title">General Client Details</h2>
+            ${isGeneralEdit ? "" : '<button type="button" class="btn-secondary section-edit-btn" id="edit-general-btn">Edit Section</button>'}
           </div>
+          <div class="section-divider"></div>
+          ${generalSectionBody}
         </div>
 
         <div class="card financial-card">
-          <h2 class="card-title">Financial Portfolio</h2>
+          <div class="section-header">
+            <h2 class="card-title">Financial Portfolio</h2>
+            ${isFinancialEdit ? "" : '<button type="button" class="btn-secondary section-edit-btn" id="edit-financial-btn">Edit Section</button>'}
+          </div>
           <div class="section-divider"></div>
-          <div class="financial-summary-grid">
-            <div class="financial-summary-item accent-income">
-              <div class="info-label">Monthly Income</div>
-              <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.income))}</div>
-            </div>
-            <div class="financial-summary-item accent-expense">
-              <div class="info-label">General Expense</div>
-              <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.generalExpense))}</div>
-            </div>
-            <div class="financial-summary-item accent-surplus">
-              <div class="info-label">Surplus</div>
-              <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.surplus))}</div>
-            </div>
-          </div>
-
-          <div class="financial-note">
-            <div class="info-label">Existing Plans</div>
-            ${renderExistingPlans(lead)}
-          </div>
-
-          <div class="financial-detail-grid">
-            <div class="info-item">
-              <div class="info-label">CPF OA Balance</div>
-              <div class="info-value">SGD ${Number(lead.cpfOA || 0).toLocaleString()}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">CPF SA Balance</div>
-              <div class="info-value">SGD ${Number(lead.cpfSA || 0).toLocaleString()}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">General Plan Type</div>
-              <div class="info-value">${escapeHtml(lead.generalPlanType || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Specific Plan Type</div>
-              <div class="info-value">${escapeHtml(lead.specificPlanType || lead.planType || "—")}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Sum Assured</div>
-              <div class="info-value">${lead.sumAssured ? `${currency} ${Number(lead.sumAssured).toLocaleString()}` : "—"}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Commission Rate</div>
-              <div class="info-value">${escapeHtml(formatCommissionRate(lead))}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Commission Amount</div>
-              <div class="info-value">${escapeHtml(formatCommissionAmount(lead, currency))}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Est. Premium / yr</div>
-              <div class="info-value" style="color: var(--brand);">${currency} ${Number(lead.premium || 0).toLocaleString()}</div>
-            </div>
-          </div>
+          ${financialSectionBody}
         </div>
+      </div>
+
+      <div class="card proposed-section">
+        <div class="section-header">
+          <h2 class="card-title">Proposed Insurance Plans</h2>
+          ${isProposedEdit ? "" : '<button type="button" class="btn-secondary section-edit-btn" id="edit-proposed-btn">Edit Section</button>'}
+        </div>
+        <div class="section-divider"></div>
+        ${proposedSectionBody}
       </div>
 
       <div class="timeline-section">
         <div class="timeline-toolbar">
-          <h2 class="card-title">Follow-up Timeline</h2>
+          <h2 class="card-title">Timeline</h2>
           ${timelineActions}
         </div>
         <div class="section-divider"></div>
         ${timelineHtml}
       </div>
 
-      <div class="card" style="grid-column: span 2; margin-top: 0;">
-        <h2 class="card-title">Remarks</h2>
+      <div class="card remarks-section">
+        <div class="section-header">
+          <h2 class="card-title">Remarks</h2>
+          ${isRemarksEdit ? "" : '<button type="button" class="btn-secondary section-edit-btn" id="edit-remarks-btn">Edit Section</button>'}
+        </div>
         <div class="section-divider"></div>
-        <p style="font-size: 1rem; line-height: 1.6; color: var(--text);">${escapeHtml(lead.remarks || "")}</p>
+        ${remarksSectionBody}
       </div>
     `;
 
-    if (!editTimeline) {
+    if (!isGeneralEdit) {
+      const generalEditButton = document.getElementById("edit-general-btn");
+      if (generalEditButton) {
+        generalEditButton.addEventListener("click", () => {
+          renderProfile(leadId, "general");
+        });
+      }
+    } else {
+      const generalForm = document.getElementById("general-edit-form");
+      const generalCancelButton = document.getElementById("general-cancel-btn");
+      const generalErrorEl = document.getElementById("general-edit-error");
+
+      if (generalCancelButton) {
+        generalCancelButton.addEventListener("click", () => {
+          renderProfile(leadId);
+        });
+      }
+
+      if (generalForm) {
+        generalForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!generalForm.checkValidity()) {
+            generalForm.reportValidity();
+            return;
+          }
+          const name = document.getElementById("g-name")?.value.trim() || "";
+          const age = Number.parseInt(document.getElementById("g-age")?.value, 10);
+          const contact = document.getElementById("g-contact")?.value.trim() || "";
+          const email = document.getElementById("g-email")?.value.trim() || "";
+          const meetDate = document.getElementById("g-meet-date")?.value || "";
+
+          if (!name || !contact || !email || !meetDate || !Number.isFinite(age)) {
+            if (generalErrorEl) {
+              generalErrorEl.textContent = "Please fill all required general details.";
+            }
+            return;
+          }
+
+          updateLead(leadId, (currentLead) => ({
+            ...currentLead,
+            name,
+            birthDate: document.getElementById("g-birth-date")?.value || "",
+            age,
+            contact,
+            email,
+            meetDate,
+            urgency: document.getElementById("g-urgency")?.value || "non-urgent",
+            stage: document.getElementById("g-stage")?.value || "Prospecting",
+            occupation: document.getElementById("g-occupation")?.value.trim() || "",
+            referredBy: document.getElementById("g-referred-by")?.value.trim() || ""
+          }));
+
+          renderProfile(leadId);
+        });
+      }
+    }
+
+    if (!isFinancialEdit) {
+      const financialEditButton = document.getElementById("edit-financial-btn");
+      if (financialEditButton) {
+        financialEditButton.addEventListener("click", () => {
+          renderProfile(leadId, "financial");
+        });
+      }
+    } else {
+      const financialForm = document.getElementById("financial-edit-form");
+      const financialCancelButton = document.getElementById("financial-cancel-btn");
+
+      if (financialCancelButton) {
+        financialCancelButton.addEventListener("click", () => {
+          renderProfile(leadId);
+        });
+      }
+
+      if (financialForm) {
+        financialForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!financialForm.checkValidity()) {
+            financialForm.reportValidity();
+            return;
+          }
+
+          const income = document.getElementById("f-income")?.value.trim() || "";
+          const generalExpense = document.getElementById("f-general-expense")?.value.trim() || "";
+          const surplus = document.getElementById("f-surplus")?.value.trim() || "";
+          const cpfOA = Number.parseInt(document.getElementById("f-cpf-oa")?.value, 10) || 0;
+          const cpfSA = Number.parseInt(document.getElementById("f-cpf-sa")?.value, 10) || 0;
+
+          updateLead(leadId, (currentLead) => ({
+            ...currentLead,
+            income,
+            generalExpense,
+            surplus,
+            cpfOA,
+            cpfSA,
+          }));
+
+          renderProfile(leadId);
+        });
+      }
+    }
+
+    if (!isProposedEdit) {
+      const proposedEditButton = document.getElementById("edit-proposed-btn");
+      if (proposedEditButton) {
+        proposedEditButton.addEventListener("click", () => {
+          renderProfile(leadId, "proposed");
+        });
+      }
+    } else {
+      const proposedForm = document.getElementById("proposed-edit-form");
+      const proposedCancelButton = document.getElementById("proposed-cancel-btn");
+      const proposedRateInput = document.getElementById("p-commission-rate");
+      const proposedPremiumInput = document.getElementById("p-premium");
+      const proposedAmountInput = document.getElementById("p-commission-amount");
+
+      const syncProposedCommissionAmount = () => {
+        const premium = Number.parseFloat(proposedPremiumInput?.value || "0") || 0;
+        const commissionRate = Number.parseFloat(proposedRateInput?.value || "0") || 0;
+        const commissionAmount = (premium * commissionRate) / 100;
+        if (proposedAmountInput) {
+          proposedAmountInput.value = commissionAmount ? String(commissionAmount) : "0";
+        }
+      };
+
+      if (proposedCancelButton) {
+        proposedCancelButton.addEventListener("click", () => {
+          renderProfile(leadId);
+        });
+      }
+
+      if (proposedRateInput) {
+        proposedRateInput.addEventListener("input", syncProposedCommissionAmount);
+      }
+
+      if (proposedPremiumInput) {
+        proposedPremiumInput.addEventListener("input", syncProposedCommissionAmount);
+      }
+
+      syncProposedCommissionAmount();
+
+      if (proposedForm) {
+        proposedForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!proposedForm.checkValidity()) {
+            proposedForm.reportValidity();
+            return;
+          }
+          const generalPlanType = document.getElementById("p-general-plan-type")?.value.trim() || "";
+          const specificPlanType = document.getElementById("p-specific-plan-type")?.value.trim() || "";
+          const sumAssured = Number.parseInt(document.getElementById("p-sum-assured")?.value, 10) || 0;
+          const commissionRate = Number.parseFloat(document.getElementById("p-commission-rate")?.value) || 0;
+          const premium = Number.parseInt(document.getElementById("p-premium")?.value, 10) || 0;
+          const commissionAmount = (premium * commissionRate) / 100;
+
+          updateLead(leadId, (currentLead) => ({
+            ...currentLead,
+            generalPlanType,
+            specificPlanType,
+            planType: specificPlanType,
+            sumAssured,
+            commissionRate,
+            commissionAmount,
+            premium
+          }));
+
+          renderProfile(leadId);
+        });
+      }
+    }
+
+    if (!isRemarksEdit) {
+      const remarksEditButton = document.getElementById("edit-remarks-btn");
+      if (remarksEditButton) {
+        remarksEditButton.addEventListener("click", () => {
+          renderProfile(leadId, "remarks");
+        });
+      }
+    } else {
+      const remarksForm = document.getElementById("remarks-edit-form");
+      const remarksCancelButton = document.getElementById("remarks-cancel-btn");
+
+      if (remarksCancelButton) {
+        remarksCancelButton.addEventListener("click", () => {
+          renderProfile(leadId);
+        });
+      }
+
+      if (remarksForm) {
+        remarksForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const remarks = document.getElementById("r-remarks")?.value.trim() || "";
+          updateLead(leadId, (currentLead) => ({
+            ...currentLead,
+            remarks
+          }));
+          renderProfile(leadId);
+        });
+      }
+    }
+
+    if (!isTimelineEdit) {
       const editButton = document.getElementById("timeline-edit-btn");
       if (editButton) {
-        editButton.addEventListener("click", () => renderProfile(leadId, true));
+        editButton.addEventListener("click", () => {
+          renderProfile(leadId, "timeline");
+        });
       }
       return;
     }
@@ -362,7 +1005,9 @@
     const timelineEditor = document.getElementById("timeline-editor");
 
     if (cancelButton) {
-      cancelButton.addEventListener("click", () => renderProfile(leadId, false));
+      cancelButton.addEventListener("click", () => {
+        renderProfile(leadId);
+      });
     }
 
     if (addButton && timelineEditor) {
@@ -390,13 +1035,17 @@
           ...currentLead,
           followUps
         }));
-        renderProfile(leadId, false);
+        renderProfile(leadId);
       });
     }
   }
 
   const params = new URLSearchParams(window.location.search);
-  const leadId = parseInt(params.get("id"), 10);
+  const leadId = params.get("id");
+  const editMode = params.get("edit") === "true";
+  const section = (params.get("section") || "").toLowerCase();
+  const allowedSections = new Set(["general", "financial", "proposed", "timeline", "remarks"]);
+  const editSection = allowedSections.has(section) ? section : (editMode ? "general" : "");
 
   // Prime cache from API (GET /leads?userId=...) before rendering
   if (typeof apiGet === "function") {
@@ -404,13 +1053,24 @@
     try {
       const rows = await apiGet("/leads" + (userId ? "?userId=" + encodeURIComponent(userId) : ""));
       if (Array.isArray(rows) && rows.length > 0) {
-        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(rows.map(mapLead)));
+        const remoteLeads = rows.map(mapLead);
+        const localLeads = getLeads();
+        const mergedById = new Map();
+
+        remoteLeads.forEach((lead) => {
+          mergedById.set(normalizeId(lead.id), lead);
+        });
+        localLeads.forEach((lead) => {
+          mergedById.set(normalizeId(lead.id), lead);
+        });
+
+        saveLeads(Array.from(mergedById.values()));
       }
     } catch (e) { console.warn("Failed to load leads from API:", e); }
   }
 
   if (leadId) {
-    renderProfile(leadId);
+    renderProfile(leadId, editSection);
   } else {
     document.getElementById("profileContent").innerHTML = '<div class="error-message">No lead ID provided</div>';
   }

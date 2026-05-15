@@ -206,7 +206,7 @@
     .card {
       background: var(--surface);
       border-radius: 16px;
-      padding: 2rem;
+      padding: 1.5rem;
       box-shadow: var(--shadow);
       font-family: inherit;
     }
@@ -215,17 +215,43 @@
       font-size: 1.2rem;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
       letter-spacing: -0.02em;
     }
 
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.2rem;
+    }
+
+    .section-header > * {
+      min-width: 0;
+    }
+
+    .section-header .card-title {
+      margin-bottom: 0;
+    }
+
+    .section-edit-btn {
+      min-width: 106px;
+      padding: 0.5rem 0.95rem;
+      font-size: 0.85rem;
+      border-width: 1px;
+      line-height: 1.2;
+      text-align: center;
+    }
+
     .section-divider {
       height: 2px;
       background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
 
     .info-grid {
@@ -429,9 +455,16 @@
     .timeline-section {
       background: var(--surface);
       border-radius: 16px;
-      padding: 2rem;
+      padding: 1.5rem;
       box-shadow: var(--shadow);
       grid-column: span 2;
+      margin-bottom: 1.5rem;
+    }
+
+    .proposed-section {
+      grid-column: span 2;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
     }
 
     .timeline-toolbar {
@@ -450,23 +483,34 @@
       display: flex;
       gap: 0.65rem;
       flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .timeline-toolbar-actions .btn-secondary,
+    .timeline-toolbar-actions .btn-primary {
+      min-width: 106px;
+      padding: 0.5rem 0.95rem;
+      font-size: 0.85rem;
+      line-height: 1.2;
+      text-align: center;
     }
 
     .timeline-empty {
       color: var(--text-muted);
       font-size: 0.95rem;
       margin: 0;
+      line-height: 1.6;
     }
 
     .timeline {
       position: relative;
-      padding-left: 2.5rem;
+      padding-left: 1.5rem;
     }
 
     .timeline::before {
       content: '';
       position: absolute;
-      left: 8px;
+      left: 2px;
       top: 0;
       bottom: 0;
       width: 2px;
@@ -476,7 +520,7 @@
     .timeline-item {
       margin-bottom: 2rem;
       position: relative;
-      padding-left: 1rem;
+      padding-left: 0.75rem;
     }
 
     .timeline-dot {
@@ -568,6 +612,62 @@
       background: #fff;
     }
 
+    .section-edit-form {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .section-form-grid {
+      display: grid;
+      gap: 0.9rem;
+      align-items: start;
+    }
+
+    .section-form-grid.two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .section-form-grid label,
+    .section-form-stack {
+      width: 100%;
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .section-form-grid input,
+    .section-form-grid select,
+    .section-form-stack textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.7rem;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .section-form-stack textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    .section-edit-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .section-edit-error {
+      color: #991b1b;
+      font-size: 0.86rem;
+      font-weight: 600;
+      min-height: 1.2rem;
+    }
+
     .timeline-editor-actions {
       display: flex;
       justify-content: space-between;
@@ -593,6 +693,11 @@
 
     .timeline-remove-btn {
       padding: 0.55rem 0.9rem;
+    }
+
+    .remarks-section {
+      grid-column: span 2;
+      margin-top: 0;
     }
 
     @media (max-width: 768px) {
@@ -628,6 +733,10 @@
       }
 
       .timeline-editor-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-form-grid.two-col {
         grid-template-columns: 1fr;
       }
     }

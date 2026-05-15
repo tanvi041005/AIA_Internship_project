@@ -199,6 +199,39 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 .em-pbtn.copy{border-color:#16a34a;color:#16a34a}.em-pbtn.copy:hover{background:#f0fdf4}
 .em-note{font-size:12px;color:#aaa;margin-top:1.25rem;text-align:center}
 
+/* Excel Import Modal */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal.hidden{display:none}
+.modal-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);cursor:pointer}
+.modal-content{position:relative;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:90%;max-width:500px;max-height:85vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem;border-bottom:1px solid var(--border)}
+.modal-header h2{margin:0;font-size:1.25rem;color:var(--text)}
+.modal-close{background:none;border:none;font-size:28px;color:var(--text-muted);cursor:pointer;padding:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1.5rem}
+.modal-intro{font-size:0.875rem;color:var(--text-muted);margin:0 0 1rem}
+
+/* Dropzone */
+.dropzone{border:2px dashed var(--border);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.2s ease;background:linear-gradient(135deg,rgba(166,25,46,0.02) 0%,rgba(198,154,103,0.02) 100%)}
+.dropzone:hover{border-color:var(--brand);background:linear-gradient(135deg,rgba(166,25,46,0.05) 0%,rgba(198,154,103,0.05) 100%)}
+.dropzone.active{border-color:var(--brand);background:var(--brand-light);transform:scale(1.02)}
+.dropzone-icon{font-size:2.5rem;margin-bottom:0.5rem;color:var(--brand)}
+.dropzone-text{font-size:0.875rem;font-weight:600;color:var(--text);margin-bottom:0.25rem}
+.dropzone-subtext{font-size:0.75rem;color:var(--text-muted)}
+.excel-upload-input{display:none}
+.upload-success{padding:0.75rem 1rem;background:#d1fae5;color:#065f46;border-radius:8px;font-size:0.875rem;font-weight:600;margin-top:0.75rem;display:none}
+.upload-error{padding:0.75rem 1rem;background:#fee2e2;color:#991b1b;border-radius:8px;font-size:0.875rem;font-weight:600;margin-top:0.75rem;display:none}
+
+/* Modal Divider */
+.modal-divider{display:flex;align-items:center;margin:1.5rem 0;gap:1rem}
+.modal-divider::before,.modal-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.modal-divider span{font-size:0.875rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+
+/* Manual Fill Button */
+.btn-manual-fill{width:100%;padding:0.75rem 1rem;background:var(--surface-subtle);color:var(--brand);border:1.5px solid var(--brand);border-radius:8px;font-size:0.875rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;font-family:inherit}
+.btn-manual-fill:hover{background:var(--brand-light);border-color:var(--brand-dark)}
+.btn-manual-fill:active{transform:scale(0.98)}
+
 @media(max-width:720px){
   body{font-size:13px}
   main{padding-top:1.15rem}
@@ -209,4 +242,7 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
   .kpi-grid{gap:.6rem}
   .panel{padding:.9rem}
   .controls-row{gap:.35rem}
+  .modal-content{width:95%;max-width:none}
+  .dropzone{padding:1.5rem}
+  .dropzone-icon{font-size:2rem}
 }

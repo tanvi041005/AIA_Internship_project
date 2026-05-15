@@ -62,6 +62,211 @@
       return amount;
     }
 
+    // Excel Upload and Auto-fill functionality
+    function parseExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            
+            if (!rows || rows.length === 0) {
+              reject(new Error("No data found in Excel file"));
+              return;
+            }
+            
+            // Get the first row
+            const rowData = rows[0];
+            resolve(rowData);
+          } catch (error) {
+            reject(new Error("Failed to parse Excel file: " + error.message));
+          }
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsBinaryString(file);
+      });
+    }
+
+    function mapExcelDataToForm(excelData) {
+      // Mapping of Excel column headers to form field IDs
+      const columnMapping = {
+        'Full Name': 'cp-name',
+        'Name': 'cp-name',
+        'Age': 'cp-age',
+        'Contact Number': 'cp-contact',
+        'Contact': 'cp-contact',
+        'Email Address': 'cp-email',
+        'Email': 'cp-email',
+        'Meet-up Date': 'cp-meetup-date',
+        'Meeting Date': 'cp-meetup-date',
+        'Date': 'cp-meetup-date',
+        'Meeting Type': 'cp-meeting-type',
+        'Type': 'cp-meeting-type',
+        'Location': 'cp-location',
+        'Urgency': 'cp-urgency',
+        'Stage': 'cp-stage',
+        'Pipeline Stage': 'cp-stage',
+        'Occupation': 'cp-occupation',
+        'Job Title': 'cp-occupation',
+        'Monthly Income': 'cp-income',
+        'Income': 'cp-income',
+        'General Expense': 'cp-general-expense',
+        'Expense': 'cp-general-expense',
+        'Surplus': 'cp-surplus',
+        'CPF OA Balance': 'cp-cpf-oa',
+        'CPF OA': 'cp-cpf-oa',
+        'CPF SA Balance': 'cp-cpf-sa',
+        'CPF SA': 'cp-cpf-sa',
+        'General Plan Type': 'cp-general-plan-type',
+        'Plan Category': 'cp-general-plan-type',
+        'Specific Plan Type': 'cp-plan-type',
+        'Plan Type': 'cp-plan-type',
+        'Product': 'cp-plan-type',
+        'Currency': 'cp-currency',
+        'Sum Assured': 'cp-sum-assured',
+        'Coverage Amount': 'cp-sum-assured',
+        'Premium': 'cp-premium',
+        'Premium (Yearly)': 'cp-premium',
+        'Annual Premium': 'cp-premium',
+        'Commission Rate': 'cp-commission-rate',
+        'Referred By': 'cp-referred',
+        'Referrer': 'cp-referred',
+        'Existing Plans': 'existing-plans-list',
+        'Plans': 'existing-plans-list',
+        'Remarks': 'cp-remarks',
+        'Notes': 'cp-remarks'
+      };
+
+      const fillCount = {count: 0};
+
+      // Iterate through Excel data and map to form fields
+      for (const [excelHeader, value] of Object.entries(excelData)) {
+        const fieldId = columnMapping[excelHeader];
+        
+        if (!fieldId || !value) continue;
+
+        try {
+          const element = document.getElementById(fieldId);
+          if (!element) continue;
+
+          // Special handling for existing plans
+          if (fieldId === 'existing-plans-list') {
+            const plansArray = String(value)
+              .split(/\r?\n|,|;/)
+              .map(p => p.trim())
+              .filter(p => p.length > 0);
+            if (plansArray.length > 0) {
+              renderPlanInputs(plansArray);
+              fillCount.count++;
+            }
+          } else {
+            element.value = String(value).trim();
+            fillCount.count++;
+          }
+        } catch (err) {
+          console.warn(`Could not fill field ${fieldId}:`, err);
+        }
+      }
+
+      // Recalculate commission if premium and rate are filled
+      setTimeout(() => {
+        calculateCommissionAmount();
+      }, 100);
+
+      return fillCount.count;
+    }
+
+    // Dropzone event handlers
+    const dropzone = document.getElementById('excel-dropzone');
+    const fileInput = document.getElementById('excel-upload-input');
+    const uploadSuccess = document.getElementById('upload-success');
+    const uploadError = document.getElementById('upload-error');
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('active');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('active');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('active');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFileUpload(files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFileUpload(e.target.files[0]);
+        }
+      });
+    }
+
+    function handleFileUpload(file) {
+      // Validate file type
+      const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+      if (!validTypes.includes(file.type)) {
+        showUploadError('Invalid file type. Please upload an Excel file (.xlsx or .xls)');
+        return;
+      }
+
+      // Parse Excel and populate form
+      parseExcelFile(file)
+        .then((excelData) => {
+          const fieldsCount = mapExcelDataToForm(excelData);
+          if (fieldsCount > 0) {
+            showUploadSuccess(`Successfully imported ${fieldsCount} fields from Excel!`);
+            // Scroll to first form field
+            const firstField = document.getElementById('cp-name');
+            if (firstField) {
+              setTimeout(() => {
+                firstField.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 300);
+            }
+          } else {
+            showUploadError('No matching fields found in Excel file.');
+          }
+        })
+        .catch((error) => {
+          showUploadError(error.message);
+        });
+    }
+
+    function showUploadSuccess(message) {
+      if (uploadSuccess) {
+        uploadSuccess.textContent = '✓ ' + message;
+        uploadSuccess.style.display = 'block';
+        setTimeout(() => {
+          uploadSuccess.style.display = 'none';
+        }, 4000);
+      }
+    }
+
+    function showUploadError(message) {
+      if (uploadError) {
+        uploadError.textContent = '✗ ' + message;
+        uploadError.style.display = 'block';
+        setTimeout(() => {
+          uploadError.style.display = 'none';
+        }, 4000);
+      }
+    }
+
     function getCustomLeads() {
       try { return JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || []; }
       catch { return []; }
