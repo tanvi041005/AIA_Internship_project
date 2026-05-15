@@ -155,6 +155,26 @@
           <label for="personal-event-dialog-location" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Location</label>
           <input type="text" id="personal-event-dialog-location" placeholder="Office / Zoom / Client site" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
 
+          <div id="personal-event-lead-section" style="display:none;">
+            <label style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Lead (Customer)</label>
+            <div style="position:relative;">
+              <div style="display:flex;gap:0.4rem;align-items:center;">
+                <input type="text" id="personal-event-lead-search" placeholder="Search lead by name…" autocomplete="off"
+                  style="flex:1;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;font:inherit;" />
+                <button type="button" id="personal-event-lead-clear" title="Clear lead"
+                  style="display:none;background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted,#6b7280);padding:0.2rem 0.4rem;line-height:1;">×</button>
+              </div>
+              <ul id="personal-event-lead-dropdown"
+                style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:200;
+                       background:#fff;border:1px solid var(--border);border-radius:8px;
+                       max-height:180px;overflow-y:auto;margin:0;padding:0.25rem 0;list-style:none;
+                       box-shadow:0 4px 16px rgba(0,0,0,0.12);">
+              </ul>
+            </div>
+            <input type="hidden" id="personal-event-lead-id" />
+            <input type="hidden" id="personal-event-lead-name" />
+          </div>
+
           <label for="personal-event-dialog-notes" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Notes</label>
           <textarea id="personal-event-dialog-notes" rows="3" placeholder="Optional notes..." style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;"></textarea>
 
