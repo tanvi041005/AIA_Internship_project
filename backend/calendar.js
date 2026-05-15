@@ -89,6 +89,38 @@ let _personalEvents = [];
 let _agencyEvents   = [];
 let _personalTasks  = [];
 let _agencyEditDialogState = { editSeries: false, recurrenceId: '' };
+let _hoverTimer = null;
+
+// Leads for the appointment lead-picker dropdown. Populated lazily on first use.
+let _calendarLeads = null;
+let _calendarLeadsFetchPromise = null;
+
+async function _ensureCalendarLeads() {
+  if (_calendarLeads !== null) return _calendarLeads;
+  // Use the globally loaded leadData if it is already populated
+  if (typeof leadData !== 'undefined' && Array.isArray(leadData) && leadData.length > 0) {
+    _calendarLeads = leadData;
+    return _calendarLeads;
+  }
+  // Avoid duplicate in-flight fetches
+  if (_calendarLeadsFetchPromise) return _calendarLeadsFetchPromise;
+  _calendarLeadsFetchPromise = (async () => {
+    try {
+      const userId = sessionStorage.getItem('dashboardUser') || '';
+      const rows = await apiGet('/leads' + (userId ? '?userId=' + encodeURIComponent(userId) : ''));
+      _calendarLeads = (Array.isArray(rows) ? rows : []).map(r => ({
+        id:    r.lead_id,
+        name:  r.name  || '',
+        stage: r.stage || '',
+      }));
+    } catch (e) {
+      console.warn('Calendar: could not fetch leads for picker', e);
+      _calendarLeads = [];
+    }
+    return _calendarLeads;
+  })();
+  return _calendarLeadsFetchPromise;
+}
 
 // ── Page detection ────────────────────────────────────────────────────────────
 
@@ -112,6 +144,8 @@ function mapCalendarEvent(r) {
     category:    r.category,
     recurrenceId: r.recurrence_id  || '',
     taskId:      r.linked_task_id  || '',
+    leadId:      r.lead_id         || '',
+    leadName:    r.lead_name       || '',
     editable:    r.is_editable !== false,
   };
 }
@@ -141,7 +175,25 @@ async function loadCalendarFromApi() {
   const personalEvents = (Array.isArray(rawEvents) ? rawEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
   const agencyOnly     = (Array.isArray(rawAgencyEvents) ? rawAgencyEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
 
-  _personalEvents = personalEvents.filter(e => e.category === 'personal' || e.category === 'calendar');
+  // Before overwriting, snapshot lead info stored in localStorage so it can be merged back
+  // (the DB events table does not have lead_id/lead_name columns yet, so that info lives locally)
+  let _lsLeadMap = {};
+  try {
+    const lsRaw = localStorage.getItem(PERSONAL_EVENTS_STORAGE_KEY);
+    if (lsRaw) {
+      JSON.parse(lsRaw).forEach(e => {
+        if (e.id && (e.leadId || e.leadName)) _lsLeadMap[e.id] = { leadId: e.leadId || '', leadName: e.leadName || '' };
+      });
+    }
+  } catch (_) {}
+
+  _personalEvents = personalEvents
+    .filter(e => e.category === 'personal' || e.category === 'calendar')
+    .map(e => {
+      const lead = _lsLeadMap[e.id];
+      return lead ? { ...e, leadId: lead.leadId, leadName: lead.leadName } : e;
+    });
+
   // Merge agency events, deduplicate by id in case admin's personal fetch already included them
   const agencyIds = new Set(agencyOnly.map(e => e.id));
   _agencyEvents   = [
@@ -281,12 +333,14 @@ function addPersonalTask(payload) {
 }
 
 function addPersonalEvent(payload) {
-  const { date, title, startTime = '', endTime = '', location = '', notes = '', taskTitle = '', taskId = '', type = 'Appointment', recurrenceId = '' } = payload;
+  const { date, title, startTime = '', endTime = '', location = '', notes = '', taskTitle = '', taskId = '', type = 'Appointment', recurrenceId = '', leadId = '', leadName = '' } = payload;
   const ev = {
     id:       `personal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     date,
     title, startTime, endTime, location, notes, taskTitle, taskId, type,
     category: 'personal',
+    ...(leadId      ? { leadId }      : {}),
+    ...(leadName    ? { leadName }    : {}),
     ...(recurrenceId ? { recurrenceId } : {}),
   };
   _personalEvents.push(ev);
@@ -305,6 +359,8 @@ function addPersonalEvent(payload) {
       notes:          notes       || null,
       recurrence_id:  recurrenceId || null,
       linked_task_id: taskId      || null,
+      lead_id:        leadId      || null,
+      lead_name:      leadName    || null,
       created_by:     userId,
     }).then(result => {
       if (result && (result.event_id || result.id)) ev.id = result.event_id || result.id;
@@ -362,6 +418,8 @@ async function updatePersonalEvent(id, payload) {
     location:   payload.location  || null,
     event_type: payload.type      || null,
     notes:      payload.notes     || null,
+    lead_id:    payload.leadId    || null,
+    lead_name:  payload.leadName  || null,
   });
   _personalEvents = _personalEvents.map(e => e.id === id ? { ...e, ...payload } : e);
   try { localStorage.setItem(PERSONAL_EVENTS_STORAGE_KEY, JSON.stringify(_personalEvents)); } catch (e) {}
@@ -723,17 +781,19 @@ function initCalendarDetailPopup() {
   const popup = document.createElement("div");
   popup.id = "cal-detail-popup";
   popup.style.cssText = [
-    "position:fixed;z-index:1200;background:#fff;border:1px solid var(--border,#e5e7eb)",
-    "border-radius:12px;padding:1rem 1.1rem;width:270px",
-    "box-shadow:0 8px 24px rgba(0,0,0,0.15);display:none"
+    "position:fixed;z-index:1200;background:var(--card,#fff);border:1px solid var(--border,#e5e7eb)",
+    "border-radius:var(--radius,10px);padding:1rem;min-width:220px;max-width:280px",
+    "box-shadow:0 4px 20px rgba(0,0,0,0.14);display:none"
   ].join(";");
   popup.innerHTML = `
-    <button id="cal-detail-close" style="position:absolute;top:0.5rem;right:0.6rem;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted,#6b7280);line-height:1;" aria-label="Close">×</button>
+    <button id="cal-detail-close" style="position:absolute;top:0.5rem;right:0.5rem;background:none;border:none;font-size:1rem;cursor:pointer;color:var(--text-muted,#6b7280);line-height:1;" aria-label="Close">×</button>
     <div id="cal-detail-content"></div>
   `;
   document.body.appendChild(popup);
 
   document.getElementById("cal-detail-close").addEventListener("click", closeCalendarDetailPopup);
+  popup.addEventListener("mouseenter", () => clearTimeout(_hoverTimer));
+  popup.addEventListener("mouseleave", () => { _hoverTimer = setTimeout(closeCalendarDetailPopup, 120); });
   document.addEventListener("click", (e) => {
     const p = document.getElementById("cal-detail-popup");
     if (p && p.style.display !== "none" && !p.contains(e.target)) closeCalendarDetailPopup();
@@ -741,6 +801,7 @@ function initCalendarDetailPopup() {
 }
 
 function closeCalendarDetailPopup() {
+  clearTimeout(_hoverTimer);
   const popup = document.getElementById("cal-detail-popup");
   if (popup) popup.style.display = "none";
 }
@@ -803,24 +864,19 @@ function showCalendarDetailPopup(e, ev, state) {
     ? new Date(ev.date + "T00:00:00").toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
     : ev.date;
 
-  const recurBadge = ev.recurrenceId
-    ? `<span style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:600;color:#7c3aed;margin-left:0.4rem;">↻ Recurring</span>`
-    : "";
-
   content.innerHTML = `
-    <div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.55rem;flex-wrap:wrap;">
-      <span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:700;background:${typeBg};color:${typeColor};">${ev.type || "Event"}</span>
-      ${recurBadge}
-    </div>
-    <p style="font-weight:700;font-size:0.95rem;margin:0 0 0.45rem;line-height:1.3;">${ev.title}</p>
-    <p style="font-size:0.83rem;color:var(--muted,#6b7280);margin:0 0 0.2rem;">📅 ${dateFormatted}</p>
-    ${ev.startTime ? `<p style="font-size:0.83rem;color:var(--muted,#6b7280);margin:0 0 0.2rem;">🕐 ${ev.startTime}${ev.endTime ? " – " + ev.endTime : ""}</p>` : ""}
-    ${ev.location  ? `<p style="font-size:0.83rem;color:var(--muted,#6b7280);margin:0 0 0.2rem;">📍 ${ev.location}</p>` : ""}
-    ${ev.notes     ? `<p style="font-size:0.83rem;color:var(--muted,#6b7280);margin:0.3rem 0 0;white-space:pre-wrap;">${ev.notes}</p>` : ""}
+    <span style="display:inline-block;padding:0.12rem 0.45rem;border-radius:999px;font-size:0.72rem;font-weight:700;margin-bottom:0.4rem;background:${typeBg};color:${typeColor};">${ev.type || "Event"}</span>
+    <h4 style="margin:0 0 0.4rem;font-size:0.95rem;font-weight:700;line-height:1.3;padding-right:1.2rem;">${ev.title}</h4>
+    <p style="margin:0.2rem 0;font-size:0.82rem;color:var(--text-muted,#6b7280);">📅 ${dateFormatted}</p>
+    ${ev.startTime ? `<p style="margin:0.2rem 0;font-size:0.82rem;color:var(--text-muted,#6b7280);">🕐 ${ev.startTime}${ev.endTime ? " – " + ev.endTime : ""}</p>` : ""}
+    ${ev.location  ? `<p style="margin:0.2rem 0;font-size:0.82rem;color:var(--text-muted,#6b7280);">📍 ${ev.location}</p>` : ""}
+    ${ev.leadName  ? `<p style="margin:0.2rem 0;font-size:0.82rem;color:var(--text-muted,#6b7280);">👤 ${ev.leadName}</p>` : ""}
+    ${ev.notes     ? `<p style="margin:0.2rem 0;font-size:0.82rem;color:var(--text-muted,#6b7280);">📝 ${ev.notes}</p>` : ""}
+    ${ev.recurrenceId ? `<p style="margin:0.3rem 0 0;font-size:0.78rem;color:#7c3aed;">🔁 Recurring series</p>` : ""}
     ${(canEdit || canEditAgency || canDelete) ? `
-    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.65rem;border-top:1px solid var(--border,#e5e7eb);">
-      ${(canEdit || canEditAgency) ? `<button id="cal-detail-edit" style="flex:1;padding:0.4rem;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;">Edit</button>` : ""}
-      ${canDelete ? `<button id="cal-detail-delete" style="flex:1;padding:0.4rem;border:1px solid #fca5a5;border-radius:8px;background:#fff;color:#dc2626;cursor:pointer;font-size:0.85rem;font-weight:600;">Delete</button>` : ""}
+    <div style="display:flex;gap:0.4rem;margin-top:0.65rem;">
+      ${(canEdit || canEditAgency) ? `<button id="cal-detail-edit" style="flex:1;padding:0.35rem 0.5rem;border-radius:6px;font:inherit;font-size:0.75rem;font-weight:600;cursor:pointer;background:#fdf2f3;color:var(--brand,#a6192e);border:1px solid #f4cbd2;">Edit</button>` : ""}
+      ${canDelete ? `<button id="cal-detail-delete" style="flex:1;padding:0.35rem 0.5rem;border-radius:6px;font:inherit;font-size:0.75rem;font-weight:600;cursor:pointer;background:#fff;color:#b91c1c;border:1px solid #fecaca;">Delete</button>` : ""}
     </div>` : ""}
   `;
 
@@ -881,14 +937,30 @@ function wireCalendarDateClicks(state) {
       openPersonalEventDialog(state.selectedDate);
     };
 
+    cell.addEventListener("mouseover", (e) => {
+      const tag = e.target.closest(".event-tag[data-event-id]");
+      if (!tag || !tag.dataset.eventId) return;
+      clearTimeout(_hoverTimer);
+      const role = localStorage.getItem("calendarRole") || "agent";
+      const ev   = getCalendarEventsForView(role, state).find((ev2) => ev2.id === tag.dataset.eventId);
+      if (ev) { closeDayPopup(); showCalendarDetailPopup(e, ev, state); }
+    });
+
+    cell.addEventListener("mouseout", (e) => {
+      const tag = e.target.closest(".event-tag[data-event-id]");
+      if (!tag) return;
+      _hoverTimer = setTimeout(closeCalendarDetailPopup, 200);
+    });
+
     cell.addEventListener("click", (e) => {
       const tag = e.target.closest(".event-tag[data-event-id]");
       if (tag && tag.dataset.eventId) {
         e.stopPropagation();
-        const role = localStorage.getItem("calendarRole") || "agent";
-        const ev   = getCalendarEventsForView(role, state).find((ev2) => ev2.id === tag.dataset.eventId);
-        if (ev) { closeDayPopup(); showCalendarDetailPopup(e, ev, state); return; }
+        // Popup already shown on hover; just keep it open
+        clearTimeout(_hoverTimer);
+        return;
       }
+      closeCalendarDetailPopup();
       openForCell(e);
     });
     cell.addEventListener("keydown", (ev) => {
@@ -930,12 +1002,13 @@ function _openDayPopup(clickEvent, date, events, state) {
     const canEdit  = ev.editable !== false && ev.category !== "holiday";
     const canDel   = (ev.category === "personal" && canEdit) || (ev.category === "agency" && canManage);
     const timeStr  = ev.startTime ? `${ev.startTime}${ev.endTime ? " – " + ev.endTime : ""}` : "All day";
+    const metaParts = [timeStr, ev.location || "", ev.leadName || ""].filter(Boolean);
     return `
       <li class="day-popup-item" data-ev-id="${ev.id}">
         <span class="day-popup-dot" style="background:${color};"></span>
         <div class="day-popup-body">
           <div class="day-popup-title">${ev.title}</div>
-          <div class="day-popup-meta">${timeStr}${ev.location ? " · " + ev.location : ""}</div>
+          <div class="day-popup-meta">${metaParts.join(" · ")}</div>
         </div>
         <span class="day-popup-type" style="color:${color};">${ev.type || ""}</span>
         ${canEdit ? `<button class="day-popup-edit-btn" data-ev-id="${ev.id}" title="Edit">✎</button>` : ""}
@@ -1421,6 +1494,24 @@ function openPersonalEventDialog(date, existingEvent = null, editSeries = false)
     if (repeatEndWrap) repeatEndWrap.style.display = "none";
   }
 
+  // Lead section: pre-fill when editing and sync visibility
+  const leadSectionEl   = document.getElementById("personal-event-lead-section");
+  const leadSearchEl    = document.getElementById("personal-event-lead-search");
+  const leadIdEl        = document.getElementById("personal-event-lead-id");
+  const leadNameEl      = document.getElementById("personal-event-lead-name");
+  const leadClearEl     = document.getElementById("personal-event-lead-clear");
+  if (leadSectionEl) {
+    leadSectionEl.style.display = currentType === "Appointment" ? "block" : "none";
+    const existingLeadName = isEdit ? (existingEvent.leadName || "") : "";
+    const existingLeadId   = isEdit ? (existingEvent.leadId   || "") : "";
+    if (leadSearchEl)  leadSearchEl.value  = existingLeadName;
+    if (leadIdEl)      leadIdEl.value      = existingLeadId;
+    if (leadNameEl)    leadNameEl.value    = existingLeadName;
+    if (leadClearEl)   leadClearEl.style.display = existingLeadName ? "inline-block" : "none";
+    const dd = document.getElementById("personal-event-lead-dropdown");
+    if (dd) dd.style.display = "none";
+  }
+
   const timeErrEl = document.getElementById("personal-event-time-error");
   const saveErrEl = document.getElementById("personal-event-save-error");
   if (timeErrEl) timeErrEl.style.display = "none";
@@ -1475,6 +1566,83 @@ function wirePersonalEventDialog(state, refreshCalendar) {
     });
   }
 
+  // Lead search dropdown
+  const leadSection    = document.getElementById("personal-event-lead-section");
+  const leadSearch     = document.getElementById("personal-event-lead-search");
+  const leadDropdown   = document.getElementById("personal-event-lead-dropdown");
+  const leadIdInput    = document.getElementById("personal-event-lead-id");
+  const leadNameInput  = document.getElementById("personal-event-lead-name");
+  const leadClearBtn   = document.getElementById("personal-event-lead-clear");
+
+  function _syncLeadSectionVisibility() {
+    if (!leadSection) return;
+    const t = typeInput ? typeInput.value : "Appointment";
+    leadSection.style.display = t === "Appointment" ? "block" : "none";
+  }
+
+  function _applyLeadList(leads, query) {
+    if (!leadDropdown) return;
+    const q = (query || "").toLowerCase().trim();
+    const matches = q ? leads.filter(l => l.name && l.name.toLowerCase().includes(q)) : leads;
+    if (!matches.length) {
+      leadDropdown.innerHTML = `<li style="padding:0.5rem 0.9rem;font-size:0.85rem;color:var(--muted,#6b7280);">No leads found</li>`;
+    } else {
+      leadDropdown.innerHTML = matches.slice(0, 40).map(l => `
+        <li data-lead-id="${l.id}" data-lead-name="${(l.name || '').replace(/"/g,'&quot;')}"
+          style="padding:0.45rem 0.9rem;cursor:pointer;font-size:0.875rem;display:flex;flex-direction:column;gap:0.1rem;"
+          onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background=''">
+          <span style="font-weight:600;">${l.name || ''}</span>
+          <span style="font-size:0.78rem;color:var(--muted,#6b7280);">${l.stage || ''}</span>
+        </li>`).join("");
+      leadDropdown.querySelectorAll("li[data-lead-id]").forEach(li => {
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          if (leadIdInput)   leadIdInput.value   = li.dataset.leadId;
+          if (leadNameInput) leadNameInput.value  = li.dataset.leadName;
+          if (leadSearch)    leadSearch.value     = li.dataset.leadName;
+          if (leadClearBtn)  leadClearBtn.style.display = "inline-block";
+          if (leadDropdown)  leadDropdown.style.display = "none";
+        });
+      });
+    }
+    leadDropdown.style.display = "block";
+  }
+
+  function _renderLeadOptions(query) {
+    if (!leadDropdown) return;
+    if (_calendarLeads && _calendarLeads.length > 0) {
+      _applyLeadList(_calendarLeads, query);
+      return;
+    }
+    leadDropdown.innerHTML = `<li style="padding:0.5rem 0.9rem;font-size:0.85rem;color:var(--muted,#6b7280);">Loading…</li>`;
+    leadDropdown.style.display = "block";
+    _ensureCalendarLeads().then(leads => {
+      if (leadDropdown.style.display !== "none") _applyLeadList(leads, query);
+    });
+  }
+
+  if (leadSearch) {
+    leadSearch.addEventListener("focus", () => _renderLeadOptions(leadSearch.value));
+    leadSearch.addEventListener("input", () => {
+      if (leadIdInput)  leadIdInput.value  = "";
+      if (leadNameInput) leadNameInput.value = "";
+      if (leadClearBtn) leadClearBtn.style.display = leadSearch.value ? "inline-block" : "none";
+      _renderLeadOptions(leadSearch.value);
+    });
+    leadSearch.addEventListener("blur", () => {
+      setTimeout(() => { if (leadDropdown) leadDropdown.style.display = "none"; }, 150);
+    });
+  }
+  if (leadClearBtn) {
+    leadClearBtn.addEventListener("click", () => {
+      if (leadSearch)    leadSearch.value    = "";
+      if (leadIdInput)   leadIdInput.value   = "";
+      if (leadNameInput) leadNameInput.value  = "";
+      leadClearBtn.style.display = "none";
+      if (leadDropdown)  leadDropdown.style.display = "none";
+    });
+  }
+
   // Event type toggle buttons
   form.querySelectorAll("[data-type]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
@@ -1482,6 +1650,7 @@ function wirePersonalEventDialog(state, refreshCalendar) {
       if (typeInput) typeInput.value = btn.dataset.type;
       form.querySelectorAll("[data-type]").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      _syncLeadSectionVisibility();
     });
   });
 
@@ -1520,14 +1689,16 @@ function wirePersonalEventDialog(state, refreshCalendar) {
             if (typeInput) typeInput.value = b.dataset.type;
             btnContainer.querySelectorAll(".event-type-btn[data-type]").forEach((x) => x.classList.remove("active"));
             b.classList.add("active");
+            _syncLeadSectionVisibility();
           });
         });
       }
 
-      // Hide task section for agency events (repeat section is kept visible)
+      // Hide task/lead sections for agency events
       const taskSect   = document.getElementById("personal-event-task-section");
       const isAgency   = source === "agency";
       if (taskSect)   taskSect.style.display = isAgency ? "none" : "";
+      if (leadSection) leadSection.style.display = isAgency ? "none" : (typeInput && typeInput.value === "Appointment" ? "block" : "none");
     };
     sourceToggle.querySelectorAll(".event-type-btn[data-source]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -1563,6 +1734,8 @@ function wirePersonalEventDialog(state, refreshCalendar) {
     const source    = sourceInput     ? sourceInput.value     : "personal";
     const recurrenceType = repeatSelect  ? repeatSelect.value  : "none";
     const repeatUntil    = repeatEndInput ? repeatEndInput.value : "";
+    const leadId    = leadIdInput   ? leadIdInput.value   : "";
+    const leadName  = leadNameInput ? leadNameInput.value : "";
 
     const timeErr = document.getElementById("personal-event-time-error");
     const saveErr = document.getElementById("personal-event-save-error");
@@ -1591,10 +1764,10 @@ function wirePersonalEventDialog(state, refreshCalendar) {
         if (recurrenceId) {
           updatePersonalEventSeries(recurrenceId, { title, startTime, endTime, location, notes, type });
         } else {
-          await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type });
+          await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type, leadId, leadName });
         }
       } else if (editId) {
-        await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type });
+        await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type, leadId, leadName });
       } else if (source === "agency") {
         if (recurrenceType !== "none" && repeatUntil) {
           const recurrenceId = `recur-${Date.now()}`;
@@ -1611,10 +1784,10 @@ function wirePersonalEventDialog(state, refreshCalendar) {
         if (recurrenceType !== "none" && repeatUntil) {
           const recurrenceId = `recur-${Date.now()}`;
           for (const d of generateRecurringDates(date, recurrenceType, repeatUntil)) {
-            addPersonalEvent({ date: d, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, recurrenceId });
+            addPersonalEvent({ date: d, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, recurrenceId, leadId, leadName });
           }
         } else {
-          addPersonalEvent({ date, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type });
+          addPersonalEvent({ date, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, leadId, leadName });
         }
       }
       dialog.close();
