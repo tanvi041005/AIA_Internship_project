@@ -157,6 +157,52 @@
     `;
   }
 
+  function getProposedPlans(lead) {
+    if (Array.isArray(lead.proposedPlans) && lead.proposedPlans.length) {
+      return lead.proposedPlans;
+    }
+    return [{
+      generalPlanType: lead.generalPlanType || "",
+      specificPlanType: lead.specificPlanType || lead.planType || "",
+      sumAssured: Number(lead.sumAssured || 0),
+      commissionRate: Number(lead.commissionRate || 0),
+      premium: Number(lead.premium || 0),
+      commissionAmount: Number(lead.commissionAmount || ((Number(lead.premium || 0) * Number(lead.commissionRate || 0)) / 100)),
+    }];
+  }
+
+  function proposedPlanEditorRow(plan, index) {
+    const commissionAmount = Number(plan.commissionAmount || ((Number(plan.premium || 0) * Number(plan.commissionRate || 0)) / 100) || 0);
+    return `
+      <div class="proposed-plan-row" data-index="${index}">
+        <div class="proposed-plan-row-header">
+          <span class="proposed-plan-label">Plan ${index + 1}</span>
+          <button type="button" class="btn-secondary proposed-remove-btn">Remove</button>
+        </div>
+        <div class="section-form-grid two-col">
+          <label>General Plan Type
+            <input type="text" class="pp-general-plan-type" value="${escapeHtml(plan.generalPlanType || "")}" />
+          </label>
+          <label>Specific Plan Type
+            <input type="text" class="pp-specific-plan-type" value="${escapeHtml(plan.specificPlanType || "")}" />
+          </label>
+          <label>Sum Assured
+            <input type="number" class="pp-sum-assured" value="${Number(plan.sumAssured || 0)}" min="0" />
+          </label>
+          <label>Commission Rate (%)
+            <input type="number" class="pp-commission-rate" value="${Number(plan.commissionRate || 0)}" min="0" step="0.01" />
+          </label>
+          <label>Est. Premium / yr
+            <input type="number" class="pp-premium" value="${Number(plan.premium || 0)}" min="0" />
+          </label>
+          <label>Commission Amount
+            <input type="number" class="pp-commission-amount" value="${commissionAmount}" min="0" readonly />
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
   function updateLead(leadId, updater) {
     const leads = getLeads();
     const leadIndex = leads.findIndex((lead) => normalizeId(lead.id) === normalizeId(leadId));
@@ -302,6 +348,19 @@
 
           <div class="form-row">
             <div>
+              <label for="ep-cpf-ma">CPF MA Balance</label>
+              <input type="number" id="ep-cpf-ma" placeholder="# numbers only: 10000" value="${lead.cpfMA || ''}" />
+              <small>Medisave Account balance</small>
+            </div>
+            <div>
+              <label for="ep-bank-balance">Bank Balance</label>
+              <input type="number" id="ep-bank-balance" placeholder="# numbers only: 30000" value="${lead.bankBalance || ''}" />
+              <small>Total bank savings</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
               <label for="ep-general-plan-type">General Plan Type</label>
               <input type="text" id="ep-general-plan-type" placeholder="Category: Protection" value="${escapeHtml(lead.generalPlanType || '')}" />
               <small>e.g., Protection, Savings, Investment, Wealth, Retirement</small>
@@ -310,19 +369,6 @@
               <label for="ep-plan-type">Specific Plan Type</label>
               <input type="text" id="ep-plan-type" placeholder="Product: Whole Life" value="${escapeHtml(lead.specificPlanType || '')}" />
               <small>e.g., Term Life, Whole Life, Endowment, ILP</small>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div>
-              <label for="ep-currency">Currency</label>
-              <select id="ep-currency">
-                <option value="SGD" ${lead.currency === "SGD" ? "selected" : ""}>SGD</option>
-                <option value="USD" ${lead.currency === "USD" ? "selected" : ""}>USD</option>
-              </select>
-            </div>
-            <div>
-              <label>&nbsp;</label>
             </div>
           </div>
 
@@ -410,7 +456,9 @@
         surplus: document.getElementById("ep-surplus").value.trim(),
         cpfOA: parseInt(document.getElementById("ep-cpf-oa").value, 10) || 0,
         cpfSA: parseInt(document.getElementById("ep-cpf-sa").value, 10) || 0,
-        currency: document.getElementById("ep-currency").value || "SGD",
+        cpfMA: parseInt(document.getElementById("ep-cpf-ma").value, 10) || 0,
+        bankBalance: parseInt(document.getElementById("ep-bank-balance").value, 10) || 0,
+        currency: "SGD",
         generalPlanType: document.getElementById("ep-general-plan-type").value.trim(),
         specificPlanType: document.getElementById("ep-plan-type").value.trim(),
         planType: document.getElementById("ep-plan-type").value.trim(),
@@ -461,7 +509,7 @@
     const isProposedEdit = editSection === "proposed";
     const isTimelineEdit = editSection === "timeline";
     const isRemarksEdit = editSection === "remarks";
-    const proposedCommissionAmount = Number(lead.commissionAmount || ((Number(lead.premium || 0) * Number(lead.commissionRate || 0)) / 100) || 0);
+    const proposedPlans = getProposedPlans(lead);
 
     const timelineHtml = isTimelineEdit
       ? renderTimelineEditor(followUps)
@@ -590,23 +638,20 @@
         <form id="financial-edit-form" class="section-edit-form" novalidate>
           <div class="section-form-grid two-col">
             <label>
-              Monthly Income
-              <input type="number" id="f-income" value="${Number(lead.income || 0)}" min="0" step="0.01" inputmode="decimal" />
+              Bank Balance
+              <input type="number" id="f-bank-balance" value="${Number(lead.bankBalance || 0)}" min="0" />
             </label>
             <label>
               General Expense
               <input type="number" id="f-general-expense" value="${Number(lead.generalExpense || 0)}" min="0" step="0.01" inputmode="decimal" />
             </label>
             <label>
-              Surplus
-              <input type="number" id="f-surplus" value="${Number(lead.surplus || 0)}" min="0" step="0.01" inputmode="decimal" />
+              Monthly Income
+              <input type="number" id="f-income" value="${Number(lead.income || 0)}" min="0" step="0.01" inputmode="decimal" />
             </label>
             <label>
-              Currency
-              <select id="f-currency">
-                <option value="SGD" ${currency === "SGD" ? "selected" : ""}>SGD</option>
-                <option value="USD" ${currency === "USD" ? "selected" : ""}>USD</option>
-              </select>
+              Surplus
+              <input type="number" id="f-surplus" value="${Number(lead.surplus || 0)}" min="0" step="0.01" inputmode="decimal" />
             </label>
             <label>
               CPF OA Balance
@@ -616,6 +661,10 @@
               CPF SA Balance
               <input type="number" id="f-cpf-sa" value="${Number(lead.cpfSA || 0)}" min="0" />
             </label>
+            <label>
+              CPF MA Balance
+              <input type="number" id="f-cpf-ma" value="${Number(lead.cpfMA || 0)}" min="0" />
+            </label>
           </div>
           <div class="section-edit-actions">
             <button type="button" class="btn-secondary" id="financial-cancel-btn">Cancel</button>
@@ -624,22 +673,23 @@
         </form>
       `
       : `
-        <div class="financial-summary-grid">
-          <div class="financial-summary-item accent-income">
-            <div class="info-label">Monthly Income</div>
-            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.income))}</div>
-          </div>
-          <div class="financial-summary-item accent-expense">
-            <div class="info-label">General Expense</div>
-            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.generalExpense))}</div>
-          </div>
-          <div class="financial-summary-item accent-surplus">
-            <div class="info-label">Surplus</div>
-            <div class="financial-value">${escapeHtml(formatFinancialAmount(lead.surplus))}</div>
-          </div>
-        </div>
-
         <div class="financial-detail-grid">
+          <div class="info-item">
+            <div class="info-label">Bank Balance</div>
+            <div class="info-value">SGD ${Number(lead.bankBalance || 0).toLocaleString()}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">General Expense</div>
+            <div class="info-value">${escapeHtml(formatFinancialAmount(lead.generalExpense))}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Monthly Income</div>
+            <div class="info-value">${escapeHtml(formatFinancialAmount(lead.income))}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Surplus</div>
+            <div class="info-value">${escapeHtml(formatFinancialAmount(lead.surplus))}</div>
+          </div>
           <div class="info-item">
             <div class="info-label">CPF OA Balance</div>
             <div class="info-value">SGD ${Number(lead.cpfOA || 0).toLocaleString()}</div>
@@ -648,37 +698,21 @@
             <div class="info-label">CPF SA Balance</div>
             <div class="info-value">SGD ${Number(lead.cpfSA || 0).toLocaleString()}</div>
           </div>
+          <div class="info-item">
+            <div class="info-label">CPF MA Balance</div>
+            <div class="info-value">SGD ${Number(lead.cpfMA || 0).toLocaleString()}</div>
+          </div>
         </div>
       `;
 
     const proposedSectionBody = isProposedEdit
       ? `
         <form id="proposed-edit-form" class="section-edit-form" novalidate>
-          <div class="section-form-grid two-col">
-            <label>
-              General Plan Type
-              <input type="text" id="p-general-plan-type" value="${escapeHtml(lead.generalPlanType || "")}" />
-            </label>
-            <label>
-              Specific Plan Type
-              <input type="text" id="p-specific-plan-type" value="${escapeHtml(lead.specificPlanType || lead.planType || "")}" />
-            </label>
-            <label>
-              Sum Assured
-              <input type="number" id="p-sum-assured" value="${Number(lead.sumAssured || 0)}" min="0" />
-            </label>
-            <label>
-              Commission Rate (%)
-              <input type="number" id="p-commission-rate" value="${Number(lead.commissionRate || 0)}" min="0" step="0.01" />
-            </label>
-            <label>
-              Est. Premium / yr
-              <input type="number" id="p-premium" value="${Number(lead.premium || 0)}" min="0" />
-            </label>
-            <label>
-              Commission Amount
-              <input type="number" id="p-commission-amount" value="${proposedCommissionAmount}" min="0" readonly />
-            </label>
+          <div id="proposed-plans-editor">
+            ${proposedPlans.map((plan, index) => proposedPlanEditorRow(plan, index)).join("")}
+          </div>
+          <div class="proposed-add-row">
+            <button type="button" class="btn-secondary" id="proposed-add-plan-btn">+ Add Plan</button>
           </div>
           <div class="section-edit-actions">
             <button type="button" class="btn-secondary" id="proposed-cancel-btn">Cancel</button>
@@ -687,31 +721,39 @@
         </form>
       `
       : `
-        <div class="financial-detail-grid">
-          <div class="info-item">
-            <div class="info-label">General Plan Type</div>
-            <div class="info-value">${escapeHtml(lead.generalPlanType || "—")}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Specific Plan Type</div>
-            <div class="info-value">${escapeHtml(lead.specificPlanType || lead.planType || "—")}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Sum Assured</div>
-            <div class="info-value">${lead.sumAssured ? `${currency} ${Number(lead.sumAssured).toLocaleString()}` : "—"}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Commission Rate</div>
-            <div class="info-value">${escapeHtml(formatCommissionRate(lead))}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Est. Premium / yr</div>
-            <div class="info-value" style="color: var(--brand);">${currency} ${Number(lead.premium || 0).toLocaleString()}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Commission Amount</div>
-            <div class="info-value">${escapeHtml(formatCommissionAmount(lead, currency))}</div>
-          </div>
+        <div class="proposed-plans-view">
+          ${proposedPlans.map((plan, index) => `
+            ${index > 0 ? '<div class="proposed-plan-divider"></div>' : ""}
+            <div class="proposed-plan-view-block">
+              ${proposedPlans.length > 1 ? `<div class="proposed-plan-view-label">Plan ${index + 1}</div>` : ""}
+              <div class="financial-detail-grid">
+                <div class="info-item">
+                  <div class="info-label">General Plan Type</div>
+                  <div class="info-value">${escapeHtml(plan.generalPlanType || "—")}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Specific Plan Type</div>
+                  <div class="info-value">${escapeHtml(plan.specificPlanType || "—")}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Sum Assured</div>
+                  <div class="info-value">${plan.sumAssured ? `${currency} ${Number(plan.sumAssured).toLocaleString()}` : "—"}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Commission Rate</div>
+                  <div class="info-value">${plan.commissionRate ? `${Number(plan.commissionRate)}%` : "—"}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Est. Premium / yr</div>
+                  <div class="info-value" style="color: var(--brand);">${currency} ${Number(plan.premium || 0).toLocaleString()}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Commission Amount</div>
+                  <div class="info-value">${(plan.premium && plan.commissionRate) ? `${currency} ${Number(plan.commissionAmount || (plan.premium * plan.commissionRate / 100)).toLocaleString()}` : "—"}</div>
+                </div>
+              </div>
+            </div>
+          `).join("")}
         </div>
       `;
 
@@ -875,6 +917,8 @@
           const surplus = document.getElementById("f-surplus")?.value.trim() || "";
           const cpfOA = Number.parseInt(document.getElementById("f-cpf-oa")?.value, 10) || 0;
           const cpfSA = Number.parseInt(document.getElementById("f-cpf-sa")?.value, 10) || 0;
+          const cpfMA = Number.parseInt(document.getElementById("f-cpf-ma")?.value, 10) || 0;
+          const bankBalance = Number.parseInt(document.getElementById("f-bank-balance")?.value, 10) || 0;
 
           updateLead(leadId, (currentLead) => ({
             ...currentLead,
@@ -883,6 +927,8 @@
             surplus,
             cpfOA,
             cpfSA,
+            cpfMA,
+            bankBalance,
           }));
 
           renderProfile(leadId);
@@ -900,18 +946,8 @@
     } else {
       const proposedForm = document.getElementById("proposed-edit-form");
       const proposedCancelButton = document.getElementById("proposed-cancel-btn");
-      const proposedRateInput = document.getElementById("p-commission-rate");
-      const proposedPremiumInput = document.getElementById("p-premium");
-      const proposedAmountInput = document.getElementById("p-commission-amount");
-
-      const syncProposedCommissionAmount = () => {
-        const premium = Number.parseFloat(proposedPremiumInput?.value || "0") || 0;
-        const commissionRate = Number.parseFloat(proposedRateInput?.value || "0") || 0;
-        const commissionAmount = (premium * commissionRate) / 100;
-        if (proposedAmountInput) {
-          proposedAmountInput.value = commissionAmount ? String(commissionAmount) : "0";
-        }
-      };
+      const proposedEditor = document.getElementById("proposed-plans-editor");
+      const proposedAddBtn = document.getElementById("proposed-add-plan-btn");
 
       if (proposedCancelButton) {
         proposedCancelButton.addEventListener("click", () => {
@@ -919,15 +955,43 @@
         });
       }
 
-      if (proposedRateInput) {
-        proposedRateInput.addEventListener("input", syncProposedCommissionAmount);
+      if (proposedEditor) {
+        proposedEditor.addEventListener("input", (event) => {
+          const row = event.target.closest(".proposed-plan-row");
+          if (!row) return;
+          const premiumInput = row.querySelector(".pp-premium");
+          const rateInput = row.querySelector(".pp-commission-rate");
+          const amountInput = row.querySelector(".pp-commission-amount");
+          if (premiumInput && rateInput && amountInput) {
+            const premium = Number.parseFloat(premiumInput.value || "0") || 0;
+            const rate = Number.parseFloat(rateInput.value || "0") || 0;
+            amountInput.value = String((premium * rate) / 100);
+          }
+        });
+
+        proposedEditor.addEventListener("click", (event) => {
+          const removeBtn = event.target.closest(".proposed-remove-btn");
+          if (!removeBtn) return;
+          const rows = proposedEditor.querySelectorAll(".proposed-plan-row");
+          if (rows.length <= 1) return;
+          removeBtn.closest(".proposed-plan-row").remove();
+          proposedEditor.querySelectorAll(".proposed-plan-row").forEach((row, i) => {
+            const label = row.querySelector(".proposed-plan-label");
+            if (label) label.textContent = `Plan ${i + 1}`;
+            row.dataset.index = i;
+          });
+        });
       }
 
-      if (proposedPremiumInput) {
-        proposedPremiumInput.addEventListener("input", syncProposedCommissionAmount);
+      if (proposedAddBtn && proposedEditor) {
+        proposedAddBtn.addEventListener("click", () => {
+          const index = proposedEditor.querySelectorAll(".proposed-plan-row").length;
+          proposedEditor.insertAdjacentHTML("beforeend", proposedPlanEditorRow(
+            { generalPlanType: "", specificPlanType: "", sumAssured: 0, commissionRate: 0, premium: 0, commissionAmount: 0 },
+            index
+          ));
+        });
       }
-
-      syncProposedCommissionAmount();
 
       if (proposedForm) {
         proposedForm.addEventListener("submit", (event) => {
@@ -936,24 +1000,30 @@
             proposedForm.reportValidity();
             return;
           }
-          const generalPlanType = document.getElementById("p-general-plan-type")?.value.trim() || "";
-          const specificPlanType = document.getElementById("p-specific-plan-type")?.value.trim() || "";
-          const sumAssured = Number.parseInt(document.getElementById("p-sum-assured")?.value, 10) || 0;
-          const commissionRate = Number.parseFloat(document.getElementById("p-commission-rate")?.value) || 0;
-          const premium = Number.parseInt(document.getElementById("p-premium")?.value, 10) || 0;
-          const commissionAmount = (premium * commissionRate) / 100;
-
+          const plans = Array.from(proposedEditor?.querySelectorAll(".proposed-plan-row") || []).map((row) => {
+            const premium = Number.parseInt(row.querySelector(".pp-premium")?.value, 10) || 0;
+            const commissionRate = Number.parseFloat(row.querySelector(".pp-commission-rate")?.value) || 0;
+            return {
+              generalPlanType: row.querySelector(".pp-general-plan-type")?.value.trim() || "",
+              specificPlanType: row.querySelector(".pp-specific-plan-type")?.value.trim() || "",
+              sumAssured: Number.parseInt(row.querySelector(".pp-sum-assured")?.value, 10) || 0,
+              commissionRate,
+              premium,
+              commissionAmount: (premium * commissionRate) / 100,
+            };
+          });
+          const first = plans[0] || {};
           updateLead(leadId, (currentLead) => ({
             ...currentLead,
-            generalPlanType,
-            specificPlanType,
-            planType: specificPlanType,
-            sumAssured,
-            commissionRate,
-            commissionAmount,
-            premium
+            proposedPlans: plans,
+            generalPlanType: first.generalPlanType || "",
+            specificPlanType: first.specificPlanType || "",
+            planType: first.specificPlanType || "",
+            sumAssured: first.sumAssured || 0,
+            commissionRate: first.commissionRate || 0,
+            commissionAmount: first.commissionAmount || 0,
+            premium: first.premium || 0,
           }));
-
           renderProfile(leadId);
         });
       }

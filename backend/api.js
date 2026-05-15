@@ -101,6 +101,8 @@ function mapLead(r) {
     commissionAmount: extra.commissionAmount,
     cpfOA:            Number(r.cpf_oa || 0),
     cpfSA:            Number(r.cpf_sa || 0),
+    cpfMA:            Number(r.cpf_ma || 0),
+    bankBalance:      Number(r.bank_balance || 0),
     occupation:       r.occupation || '',
     income:           r.income || '',
     generalExpense:   extra.generalExpense || '',

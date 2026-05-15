@@ -281,61 +281,6 @@
       line-height: 1.35;
     }
 
-    .financial-card {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .financial-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1rem;
-    }
-
-    .financial-summary-grid > * {
-      min-width: 0;
-    }
-
-    .financial-summary-item,
-    .financial-note {
-      border: 1px solid #eadfce;
-      border-radius: 14px;
-      background: linear-gradient(180deg, #fff 0%, #fffaf4 100%);
-      padding: 1rem 1rem 0.95rem;
-    }
-
-    .financial-summary-item {
-      border-left: 4px solid var(--gold);
-    }
-
-    .financial-summary-item .info-label,
-    .financial-note .info-label {
-      margin-bottom: 0.35rem;
-    }
-
-    .financial-value {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--text);
-      line-height: 1.3;
-      font-variant-numeric: tabular-nums;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .accent-income {
-      background: linear-gradient(180deg, #fff 0%, #fffdf7 100%);
-    }
-
-    .accent-expense {
-      background: linear-gradient(180deg, #fff 0%, #fff8f2 100%);
-    }
-
-    .accent-surplus {
-      background: linear-gradient(180deg, #fff 0%, #f8fff8 100%);
-    }
-
     .financial-note {
       display: grid;
       gap: 0.35rem;
@@ -465,6 +410,51 @@
       grid-column: span 2;
       margin-top: 0;
       margin-bottom: 1.5rem;
+    }
+
+    .proposed-plan-row {
+      border: 1px solid #eadfce;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .proposed-plan-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .proposed-plan-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .proposed-add-row {
+      margin-bottom: 1rem;
+    }
+
+    .proposed-plan-divider {
+      height: 1px;
+      background: #eadfce;
+      margin: 1rem 0;
+    }
+
+    .proposed-plan-view-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .proposed-plan-view-block + .proposed-plan-view-block {
+      margin-top: 1rem;
     }
 
     .timeline-toolbar {
@@ -727,7 +717,6 @@
         grid-template-columns: 1fr;
       }
 
-      .financial-summary-grid,
       .financial-detail-grid {
         grid-template-columns: 1fr;
       }
