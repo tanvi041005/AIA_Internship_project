@@ -87,6 +87,7 @@ let _calendarLoaded = false;
 let _personalEvents = [];
 let _agencyEvents   = [];
 let _personalTasks  = [];
+let leadData         = [];
 let _agencyEditDialogState = { editSeries: false, recurrenceId: '' };
 let _hoverTimer = null;
 
@@ -155,12 +156,13 @@ async function loadCalendarFromApi() {
   const userId = sessionStorage.getItem('dashboardUser') || '';
   const qs = userId ? '?userId=' + encodeURIComponent(userId) : '';
 
-  let rawEvents = [], rawAgencyEvents = [], rawTasks = [];
+  let rawEvents = [], rawAgencyEvents = [], rawTasks = [], rawLeads = [];
   try {
-    [rawEvents, rawAgencyEvents, rawTasks] = await Promise.all([
+    [rawEvents, rawAgencyEvents, rawTasks, rawLeads] = await Promise.all([
       apiGet('/events' + qs),
       apiGet('/events?category=agency'),
       apiGet('/tasks'  + qs),
+      apiGet('/leads'  + qs),
     ]);
   } catch (e) {
     // Fall back to legacy endpoint
@@ -169,10 +171,20 @@ async function loadCalendarFromApi() {
       rawEvents = Array.isArray(data) ? data : (data.events || []);
     } catch (_) {}
     try { rawAgencyEvents = await apiGet('/events?category=agency'); } catch (_) {}
+    try { rawTasks = await apiGet('/tasks' + qs); } catch (_) {}
+    try { rawLeads = await apiGet('/leads' + qs); } catch (_) {}
   }
 
   const personalEvents = (Array.isArray(rawEvents) ? rawEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
   const agencyOnly     = (Array.isArray(rawAgencyEvents) ? rawAgencyEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
+  leadData = (Array.isArray(rawLeads) ? rawLeads : []).map(mapLead).map((lead) => ({
+    id: lead.id,
+    name: lead.name || '',
+    meetupDate: lead.meetDate || '',
+    meetupLocation: lead.location || '',
+    meetingType: lead.meetType || '',
+    owner: lead.ownerId === userId ? 'agent' : 'district'
+  }));
 
   // Before overwriting, snapshot lead info stored in localStorage so it can be merged back
   // (the DB events table does not have lead_id/lead_name columns yet, so that info lives locally)
@@ -752,7 +764,10 @@ function wireCalendarPage() {
 
   // Show loading state while API fetch is in flight
   const grid = document.getElementById("calendar-grid");
-  if (grid) grid.innerHTML = '<p style="grid-column:1/-1;padding:2rem;color:var(--muted);text-align:center;">Loading events…</p>';
+  if (grid) grid.innerHTML = '<p style="grid-column:1/-1;padding:2rem;color:var(--muted);text-align:center;">Loading events...</p>';
+
+  // Render immediately from localStorage/fallback data; refresh again when API data arrives.
+  update();
 
   loadCalendarFromApi()
     .then(() => {

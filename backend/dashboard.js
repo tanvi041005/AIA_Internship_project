@@ -97,6 +97,8 @@ const overviewScopeCopy = {
   personal: "Your personal production, appointments, lead pipeline, and weekly case activity."
 };
 
+const ALL_AGENCIES_VALUE = "__all__";
+
 const AGENCY_EVENTS_STORAGE_KEY = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY = "personalEvents";
 const PERSONAL_TASKS_STORAGE_KEY = "personalTasks";
@@ -178,7 +180,14 @@ async function loadOverviewData() {
         weeklyFyc: 0,
         lastWeekFyc: 0,
         leaderboard: perf.map(function(r) {
-          return { agent: r.full_name || r.agent_id, monthlyProduction: 0, ytdFyc: Number(r.ytd_fyc || 0), delta: Number(r.delta || 0) };
+          return {
+            agent: r.full_name || r.agent_id,
+            monthlyProduction: 0,
+            ytdFyc: Number(r.ytd_fyc || 0),
+            delta: Number(r.delta_pct || r.delta || 0),
+            ytdCases: Number(r.total_cases || 0),
+            agency: r.team_name || r.agency || ''
+          };
         }),
         monthlyYtd: [],
         menteeStatuses: [],
@@ -649,6 +658,29 @@ function renderOverviewCards() {
   renderPerformanceOverview();
 }
 
+function getAvailableAgencies() {
+  const leadAgencies = leadData.map((lead) => String(lead.agency || "").trim());
+  const performanceAgencies = performanceData.leaderboard.map((item) => String(item.agency || "").trim());
+  return [...new Set([...leadAgencies, ...performanceAgencies].filter(Boolean))].sort();
+}
+
+function getSelectedOverviewAgency() {
+  const select = document.getElementById("overview-agency-select");
+  return select && select.value !== ALL_AGENCIES_VALUE ? select.value : "";
+}
+
+function filterAgencyLeads(leads) {
+  const selectedAgency = getSelectedOverviewAgency();
+  if (!selectedAgency) return leads;
+  return leads.filter((lead) => String(lead.agency || "").trim() === selectedAgency);
+}
+
+function filterAgencyLeaderboard(rows) {
+  const selectedAgency = getSelectedOverviewAgency();
+  if (!selectedAgency) return rows;
+  return rows.filter((item) => String(item.agency || "").trim() === selectedAgency);
+}
+
 function getOverviewDataset(scope = "district") {
   if (scope === "personal") {
     const personalLeads = leadData.filter((lead) => lead.owner === "agent");
@@ -680,8 +712,8 @@ function getOverviewDataset(scope = "district") {
   }
 
   if (scope === "agency") {
-    const agencyLeads = leadData.filter((lead) => lead.owner === "agent");
-    const agencyLeaderboard = performanceData.leaderboard.slice(0, 6);
+    const agencyLeads = filterAgencyLeads(leadData.filter((lead) => lead.owner === "agent"));
+    const agencyLeaderboard = filterAgencyLeaderboard(performanceData.leaderboard).slice(0, 6);
     return {
       scope,
       leads: agencyLeads,
@@ -711,6 +743,8 @@ function renderPerformanceOverview(scope = localStorage.getItem("overviewScope")
   const { data, leads } = getOverviewDataset(scope);
   const lede = document.getElementById("overview-scope-lede");
   if (lede) lede.textContent = overviewScopeCopy[scope] || overviewScopeCopy.district;
+  const agencyControl = document.querySelector(".overview-agency-control");
+  if (agencyControl) agencyControl.hidden = scope !== "agency";
   toggleOverviewPanels(scope);
   updateAgentPanelLabels(scope);
   renderFycKpis(data, leads);
@@ -784,6 +818,23 @@ function wireOverviewTabs() {
   }
 
   setScope(localStorage.getItem("overviewScope") || "agency");
+}
+
+function wireOverviewAgencySelect() {
+  const select = document.getElementById("overview-agency-select");
+  if (!select) return;
+
+  const agencies = getAvailableAgencies();
+  const savedAgency = localStorage.getItem("overviewAgency") || ALL_AGENCIES_VALUE;
+  select.replaceChildren();
+  select.append(new Option("All agencies", ALL_AGENCIES_VALUE));
+  agencies.forEach((agency) => select.append(new Option(agency, agency)));
+  select.value = agencies.includes(savedAgency) ? savedAgency : ALL_AGENCIES_VALUE;
+
+  select.addEventListener("change", () => {
+    localStorage.setItem("overviewAgency", select.value);
+    renderPerformanceOverview(localStorage.getItem("overviewScope") || "agency");
+  });
 }
 
 function wireChartInteractions(container, insightElement) {
@@ -2220,6 +2271,7 @@ function wireOverviewPdfExport() {
 if (isHomeDashboardPage()) {
   (async function() {
     await loadOverviewData();
+    wireOverviewAgencySelect();
     wireOverviewTabs();
     wireOverviewPdfExport();
     wireRoleControl();
