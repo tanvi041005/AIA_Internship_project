@@ -17,6 +17,8 @@
   var roleLabels = { agent: "Agent", leader: "Agency Leader", admin: "Admin Super User" };
   var attendanceEvents = [];
   var attendanceRecords = [];
+  var recordsRefreshTimer = null;
+  var isReloadingRecords = false;
 
   function toDateOnly(value) {
     if (!value) return "";
@@ -326,6 +328,29 @@
     attendanceRecords = Array.isArray(raw) ? raw.map(mapAttendanceRecord) : [];
   }
 
+  async function refreshHostRecords() {
+    if (!isHostView || isReloadingRecords || document.hidden) return;
+    var eventItem = selectedEvent();
+    if (!eventItem) return;
+    isReloadingRecords = true;
+    try {
+      await reloadRecords(eventItem.id);
+      renderRecords();
+    } catch (error) {
+      console.warn("Failed to refresh attendance records:", error);
+    } finally {
+      isReloadingRecords = false;
+    }
+  }
+
+  function startHostRecordRefresh() {
+    if (!isHostView || recordsRefreshTimer) return;
+    recordsRefreshTimer = window.setInterval(refreshHostRecords, 5000);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) refreshHostRecords();
+    });
+  }
+
   async function checkIn() {
     var eventItem = selectedEvent();
     if (!eventItem) return;
@@ -393,6 +418,7 @@
   renderSelector();
   renderEvent();
   renderRecords();
+  startHostRecordRefresh();
   document.getElementById("attendance-checkin-btn").addEventListener("click", checkIn);
   document.getElementById("attendance-generate-qr-btn").addEventListener("click", function () {
     var eventItem = selectedEvent();
