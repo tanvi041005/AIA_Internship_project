@@ -376,7 +376,8 @@
         if (settings && settings.weeklyTarget) DAILY_TARGET = Math.round(settings.weeklyTarget / 7) || DAILY_TARGET;
       } catch (e) { console.warn('Failed to load sales settings:', e); }
       try {
-        var rawEntries = await apiGet('/sales-entries');
+        var entriesPath = isManager ? '/sales-entries' : '/sales-entries?agentId=' + encodeURIComponent(user);
+        var rawEntries = await apiGet(entriesPath);
         salesEntriesCache = Array.isArray(rawEntries)
           ? rawEntries.map(function (r) { return mapSalesEntry(r, activityTypes); })
           : [];

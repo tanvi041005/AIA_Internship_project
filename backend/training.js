@@ -9,20 +9,10 @@
       var activeTopicIndex = 0;
       var player = null;
       var ytReady = false;
-      var progressKey = "fm_training_progress_v2";
-      var progressStore = readProgressStore();
+      var progressStore = {};
 
       window.onYouTubeIframeAPIReady = function () { ytReady = true; render(); };
 
-      function readProgressStore() {
-        try {
-          var raw = localStorage.getItem(progressKey);
-          if (!raw) return {};
-          var parsed = JSON.parse(raw);
-          return parsed && typeof parsed === "object" ? parsed : {};
-        } catch (e) { return {}; }
-      }
-      function saveProgressStore() { localStorage.setItem(progressKey, JSON.stringify(progressStore)); }
       function getUserProgress(userId) {
         if (!progressStore[userId]) progressStore[userId] = { topics: {} };
         return progressStore[userId];
@@ -31,6 +21,41 @@
         var userData = getUserProgress(userId);
         if (!userData.topics[topicId]) userData.topics[topicId] = { videoDone: false, quizPassed: false };
         return userData.topics[topicId];
+      }
+      function mapApiProgress(raw) {
+        var topics = {};
+        Object.keys(raw || {}).forEach(function(topicId) {
+          var item = raw[topicId] || {};
+          topics[String(topicId)] = {
+            videoDone: !!(item.video_done || item.videoDone),
+            quizPassed: !!(item.quiz_passed || item.quizPassed)
+          };
+        });
+        return { topics: topics };
+      }
+      function progressPayload(userId) {
+        var userData = getUserProgress(userId);
+        var out = {};
+        Object.keys(userData.topics || {}).forEach(function(topicId) {
+          var state = userData.topics[topicId] || {};
+          out[topicId] = {
+            video_done: !!state.videoDone,
+            quiz_passed: !!state.quizPassed
+          };
+        });
+        return out;
+      }
+      async function loadProgressForUser(userId) {
+        if (!userId || typeof apiGet !== "function") return;
+        var raw = await apiGet("/training/progress?userId=" + encodeURIComponent(userId));
+        progressStore[userId] = mapApiProgress(raw || {});
+      }
+      async function saveProgressStore(userId) {
+        if (!userId || typeof apiPost !== "function") return;
+        await apiPost("/training/progress", {
+          userId: userId,
+          progress: progressPayload(userId)
+        });
       }
       function isTopicUnlocked(index) {
         if (index === 0) return true;
@@ -102,7 +127,9 @@
                 var state = getTopicState(user, topicId);
                 if (!state.videoDone) {
                   state.videoDone = true;
-                  saveProgressStore();
+                  saveProgressStore(user).catch(function(error) {
+                    console.warn("Failed to save training video progress:", error);
+                  });
                   render();
                 }
               }
@@ -139,7 +166,7 @@
           var answered = quizItems.filter(function (q) { return !!document.querySelector('input[name="quiz-' + q.id + '"]:checked'); }).length;
           document.getElementById("quiz-result").textContent = "Progress: " + answered + " of " + quizItems.length + " answered";
         });
-        form.addEventListener("submit", function (event) {
+        form.addEventListener("submit", async function (event) {
           event.preventDefault();
           var totalCorrect = 0;
           var allAnswered = true;
@@ -157,7 +184,13 @@
           }
           if (totalCorrect === quizItems.length) {
             state.quizPassed = true;
-            saveProgressStore();
+            try {
+              await saveProgressStore(user);
+            } catch (error) {
+              result.className = "text-sm text-red-700 font-medium";
+              result.textContent = "Passed, but database save failed. Please try submitting again.";
+              return;
+            }
             result.className = "text-sm text-green-700 font-medium";
             result.textContent = "Passed with 100%. Next module unlocked.";
             renderLearningPath();
@@ -189,28 +222,10 @@
         return Math.round(points / total);
       }
 
-      function getRosterAgentIdsForManager(managerId) {
-        try {
-          var raw = localStorage.getItem("fm_team_members_v1");
-          if (!raw) return [];
-          var all = JSON.parse(raw);
-          if (!all || typeof all !== "object") return [];
-          var list = all[managerId] || [];
-          if (!Array.isArray(list)) return [];
-          return list
-            .map(function (m) { return String(m.agentId || "").toUpperCase(); })
-            .filter(function (id) { return /^A\d+$/i.test(id); });
-        } catch (e) {
-          return [];
-        }
-      }
-
       function getManagedAgents() {
         if (role !== "leader" && role !== "admin") return [];
-        var rosterIds = getRosterAgentIdsForManager(user);
         var configured = TEAM_MAP[user] || [];
-        var tracked = Object.keys(progressStore || {}).filter(function (id) { return /^A\d+$/i.test(id); });
-        var pool = rosterIds.concat(configured).concat(tracked).concat(DEFAULT_AGENT_POOL);
+        var pool = configured.concat(DEFAULT_AGENT_POOL);
         var unique = pool.filter(function (id, index) { return pool.indexOf(id) === index; });
         return unique.sort();
       }
@@ -278,7 +293,11 @@
                     id: String(q.question_id),
                     question: q.question_text || "",
                     options: (q.options || []).map(function(o) {
-                      return { id: String(o.option_id), label: o.option_label || "", correct: !!o.is_correct };
+                      return {
+                        id: String(o.option_id),
+                        label: o.option_label || o.label || o.option_text || "",
+                        correct: !!o.is_correct
+                      };
                     })
                   };
                 })
@@ -287,14 +306,29 @@
           }
         } catch (e) { console.warn("Failed to load training topics:", e); }
         try {
-          var managerId = (role === "leader" || role === "admin") ? user : null;
-          if (managerId) {
-            var team = await apiGet("/teams/" + encodeURIComponent(managerId));
+          await loadProgressForUser(user);
+        } catch (e) { console.warn("Failed to load your training progress:", e); }
+        try {
+          if (role === "leader") {
+            var team = await apiGet("/teams/" + encodeURIComponent(user));
             if (Array.isArray(team)) {
               DEFAULT_AGENT_POOL = team.map(function(m) { return String(m.agent_id || "").toUpperCase(); }).filter(Boolean);
             }
+          } else if (role === "admin") {
+            var agents = await apiGet("/users?role=agent");
+            if (Array.isArray(agents)) {
+              DEFAULT_AGENT_POOL = agents.map(function(a) { return String(a.user_id || "").toUpperCase(); }).filter(Boolean);
+            }
           }
         } catch (e) { console.warn("Failed to load team roster:", e); }
+        try {
+          var managed = getManagedAgents();
+          await Promise.all(managed.map(function(agentId) {
+            return loadProgressForUser(agentId).catch(function(error) {
+              console.warn("Failed to load training progress for " + agentId + ":", error);
+            });
+          }));
+        } catch (e) { console.warn("Failed to load managed training progress:", e); }
       }
       render();
     })();

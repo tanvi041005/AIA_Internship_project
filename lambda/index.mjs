@@ -1,6 +1,7 @@
 // index.mjs
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // ─── DB pool (reused across warm invocations) ────────────────────────────────
 
@@ -15,7 +16,7 @@ const pool = mysql.createPool({
 // ─── CORS / response helpers ─────────────────────────────────────────────────
 
 const CORS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin":  process.env.ALLOWED_ORIGIN || "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type,Authorization",
 };
@@ -31,6 +32,7 @@ const ok       = (b) => res(200, b);
 const created  = (b) => res(201, b);
 const bad      = (m) => res(400, { error: m });
 const unauth   = (m) => res(401, { error: m });
+const forbidden = (m) => res(403, { error: m });
 const notFound = (m) => res(404, { error: m });
 const fail     = (m) => res(500, { error: m });
 
@@ -77,6 +79,192 @@ function normalizeImportedAgentId(value) {
   return raw.toUpperCase();
 }
 
+function jwtSecret() {
+  return process.env.JWT_SECRET || "";
+}
+
+function signJwt(payload) {
+  const secret = jwtSecret();
+  if (!secret) throw new Error("JWT_SECRET not configured");
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "HS256", typ: "JWT" };
+  const body = {
+    iss: "aia-dashboard",
+    aud: "aia-dashboard",
+    iat: now,
+    exp: now + Number(process.env.JWT_TTL_SECONDS || 8 * 60 * 60),
+    ...payload,
+  };
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
+  const encodedBody = Buffer.from(JSON.stringify(body)).toString("base64url");
+  const data = `${encodedHeader}.${encodedBody}`;
+  const signature = crypto.createHmac("sha256", secret).update(data).digest("base64url");
+  return `${data}.${signature}`;
+}
+
+function verifyJwt(token) {
+  const secret = jwtSecret();
+  if (!secret || !token) return null;
+  const parts = String(token).split(".");
+  if (parts.length !== 3) return null;
+  const [encodedHeader, encodedBody, signature] = parts;
+  const data = `${encodedHeader}.${encodedBody}`;
+  const expected = crypto.createHmac("sha256", secret).update(data).digest("base64url");
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(Buffer.from(encodedBody, "base64url").toString("utf8"));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) return null;
+    if (payload.aud !== "aia-dashboard" || payload.iss !== "aia-dashboard") return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function getAuthPayload(event) {
+  const headers = event.headers || {};
+  const authHeader = headers.Authorization || headers.authorization || headers.AUTHORIZATION || "";
+  const match = String(authHeader).match(/^Bearer\s+(.+)$/i);
+  return match ? verifyJwt(match[1]) : null;
+}
+
+function isPublicRoute(method, path) {
+  return (
+    method === "OPTIONS" ||
+    (method === "GET" && (path === "/health" || path === "/api/health")) ||
+    (method === "POST" && (path === "/auth/login" || path === "/api/auth/login"))
+  );
+}
+
+function authUserId(auth) {
+  return String(auth?.userId || auth?.sub || "").trim().toUpperCase();
+}
+
+function authRole(auth) {
+  return String(auth?.role || "").trim().toLowerCase();
+}
+
+function isAdmin(auth) {
+  return authRole(auth) === "admin";
+}
+
+function isLeader(auth) {
+  return authRole(auth) === "leader";
+}
+
+function isAdminOrLeader(auth) {
+  return isAdmin(auth) || isLeader(auth);
+}
+
+function sameUser(auth, userId) {
+  return authUserId(auth) === String(userId || "").trim().toUpperCase();
+}
+
+function canAccessOwnData(auth, userId) {
+  return isAdmin(auth) || sameUser(auth, userId);
+}
+
+function canAccessTeamData(auth, userId) {
+  return isAdminOrLeader(auth) || sameUser(auth, userId);
+}
+
+function firstBodyValue(body, keys) {
+  for (const key of keys) {
+    if (body[key] != null && body[key] !== "") return body[key];
+  }
+  return "";
+}
+
+function authorizeRequest(auth, method, path, query, event) {
+  const adminOnly =
+    (method === "POST" && path === "/users") ||
+    (["PUT", "DELETE"].includes(method) && /^\/users\/[^/]+$/.test(path)) ||
+    (method === "POST" && path === "/performance/bulk");
+  if (adminOnly && !isAdmin(auth)) return forbidden("Admin access required");
+
+  if (method === "POST" && path === "/announcements" && !isAdminOrLeader(auth)) {
+    return forbidden("Leader access required");
+  }
+
+  if (path.startsWith("/teams/")) {
+    const managerId = decodeURIComponent(path.split("/")[2] || "");
+    if (!isAdmin(auth) && !(isLeader(auth) && sameUser(auth, managerId))) {
+      return forbidden("You can only manage your own team roster");
+    }
+  }
+
+  if (method === "GET" && path === "/leads") {
+    if (query.userId && !canAccessTeamData(auth, query.userId)) return forbidden("You can only view your own leads");
+    if (!query.userId && !isAdminOrLeader(auth)) return forbidden("Use userId to view your own leads");
+  }
+
+  if (method === "POST" && path === "/leads") {
+    const b = parseBody(event);
+    if (!canAccessTeamData(auth, b.owner_id)) return forbidden("You can only create leads for yourself");
+  }
+
+  if (method === "GET" && path === "/tasks") {
+    if (query.userId && !canAccessOwnData(auth, query.userId)) return forbidden("You can only view your own tasks");
+    if (!query.userId && !isAdmin(auth)) return forbidden("Use userId to view your own tasks");
+  }
+
+  if (method === "POST" && path === "/tasks") {
+    const b = parseBody(event);
+    if (!canAccessOwnData(auth, b.user_id)) return forbidden("You can only create tasks for yourself");
+  }
+
+  if (method === "POST" && path === "/tasks/bulk") {
+    const b = parseBody(event);
+    if (!canAccessOwnData(auth, b.userId)) return forbidden("You can only create tasks for yourself");
+  }
+
+  if (method === "GET" && path === "/cpf") {
+    if (query.agentId && !canAccessTeamData(auth, query.agentId)) return forbidden("You can only view your own CPF entries");
+    if (!query.agentId && !isAdminOrLeader(auth)) return forbidden("Use agentId to view your own CPF entries");
+  }
+
+  if (method === "GET" && path === "/sales-entries") {
+    if (query.agentId && !canAccessTeamData(auth, query.agentId)) return forbidden("You can only view your own sales entries");
+    if (!query.agentId && !isAdminOrLeader(auth)) return forbidden("Use agentId to view your own sales entries");
+  }
+
+  if (method === "POST" && path === "/sales-entries") {
+    const b = parseBody(event);
+    if (!canAccessTeamData(auth, firstBodyValue(b, ["agent_id", "agentId"]))) {
+      return forbidden("You can only create sales entries for yourself");
+    }
+  }
+
+  if (method === "GET" && path === "/sales-reflections") {
+    if (query.agentId && !canAccessTeamData(auth, query.agentId)) return forbidden("You can only view your own reflections");
+    if (!query.agentId && !isAdminOrLeader(auth)) return forbidden("Use agentId to view your own reflections");
+  }
+
+  if (method === "POST" && path === "/sales-reflections") {
+    const b = parseBody(event);
+    if (!canAccessTeamData(auth, firstBodyValue(b, ["agent_id", "agentId"]))) {
+      return forbidden("You can only create reflections for yourself");
+    }
+  }
+
+  if (method === "GET" && path === "/announcement-responses") {
+    if (query.userId && !canAccessTeamData(auth, query.userId)) return forbidden("You can only view your own announcement responses");
+    if (!query.userId && !isAdminOrLeader(auth)) return forbidden("Use userId to view your own announcement responses");
+  }
+
+  if (method === "POST" && /^\/announcements\/[^/]+\/responses$/.test(path)) {
+    const b = parseBody(event);
+    if (!canAccessOwnData(auth, b.user_id)) return forbidden("You can only submit your own announcement response");
+  }
+
+  return null;
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 export const handler = async (event) => {
@@ -114,6 +302,12 @@ export const handler = async (event) => {
       const user  = rows[0];
       const match = await bcrypt.compare(password, user.password_hash);
       if (!match) return unauth("Invalid User ID or password");
+      const token = signJwt({
+        sub: user.user_id,
+        userId: user.user_id,
+        role: user.role_key,
+        roleId: user.role_id,
+      });
 
       return ok({
         userId:    user.user_id,
@@ -123,13 +317,20 @@ export const handler = async (event) => {
         role:      user.role_key,
         roleId:    user.role_id,
         role_id:   user.role_id,
-        token: Buffer.from(`${user.user_id}:${Date.now()}`).toString("base64"),
+        token,
       });
     }
 
     // ────────────────────────────────────────────────────────────────────────
     // USERS
     // ────────────────────────────────────────────────────────────────────────
+    const auth = getAuthPayload(event);
+    if (!isPublicRoute(method, path) && !auth) {
+      return unauth("Missing or invalid token");
+    }
+    const authError = authorizeRequest(auth, method, path, query, event);
+    if (authError) return authError;
+
     if (method === "GET" && path === "/users") {
       const { role } = query;
       let sql = `SELECT u.user_id, u.full_name, u.role_id, r.role_key AS role,
@@ -176,6 +377,7 @@ export const handler = async (event) => {
       if (method === "GET") {
         const [[lead]] = await pool.query("SELECT * FROM leads WHERE lead_id = ?", [leadId]);
         if (!lead) return notFound("Lead not found");
+        if (!canAccessTeamData(auth, lead.owner_id)) return forbidden("You can only view your own leads");
         const [fups] = await pool.query(
           "SELECT * FROM follow_ups WHERE lead_id = ? ORDER BY scheduled_date",
           [leadId]
@@ -184,6 +386,9 @@ export const handler = async (event) => {
       }
 
       if (method === "PUT") {
+        const [[existingLead]] = await pool.query("SELECT owner_id FROM leads WHERE lead_id = ?", [leadId]);
+        if (!existingLead) return notFound("Lead not found");
+        if (!canAccessTeamData(auth, existingLead.owner_id)) return forbidden("You can only update your own leads");
         const b = parseBody(event);
         const extra = b.extra != null ? JSON.stringify(b.extra) : null;
         await pool.query(
@@ -231,6 +436,9 @@ export const handler = async (event) => {
       }
 
       if (method === "DELETE") {
+        const [[existingLead]] = await pool.query("SELECT owner_id FROM leads WHERE lead_id = ?", [leadId]);
+        if (!existingLead) return notFound("Lead not found");
+        if (!canAccessTeamData(auth, existingLead.owner_id)) return forbidden("You can only delete your own leads");
         await pool.query("DELETE FROM leads WHERE lead_id = ?", [leadId]);
         return ok({ deleted: leadId });
       }
@@ -426,6 +634,9 @@ export const handler = async (event) => {
       const taskId = decodeURIComponent(taskSingle[1]);
 
       if (method === "PUT") {
+        const [[existingTask]] = await pool.query("SELECT user_id FROM personal_tasks WHERE task_id = ?", [taskId]);
+        if (!existingTask) return notFound("Task not found");
+        if (!canAccessOwnData(auth, existingTask.user_id)) return forbidden("You can only update your own tasks");
         const b = parseBody(event);
         await pool.query(
           `UPDATE personal_tasks SET
@@ -439,6 +650,9 @@ export const handler = async (event) => {
       }
 
       if (method === "DELETE") {
+        const [[existingTask]] = await pool.query("SELECT user_id FROM personal_tasks WHERE task_id = ?", [taskId]);
+        if (!existingTask) return notFound("Task not found");
+        if (!canAccessOwnData(auth, existingTask.user_id)) return forbidden("You can only delete your own tasks");
         await pool.query("DELETE FROM personal_tasks WHERE task_id = ?", [taskId]);
         return ok({ deleted: taskId });
       }

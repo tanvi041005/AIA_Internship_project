@@ -78,7 +78,6 @@ async function ensureSGHolidaysLoaded(year, onLoaded) {
 const AGENCY_EVENTS_STORAGE_KEY    = "agencyEvents";
 const PERSONAL_EVENTS_STORAGE_KEY  = "personalEvents";
 const PERSONAL_TASKS_STORAGE_KEY   = "personalTasks";
-const ATTENDANCE_EVENTS_STORAGE_KEY = "attendanceEvents";
 
 // ── In-memory state ───────────────────────────────────────────────────────────
 // Populated by loadCalendarFromApi() on the calendar page.
@@ -259,35 +258,27 @@ function savePersonalTasks(tasks) {
   window.dispatchEvent(new CustomEvent("personalTasksUpdated"));
 }
 
-function getAttendanceEvents() {
-  try {
-    const raw = localStorage.getItem(ATTENDANCE_EVENTS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) { return []; }
-}
-
-function saveAttendanceEvent(eventItem) {
+async function saveAttendanceEvent(eventItem) {
   if (!eventItem || !eventItem.id) return null;
-  const stored = getAttendanceEvents();
-  const existing = stored.find((item) => item.id === eventItem.id);
+  if (typeof apiPost !== "function") throw new Error("API helper unavailable");
   const normalized = {
     id:              eventItem.id,
     title:           eventItem.title           || "Calendar Event",
     date:            eventItem.date            || "",
+    event_date:      eventItem.date            || "",
     startTime:       eventItem.startTime       || "",
     endTime:         eventItem.endTime         || "",
     location:        eventItem.location        || "",
     type:            eventItem.type            || "Calendar Event",
     category:        eventItem.category        || "personal",
-    attendanceToken: eventItem.attendanceToken || (existing && existing.attendanceToken) || `qr-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    attendanceToken: eventItem.attendanceToken || `qr-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
     createdBy:       sessionStorage.getItem("dashboardUser") || "Host"
   };
-  const next = stored.some((item) => item.id === normalized.id)
-    ? stored.map((item) => (item.id === normalized.id ? { ...item, ...normalized } : item))
-    : [normalized, ...stored];
-  localStorage.setItem(ATTENDANCE_EVENTS_STORAGE_KEY, JSON.stringify(next));
-  return normalized;
+  const saved = await apiPost("/attendance-events", normalized);
+  return {
+    ...normalized,
+    attendanceToken: saved.attendance_token || saved.attendanceToken || normalized.attendanceToken,
+  };
 }
 
 // ── CRUD operations ───────────────────────────────────────────────────────────
@@ -1226,67 +1217,82 @@ function wireCalendarEventDialog() {
 
 // ── Attendance QR dialog ──────────────────────────────────────────────────────
 
-function openAttendanceQrDialog(eventItem) {
+async function openAttendanceQrDialog(eventItem) {
   const dialog = document.getElementById("attendance-qr-dialog");
   const canvas = document.getElementById("attendance-qr-canvas");
   const title  = document.getElementById("attendance-qr-event");
   const link   = document.getElementById("attendance-qr-link");
   if (!dialog || !canvas || !link || !eventItem) return;
 
-  const storedEvent = saveAttendanceEvent({
-    ...eventItem,
-    id: eventItem.id || `event-${eventItem.date}-${String(eventItem.title || "attendance").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
-  });
+  let storedEvent;
+  try {
+    storedEvent = await saveAttendanceEvent({
+      ...eventItem,
+      id: eventItem.id || `event-${eventItem.date}-${String(eventItem.title || "attendance").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+    });
+  } catch (error) {
+    alert("Could not create attendance QR in the database: " + (error.message || error));
+    return;
+  }
   if (!storedEvent) return;
 
   const checkInParams = new URLSearchParams({
-    eventId: storedEvent.id, title: storedEvent.title, date: storedEvent.date,
-    startTime: storedEvent.startTime, endTime: storedEvent.endTime, location: storedEvent.location,
-    type: storedEvent.type, checkIn: "qr", token: storedEvent.attendanceToken
+    eventId: storedEvent.id,
+    checkIn: "qr",
+    token: storedEvent.attendanceToken
   });
   const checkInUrl = `attendance.html?${checkInParams.toString()}`;
   if (title) title.textContent = `${storedEvent.title} · ${storedEvent.date}`;
   link.href = checkInUrl;
-  drawMockQr(canvas, `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}${checkInUrl}`);
+  await drawQr(canvas, new URL(checkInUrl, window.location.href).href);
   dialog.showModal();
 }
 
-function drawMockQr(canvas, value) {
-  const ctx    = canvas.getContext("2d");
-  const size   = canvas.width;
-  const cells  = 29;
-  const cell   = Math.floor(size / cells);
-  const offset = Math.floor((size - cell * cells) / 2);
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#111827";
-
-  const drawCell   = (x, y) => ctx.fillRect(offset + x * cell, offset + y * cell, cell, cell);
-  const drawFinder = (x, y) => {
-    ctx.fillStyle = "#111827";
-    ctx.fillRect(offset + x * cell, offset + y * cell, cell * 7, cell * 7);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(offset + (x + 1) * cell, offset + (y + 1) * cell, cell * 5, cell * 5);
-    ctx.fillStyle = "#111827";
-    ctx.fillRect(offset + (x + 2) * cell, offset + (y + 2) * cell, cell * 3, cell * 3);
-  };
-  drawFinder(1, 1);
-  drawFinder(cells - 8, 1);
-  drawFinder(1, cells - 8);
-
-  for (let y = 0; y < cells; y++) {
-    for (let x = 0; x < cells; x++) {
-      const inFinder =
-        (x >= 1 && x <= 7 && y >= 1 && y <= 7) ||
-        (x >= cells - 8 && x <= cells - 2 && y >= 1 && y <= 7) ||
-        (x >= 1 && x <= 7 && y >= cells - 8 && y <= cells - 2);
-      if (inFinder) continue;
-      if (((hash + x * 17 + y * 29 + x * y * 7) % 5) < 2) drawCell(x, y);
-    }
+function drawQr(canvas, value) {
+  if (!window.QRCode) {
+    throw new Error("QR code library failed to load");
   }
+  const holder = document.createElement("div");
+  holder.style.position = "fixed";
+  holder.style.left = "-9999px";
+  holder.style.top = "-9999px";
+  document.body.appendChild(holder);
+
+  new window.QRCode(holder, {
+    text: value,
+    width: canvas.width,
+    height: canvas.height,
+    colorDark: "#111827",
+    colorLight: "#ffffff",
+    correctLevel: window.QRCode.CorrectLevel.M
+  });
+
+  const generatedCanvas = holder.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (generatedCanvas) {
+    ctx.drawImage(generatedCanvas, 0, 0, canvas.width, canvas.height);
+    holder.remove();
+    return Promise.resolve();
+  }
+
+  const img = holder.querySelector("img");
+  return new Promise((resolve, reject) => {
+    if (!img) {
+      holder.remove();
+      reject(new Error("QR code image was not generated"));
+      return;
+    }
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      holder.remove();
+      resolve();
+    };
+    img.onerror = () => {
+      holder.remove();
+      reject(new Error("QR code image failed to render"));
+    };
+  });
 }
 
 // ── Agency event edit dialog ──────────────────────────────────────────────────

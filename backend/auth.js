@@ -2,9 +2,13 @@
   const PUBLIC_PAGES = new Set(["login.html"]);
   const currentPage = (window.location.pathname.split("/").pop() || "index.html").toLowerCase();
   const loggedRole = sessionStorage.getItem("dashboardRole");
+  const loggedToken = sessionStorage.getItem("dashboardToken");
 
-  if (!PUBLIC_PAGES.has(currentPage) && !loggedRole) {
+  if (!PUBLIC_PAGES.has(currentPage) && (!loggedRole || !loggedToken)) {
     const nextPath = `${currentPage}${window.location.search || ""}`;
+    sessionStorage.removeItem("dashboardRole");
+    sessionStorage.removeItem("dashboardUser");
+    sessionStorage.removeItem("dashboardToken");
     window.location.replace(`login.html?next=${encodeURIComponent(nextPath)}`);
     return;
   }
@@ -21,21 +25,6 @@
     const roleError = document.getElementById("login-role-error");
 
     if (!form || !usernameInput || !passwordInput) return;
-
-    const DEMO_USERS = {
-      ARIEL: { password: "ariel", role: "admin" }
-    };
-
-    function detectRole(userId) {
-      const value = String(userId || "").trim().toUpperCase();
-      if (!value) return null;
-      if (value === "ARIEL" || value === "ADMIN") return { key: "admin", label: "Admin Super User" };
-      return { key: "agent", label: "Agent" };
-    }
-
-    function isOpenAgentLogin(detectedRole) {
-      return detectedRole && detectedRole.key === "agent";
-    }
 
     usernameInput.addEventListener("input", () => {
       if (roleError) roleError.hidden = true;
@@ -54,34 +43,29 @@
       event.preventDefault();
       const username = usernameInput.value.trim().toUpperCase();
       const password = passwordInput.value;
-      const detected = detectRole(username);
-      if (!detected) {
+      const submitButton = form.querySelector("button[type='submit']");
+      if (!username || !password) {
         if (roleError) {
-          roleError.textContent = "User ID required.";
+          roleError.textContent = "User ID and password required.";
           roleError.hidden = false;
         }
         return;
       }
 
+      if (submitButton) submitButton.disabled = true;
       const apiUser = await loginFromApi(username, password);
-      const resolvedRole = apiUser?.role || detected.key;
-      const resolvedUser = String(apiUser?.userId || apiUser?.user_id || username || "User").toUpperCase();
-      const userRecord = DEMO_USERS[username];
-      if (!apiUser && !isOpenAgentLogin(detected) && (!userRecord || userRecord.password !== password)) {
+      if (!apiUser || !apiUser.token) {
+        if (submitButton) submitButton.disabled = false;
         if (roleError) {
           roleError.textContent = "Invalid User ID or password.";
           roleError.hidden = false;
         }
         return;
       }
-      if (!apiUser && userRecord && userRecord.role !== detected.key) {
-        if (roleError) {
-          roleError.textContent = "User role mismatch for this User ID.";
-          roleError.hidden = false;
-        }
-        return;
-      }
+      const resolvedRole = apiUser.role || "agent";
+      const resolvedUser = String(apiUser.userId || apiUser.user_id || username || "User").toUpperCase();
 
+      sessionStorage.setItem("dashboardToken", apiUser.token);
       sessionStorage.setItem("dashboardRole", resolvedRole);
       sessionStorage.setItem("dashboardUser", resolvedUser);
       sessionStorage.setItem("announcementPromptPending", "1");
@@ -344,6 +328,7 @@
       logout.addEventListener("click", () => {
         sessionStorage.removeItem("dashboardRole");
         sessionStorage.removeItem("dashboardUser");
+        sessionStorage.removeItem("dashboardToken");
       });
       nav.appendChild(logout);
     }

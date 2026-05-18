@@ -31,7 +31,11 @@ async function loadOverviewData() {
   const userId = sessionStorage.getItem('dashboardUser');
   if (!userId) return;
   try {
-    const rows = await apiGet('/leads');
+    const role = (sessionStorage.getItem('dashboardRole') || '').toLowerCase();
+    const leadPath = role === 'admin' || role === 'leader'
+      ? '/leads'
+      : '/leads?userId=' + encodeURIComponent(userId);
+    const rows = await apiGet(leadPath);
     if (Array.isArray(rows)) {
       leadData = rows.map(mapLead).map(function(r) {
         var u = r.urgency || '';

@@ -1,35 +1,50 @@
 const API_BASE = 'https://afhnacykc0.execute-api.ap-southeast-1.amazonaws.com';
 
-async function apiGet(path) {
-  const res = await fetch(API_BASE + path);
-  if (!res.ok) throw new Error('API ' + res.status + ': GET ' + path);
+function apiHeaders(path, includeJson) {
+  const headers = includeJson ? { 'Content-Type': 'application/json' } : {};
+  const token = sessionStorage.getItem('dashboardToken');
+  if (token && path !== '/auth/login' && path !== '/api/auth/login') {
+    headers.Authorization = 'Bearer ' + token;
+  }
+  return headers;
+}
+
+async function handleApiResponse(res, method, path) {
+  if (res.status === 401) {
+    sessionStorage.removeItem('dashboardToken');
+    sessionStorage.removeItem('dashboardRole');
+    sessionStorage.removeItem('dashboardUser');
+  }
+  if (!res.ok) throw new Error('API ' + res.status + ': ' + method + ' ' + path);
   return res.json();
+}
+
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, { headers: apiHeaders(path, false) });
+  return handleApiResponse(res, 'GET', path);
 }
 
 async function apiPost(path, data) {
   const res = await fetch(API_BASE + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(path, true),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('API ' + res.status + ': POST ' + path);
-  return res.json();
+  return handleApiResponse(res, 'POST', path);
 }
 
 async function apiPut(path, data) {
   const res = await fetch(API_BASE + path, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(path, true),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('API ' + res.status + ': PUT ' + path);
-  return res.json();
+  return handleApiResponse(res, 'PUT', path);
 }
 
 async function apiDelete(path) {
-  const res = await fetch(API_BASE + path, { method: 'DELETE' });
-  if (!res.ok) throw new Error('API ' + res.status + ': DELETE ' + path);
-  return res.json();
+  const res = await fetch(API_BASE + path, { method: 'DELETE', headers: apiHeaders(path, false) });
+  return handleApiResponse(res, 'DELETE', path);
 }
 
 // ── Field mappers (DB snake_case → JS camelCase) ──────────────────────────────
