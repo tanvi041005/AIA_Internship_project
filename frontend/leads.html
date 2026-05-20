@@ -69,7 +69,7 @@
         </select>
         <button class="btn-ghost" id="clear-btn">Clear</button>
         <button class="btn-brand" id="add-lead-btn">+ Add Lead</button>
-        <button class="btn-ghost" id="generate-qr-btn">Generate QR</button>
+        <button class="btn-qr" id="generate-qr-btn">Generate QR</button>
       </div>
     </div>
 
@@ -77,21 +77,21 @@
       <table class="lead-table">
         <thead>
           <tr>
-            <th data-col="name">Name <i class="sort-arrow">↕</i></th>
-            <th data-col="age">Age <i class="sort-arrow">↕</i></th>
-            <th data-col="contact">Contact</th>
-            <th data-col="meetDate" class="sorted">First Appt. <i class="sort-arrow">↑</i></th>
-            <th data-col="nextMeetDate">Follow-up <i class="sort-arrow">↕</i></th>
-            <th data-col="urgency">Urgency <i class="sort-arrow">↕</i></th>
-            <th data-col="stage">Pipeline Stage</th>
-            <th data-col="remarks">Remarks</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Contact</th>
+            <th>First Appt.</th>
+            <th>Follow-up</th>
+            <th>Urgency</th>
+            <th>Pipeline Stage</th>
+            <th>Remarks</th>
           </tr>
         </thead>
         <tbody id="lead-tbody">
     <tr class="lead-row" data-id="5">
       <td><strong style="color:var(--brand)">Marcus Tan Boon Kiat</strong></td>
       <td>38</td>
-      <td style="font-size:.82rem">9567-8901</td>
+      <td style="font-size:.82rem">95678901</td>
       <td>6 May 2025</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="CBD (Zoom)">CBD (Zoom)</td>
       <td><span class="badge-text">Online</span></td>
@@ -102,7 +102,7 @@
     <tr class="lead-row" data-id="3">
       <td><strong style="color:var(--brand)">Chen Jia Hao</strong></td>
       <td>42</td>
-      <td style="font-size:.82rem">9345-6789</td>
+      <td style="font-size:.82rem">93456789</td>
       <td>8 May 2025</td>
       <td><span class="status-pill urgent">Urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#f3f4f6;color:#374151">Closing</span></td>
@@ -111,7 +111,7 @@
     <tr class="lead-row" data-id="1">
       <td><strong style="color:var(--brand)">Lim Wei Jie</strong></td>
       <td>34</td>
-      <td style="font-size:.82rem">9123-4567</td>
+      <td style="font-size:.82rem">91234567</td>
       <td>12 May 2025</td>
       <td><span class="status-pill urgent">Urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#8b5cf6;color:#fff">Opening</span></td>
@@ -120,7 +120,7 @@
     <tr class="lead-row" data-id="2">
       <td><strong style="color:var(--brand)">Nur Aisyah Binte Rahman</strong></td>
       <td>28</td>
-      <td style="font-size:.82rem">8234-5678</td>
+      <td style="font-size:.82rem">82345678</td>
       <td>15 May 2025</td>
       <td><span class="status-pill medium">Medium</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
@@ -129,7 +129,7 @@
     <tr class="lead-row" data-id="4">
       <td><strong style="color:var(--brand)">Priya Nair</strong></td>
       <td>31</td>
-      <td style="font-size:.82rem">9456-7890</td>
+      <td style="font-size:.82rem">94567890</td>
       <td>20 May 2025</td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#d4a574;color:#fff">Prospecting</span></td>
@@ -138,7 +138,7 @@
     <tr class="lead-row" data-id="6">
       <td><strong style="color:var(--brand)">Sandra Loh Mei Ling</strong></td>
       <td>55</td>
-      <td style="font-size:.82rem">8678-9012</td>
+      <td style="font-size:.82rem">86789012</td>
       <td>25 May 2025</td>
       <td><span class="status-pill non-urgent">Non-urgent</span></td>
       <td><span style="font-size:.78rem;padding:.1rem .4rem;border-radius:4px;background:#a6192e;color:#fff">Fact Find</span></td>
@@ -236,10 +236,9 @@
       </div>
       <p class="detail-section-title">Contact Info</p>
       <div class="detail-grid">
-        <div class="detail-item"><label>Phone</label><strong>9567-8901</strong></div>
+        <div class="detail-item"><label>Phone</label><strong>95678901</strong></div>
         <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">marcus.tbk@finco.com</strong></div>
         <div class="detail-item"><label>Urgency</label><span class="status-pill urgent">Urgent</span></div>
-        <div class="detail-item"><label>First Appointment</label><strong>6 May 2025</strong></div>
         <div class="detail-item"><label>Follow-up Date</label><strong>12 May 2025</strong></div>
       </div>
     </div>

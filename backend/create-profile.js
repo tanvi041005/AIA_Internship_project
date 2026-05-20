@@ -62,6 +62,18 @@
       return amount;
     }
 
+    function cleanContact(value) {
+      return String(value || "").replace(/\D/g, "").slice(0, 8);
+    }
+
+    function bindContactCleaner(input) {
+      if (!input) return;
+      input.value = cleanContact(input.value);
+      input.addEventListener("input", () => {
+        input.value = cleanContact(input.value);
+      });
+    }
+
     // Excel Upload and Auto-fill functionality
     function parseExcelFile(file) {
       return new Promise((resolve, reject) => {
@@ -296,7 +308,7 @@
       document.getElementById("submit-btn").textContent = "Update Profile";
       document.getElementById("cp-name").value = editingLead.name;
       document.getElementById("cp-age").value = editingLead.age;
-      document.getElementById("cp-contact").value = editingLead.contact;
+      document.getElementById("cp-contact").value = cleanContact(editingLead.contact);
       document.getElementById("cp-email").value = editingLead.email || "";
       document.getElementById("cp-meetup-date").value = editingLead.meetDate;
       document.getElementById("cp-meeting-type").value = editingLead.meetType;
@@ -324,6 +336,7 @@
 
     document.getElementById("cp-premium").addEventListener("input", calculateCommissionAmount);
     document.getElementById("cp-commission-rate").addEventListener("input", calculateCommissionAmount);
+    bindContactCleaner(document.getElementById("cp-contact"));
     calculateCommissionAmount();
 
     document.getElementById("cancel-link").href = returnUrl;
@@ -335,7 +348,8 @@
 
       const name = document.getElementById("cp-name").value.trim();
       const age = parseInt(document.getElementById("cp-age").value, 10);
-      const contact = document.getElementById("cp-contact").value.trim();
+      const contact = cleanContact(document.getElementById("cp-contact").value);
+      document.getElementById("cp-contact").value = contact;
       const email = document.getElementById("cp-email").value.trim();
       const meetDate = document.getElementById("cp-meetup-date").value;
 

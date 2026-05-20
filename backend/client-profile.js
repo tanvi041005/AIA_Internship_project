@@ -14,6 +14,18 @@
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
   }
 
+  function cleanContact(value) {
+    return String(value || "").replace(/\D/g, "").slice(0, 8);
+  }
+
+  function bindContactCleaner(input) {
+    if (!input) return;
+    input.value = cleanContact(input.value);
+    input.addEventListener("input", () => {
+      input.value = cleanContact(input.value);
+    });
+  }
+
   function normalizeId(value) {
     return String(value == null ? "" : value).trim();
   }
@@ -122,6 +134,19 @@
         </div>
       </div>
     `).join("");
+  }
+
+  function followUpsWithFirstMeetup(lead) {
+    const items = Array.isArray(lead?.followUps) ? [...lead.followUps] : [];
+    if (lead?.meetDate && !items.some((item) => item && (item.isFirstMeetup || (item.label === "First Meet-up" && item.date === lead.meetDate)))) {
+      items.unshift({
+        label: "First Meet-up",
+        date: lead.meetDate,
+        done: true,
+        isFirstMeetup: true,
+      });
+    }
+    return items;
   }
 
   function timelineEditorRow(item, index) {
@@ -257,7 +282,7 @@
           <div class="form-row">
             <div>
               <label for="ep-contact">Contact Number <span aria-hidden="true">*</span></label>
-              <input type="text" id="ep-contact" required placeholder="e.g. 9123-4567" value="${escapeHtml(lead.contact || '')}" />
+              <input type="text" id="ep-contact" required maxlength="8" pattern="^[89][0-9]{7}$" placeholder="e.g. 91234567" value="${escapeHtml(cleanContact(lead.contact))}" />
             </div>
             <div>
               <label for="ep-email">Email Address <span aria-hidden="true">*</span></label>
@@ -424,6 +449,7 @@
     const form = document.getElementById("profile-edit-form");
     const errorEl = document.getElementById("form-error");
     const successEl = document.getElementById("form-success");
+    bindContactCleaner(document.getElementById("ep-contact"));
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -431,7 +457,8 @@
 
       const name = document.getElementById("ep-name").value.trim();
       const age = parseInt(document.getElementById("ep-age").value, 10);
-      const contact = document.getElementById("ep-contact").value.trim();
+      const contact = cleanContact(document.getElementById("ep-contact").value);
+      document.getElementById("ep-contact").value = contact;
       const email = document.getElementById("ep-email").value.trim();
       const meetDate = document.getElementById("ep-meetup-date").value;
 
@@ -444,7 +471,7 @@
         ...lead,
         name,
         age,
-        contact,
+        contact: cleanContact(contact),
         email,
         meetDate,
         meetType: document.getElementById("ep-meeting-type").value,
@@ -503,7 +530,7 @@
     const avatarColor = AVATAR_COLORS[(lead.id - 1) % AVATAR_COLORS.length];
     const urgencyColor = lead.urgency === "urgent" ? "#ef4444" : lead.urgency === "medium" ? "#f59e0b" : "#6b7280";
     const currency = getCurrencyCode(lead);
-    const followUps = Array.isArray(lead.followUps) ? lead.followUps : [];
+    const followUps = followUpsWithFirstMeetup(lead);
     const isGeneralEdit = editSection === "general";
     const isFinancialEdit = editSection === "financial";
     const isProposedEdit = editSection === "proposed";
@@ -547,16 +574,12 @@
             </label>
             <label>
               Contact
-              <input type="tel" id="g-contact" value="${escapeHtml(lead.contact || "")}" required maxlength="8" pattern="^[89][0-9]{7}$" placeholder="e.g. 91234567" />
+              <input type="tel" id="g-contact" value="${escapeHtml(cleanContact(lead.contact))}" required maxlength="8" pattern="^[89][0-9]{7}$" placeholder="e.g. 91234567" />
               <small>Must be 8 digits, starting with 8 or 9</small>
             </label>
             <label>
               Email
               <input type="email" id="g-email" value="${escapeHtml(lead.email || "")}" required maxlength="120" />
-            </label>
-            <label>
-              First Appointment
-              <input type="date" id="g-meet-date" value="${escapeHtml(lead.meetDate || "")}" required />
             </label>
             <label>
               Urgency
@@ -621,15 +644,11 @@
           </div>
           <div class="info-item">
             <div class="info-label">Contact</div>
-            <div class="info-value">${escapeHtml(lead.contact || "—")}</div>
+            <div class="info-value">${escapeHtml(cleanContact(lead.contact) || "—")}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Email</div>
             <div class="info-value" style="font-size: 0.95rem;">${escapeHtml(lead.email || "—")}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">First Appointment</div>
-            <div class="info-value">${formatDate(lead.meetDate)}</div>
           </div>
         </div>
       `;
@@ -850,6 +869,7 @@
       }
 
       if (generalForm) {
+        bindContactCleaner(document.getElementById("g-contact"));
         generalForm.addEventListener("submit", (event) => {
           event.preventDefault();
           if (!generalForm.checkValidity()) {
@@ -858,11 +878,11 @@
           }
           const name = document.getElementById("g-name")?.value.trim() || "";
           const age = Number.parseInt(document.getElementById("g-age")?.value, 10);
-          const contact = document.getElementById("g-contact")?.value.trim() || "";
+          const contact = cleanContact(document.getElementById("g-contact")?.value || "");
           const email = document.getElementById("g-email")?.value.trim() || "";
-          const meetDate = document.getElementById("g-meet-date")?.value || "";
+          const meetDate = lead.meetDate || "";
 
-          if (!name || !contact || !email || !meetDate || !Number.isFinite(age)) {
+          if (!name || !contact || !email || !Number.isFinite(age)) {
             if (generalErrorEl) {
               generalErrorEl.textContent = "Please fill all required general details.";
             }

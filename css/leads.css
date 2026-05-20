@@ -68,10 +68,8 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 /* Table */
 .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
 .lead-table{width:100%;border-collapse:collapse;min-width:1080px;table-layout:fixed}
-.lead-table th{padding:.55rem .55rem;background:var(--surface-subtle);font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;user-select:none;cursor:pointer}
-.lead-table th:hover{color:var(--brand)}
-.lead-table th .sort-arrow{margin-left:4px;opacity:.5;font-style:normal}
-.lead-table th.sorted .sort-arrow{opacity:1;color:var(--brand)}
+.lead-table th{padding:.55rem .55rem;background:var(--surface-subtle);font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;user-select:none}
+.lead-table th .sort-arrow{display:none}
 .lead-table td{padding:.62rem .55rem;border-bottom:1px solid var(--border);vertical-align:top;font-size:.82rem}
 .lead-table th:nth-child(1),.lead-table td:nth-child(1){width:140px}
 .lead-table th:nth-child(2),.lead-table td:nth-child(2){width:48px}
@@ -230,6 +228,8 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 
 /* Manual Fill Button */
 .btn-manual-fill{width:100%;padding:0.75rem 1rem;background:var(--surface-subtle);color:var(--brand);border:1.5px solid var(--brand);border-radius:8px;font-size:0.875rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;font-family:inherit}
+.btn-qr{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.42rem .85rem;border:1px solid #0f766e;border-radius:8px;background:#ccfbf1;color:#0f766e;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.btn-qr:hover,.btn-qr:focus-visible{background:#0f766e;border-color:#0f766e;color:#fff}
 .btn-manual-fill:hover{background:var(--brand-light);border-color:var(--brand-dark)}
 .btn-manual-fill:active{transform:scale(0.98)}
 

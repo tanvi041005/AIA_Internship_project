@@ -19,6 +19,18 @@ function formatCommissionAmount(lead) {
   return `${(lead.currency === "USD" ? "USD" : "SGD")} ${amount.toLocaleString()}`;
 }
 
+function cleanContact(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 8);
+}
+
+function followUpsWithFirstMeetup(lead) {
+  const items = Array.isArray(lead.followUps) ? [...lead.followUps] : [];
+  if (lead.meetDate && !items.some((f) => f && (f.isFirstMeetup || (f.label === "First Meet-up" && f.date === lead.meetDate)))) {
+    items.unshift({ label: "First Meet-up", date: lead.meetDate, done: true, isFirstMeetup: true });
+  }
+  return items;
+}
+
 let LEADS = [];
 let filtered = [];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
@@ -87,9 +99,9 @@ function sortData(){
 function render(){
   document.getElementById("summary-line").textContent = `Showing ${filtered.length} of ${LEADS.length} leads`;
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
-    th.classList.toggle("sorted", th.dataset.col === sortCol);
+    th.classList.remove("sorted");
     const arrow = th.querySelector(".sort-arrow");
-    if(arrow) arrow.textContent = th.dataset.col === sortCol ? (sortDir === "asc" ? "↑" : "↓") : "↕";
+    if(arrow) arrow.remove();
   });
   const tbody = document.getElementById("lead-tbody");
   if(!filtered.length){
@@ -100,7 +112,7 @@ function render(){
     <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
       <td><strong class="lead-name">${l.name}</strong></td>
       <td>${l.age}</td>
-      <td class="lead-contact">${l.contact}</td>
+      <td class="lead-contact">${cleanContact(l.contact)}</td>
       <td class="lead-date">${formatDate(l.meetDate)}</td>
       <td class="lead-date">${formatDate(getNextMeetDate(l))}</td>
       <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
@@ -151,7 +163,7 @@ function openDrawer(id){
       </div>
       <p class="detail-section-title">Contact Info</p>
       <div class="detail-grid">
-        <div class="detail-item"><label>Phone</label><strong>${lead.contact}</strong></div>
+        <div class="detail-item"><label>Phone</label><strong>${cleanContact(lead.contact)}</strong></div>
         <div class="detail-item"><label>Email</label><strong style="font-size:.82rem">${lead.email}</strong></div>
         <div class="detail-item"><label>Urgency</label><span class="status-pill ${lead.urgency}">${cap(lead.urgency)}</span></div>
         <div class="detail-item"><label>First Appointment</label><strong>${formatDate(lead.meetDate)}</strong></div>
@@ -184,7 +196,7 @@ function openDrawer(id){
     <div class="detail-section">
       <p class="detail-section-title">Follow-up Timeline</p>
       <ul class="timeline-list">
-        ${lead.followUps.map(f => `
+        ${followUpsWithFirstMeetup(lead).map(f => `
           <li class="timeline-item">
             <span class="t-dot ${f.done ? "done" : "pending"}"></span>
             <span class="t-text">${f.label}<small>${formatDate(f.date)} · ${f.done ? "Completed" : "Pending"}</small></span>
@@ -548,13 +560,6 @@ function bindEvents(){
     if(!row) return;
     e.preventDefault();
     window.location.href = `client-profile.html?id=${row.dataset.id}`;
-  });
-  document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
-    th.addEventListener("click", () => {
-      if(sortCol === th.dataset.col) sortDir = sortDir === "asc" ? "desc" : "asc";
-      else { sortCol = th.dataset.col; sortDir = "asc"; }
-      sortData(); render();
-    });
   });
   document.addEventListener("keydown", e => {
     if(e.key === "Escape" && activeId) closeDrawer();

@@ -147,7 +147,7 @@ function mapLead(r) {
     currency:         extra.currency === 'USD' ? 'USD' : 'SGD',
     sumAssured:       Number(extra.sumAssured || 0),
     agency:           extra.agency || '',
-    followUps: (r.follow_ups || []).map(function(f) {
+    followUps: (r.follow_ups || r.followUps || []).map(function(f) {
       return { label: f.label, date: f.scheduled_date, done: !!f.is_done };
     }),
   });
