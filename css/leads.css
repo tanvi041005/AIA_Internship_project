@@ -46,9 +46,9 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 
 /* KPI */
 .kpi-grid{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.25rem}
-.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;box-shadow:var(--shadow-soft);height:120px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.8rem .9rem;box-shadow:var(--shadow-soft);height:120px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 .kpi-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:0 0 .35rem}
-.kpi-value{font-size:1.55rem;font-weight:700;margin:0;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-value{font-size:1.05rem;font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi-sub{font-size:.78rem;color:var(--text-muted);margin:.15rem 0 0}
 
 /* Panel */
