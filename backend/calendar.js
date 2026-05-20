@@ -513,6 +513,11 @@ function formatTimeRange(event) {
   return "Time not set";
 }
 
+function isValidSameDayTimeRange(startTime, endTime) {
+  if (!startTime || !endTime) return false;
+  return endTime > startTime;
+}
+
 function getPublicHolidayEvents(year) {
   const holidays = _getSGHolidaysCached(year) || (year === 2026 ? _sgHolidays2026Fallback : []);
   return holidays.map((h) => ({
@@ -1348,6 +1353,10 @@ function wireAgencyEventEditDialog(refreshCalendar) {
     const startTime = (dialog.querySelector("#agency-edit-dialog-start-time") || {}).value || "";
     const endTime   = (dialog.querySelector("#agency-edit-dialog-end-time")   || {}).value || "";
     if (!title) return;
+    if ((startTime || endTime) && !isValidSameDayTimeRange(startTime, endTime)) {
+      alert("End time must be after start time.");
+      return;
+    }
     const { editSeries, recurrenceId } = _agencyEditDialogState;
     const saveBtn = form.querySelector("[type=submit]");
     if (saveBtn) saveBtn.disabled = true;
@@ -1745,7 +1754,10 @@ function wirePersonalEventDialog(state, refreshCalendar) {
 
     const timeErr = document.getElementById("personal-event-time-error");
     const saveErr = document.getElementById("personal-event-save-error");
-    if (timeErr) timeErr.style.display = "none";
+    if (timeErr) {
+      timeErr.textContent = "Please set both a start and end time.";
+      timeErr.style.display = "none";
+    }
     if (saveErr) saveErr.style.display = "none";
 
     if (!date || !title) return;
@@ -1754,6 +1766,16 @@ function wirePersonalEventDialog(state, refreshCalendar) {
       if (timeErr) timeErr.style.display = "block";
       if (startTimeInput && !startTime) startTimeInput.focus();
       else if (endTimeInput) endTimeInput.focus();
+      return;
+    }
+    if (!isValidSameDayTimeRange(startTime, endTime)) {
+      if (timeErr) {
+        timeErr.textContent = "End time must be after start time.";
+        timeErr.style.display = "block";
+      } else {
+        alert("End time must be after start time.");
+      }
+      if (endTimeInput) endTimeInput.focus();
       return;
     }
 

@@ -419,36 +419,7 @@ function bindEvents(){
     filtered = [...LEADS]; sortData(); render();
   });
   
-  // Excel Import Modal
-  const modal = document.getElementById("excel-import-modal");
-  const dropzone = document.getElementById("excel-dropzone-modal");
-  const fileInput = document.getElementById("excel-upload-input-modal");
-  const modalCloseBtn = document.getElementById("modal-close-btn");
-  const modalOverlay = document.querySelector(".modal-overlay");
-  const uploadSuccess = document.getElementById("upload-success-modal");
-  const uploadError = document.getElementById("upload-error-modal");
-  const manualFillBtn = document.getElementById("manual-fill-btn");
-
-  // Open modal on "Add Lead" button click
   document.getElementById("add-lead-btn").addEventListener("click", () => {
-    modal.style.display = "flex";
-    uploadSuccess.style.display = "none";
-    uploadError.style.display = "none";
-  });
-
-  // Close modal
-  function closeModal() {
-    modal.style.display = "none";
-    uploadSuccess.style.display = "none";
-    uploadError.style.display = "none";
-    fileInput.value = "";
-  }
-
-  modalCloseBtn.addEventListener("click", closeModal);
-  modalOverlay.addEventListener("click", closeModal);
-  
-  // Manual fill button - create new lead and navigate to client profile
-  manualFillBtn.addEventListener("click", () => {
     const newLeadId = Date.now();
     
     // Create empty lead
@@ -500,36 +471,6 @@ function bindEvents(){
     
     // Navigate to client profile page where each section can be edited independently
     window.location.href = `client-profile.html?id=${newLeadId}`;
-  });
-
-  // Dropzone interactions
-  dropzone.addEventListener("click", () => fileInput.click());
-
-  dropzone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.add("active");
-  });
-
-  dropzone.addEventListener("dragleave", () => {
-    dropzone.classList.remove("active");
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.remove("active");
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleExcelFileUpload(files[0], closeModal);
-    }
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) {
-      handleExcelFileUpload(e.target.files[0], closeModal);
-    }
   });
   
   document.getElementById("drawer-close-btn").addEventListener("click", closeDrawer);

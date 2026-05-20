@@ -464,43 +464,56 @@
         }
       }
 
-      if (editingId) {
-        if (_editingSeries) {
-          const eb = bookings.find((x) => x.id === editingId);
-          const seriesBookings = eb && eb.recurrenceId
-            ? bookings.filter((x) => x.recurrenceId === eb.recurrenceId)
-            : [eb];
-          await Promise.all(seriesBookings.map((sb) =>
-            apiPut('/room-bookings/' + sb.id, {
-              title, room_id: room, start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
-            }).catch(() => {})
-          ));
+      try {
+        if (editingId) {
+          if (_editingSeries) {
+            const eb = bookings.find((x) => x.id === editingId);
+            const seriesBookings = eb && eb.recurrenceId
+              ? bookings.filter((x) => x.recurrenceId === eb.recurrenceId)
+              : [eb];
+            await Promise.all(seriesBookings.map((sb) =>
+              apiPut('/room-bookings/' + sb.id, {
+                title, room_id: room, start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
+              })
+            ));
+          } else {
+            await apiPut('/room-bookings/' + editingId, {
+              title, room_id: room, booking_date: date,
+              start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
+            });
+          }
         } else {
-          await apiPut('/room-bookings/' + editingId, {
-            title, room_id: room, booking_date: date,
-            start_time: start + ':00', end_time: end + ':00', booked_by_name: by, notes,
-          }).catch(() => {});
+          const recurrenceId = recurrence !== 'none' ? ('recur-room-' + Date.now()) : null;
+          await Promise.all(datesToBook.map((d) =>
+            apiPost('/room-bookings', {
+              title,
+              room_id: room,
+              booking_date: d,
+              start_time: start + ':00',
+              end_time: end + ':00',
+              booked_by_name: by,
+              notes,
+              ...(recurrenceId ? { recurrence_id: recurrenceId } : {}),
+            })
+          ));
         }
-      } else {
-        const recurrenceId = recurrence !== 'none' ? ('recur-room-' + Date.now()) : null;
-        await Promise.all(datesToBook.map((d) =>
-          apiPost('/room-bookings', {
-            title,
-            room_id: room,
-            booking_date: d,
-            start_time: start + ':00',
-            end_time: end + ':00',
-            booked_by_name: by,
-            notes,
-            ...(recurrenceId ? { recurrence_id: recurrenceId } : {}),
-          })
-        ));
+      } catch (error) {
+        alert(error.message && error.message.includes('400')
+          ? 'This room already has a booking during that time. Please choose another room or time.'
+          : 'Could not save the booking. Please try again.');
+        return;
       }
 
-      const refreshed = await apiGet('/room-bookings');
-      bookings = refreshed.map(mapBooking);
-      closeModal();
-      render();
+      try {
+        const refreshed = await apiGet('/room-bookings');
+        bookings = refreshed.map(mapBooking);
+        closeModal();
+        render();
+      } catch (error) {
+        console.warn('Failed to refresh room bookings:', error);
+        closeModal();
+        setRoomLoadStatus('error', 'Booking saved, but refresh failed', 'Please retry loading bookings to see the latest calendar.');
+      }
     }
 
     // ── Detail popup ──────────────────────────────────────────────────────────────

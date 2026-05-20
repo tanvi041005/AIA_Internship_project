@@ -44,6 +44,7 @@
       const username = usernameInput.value.trim().toUpperCase();
       const password = passwordInput.value;
       const submitButton = form.querySelector("button[type='submit']");
+      const originalSubmitText = submitButton ? submitButton.textContent : "";
       if (!username || !password) {
         if (roleError) {
           roleError.textContent = "User ID and password required.";
@@ -52,10 +53,22 @@
         return;
       }
 
-      if (submitButton) submitButton.disabled = true;
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Signing in...";
+        submitButton.setAttribute("aria-busy", "true");
+      }
+      if (roleError) {
+        roleError.textContent = "Signing in. This may take a moment...";
+        roleError.hidden = false;
+      }
       const apiUser = await loginFromApi(username, password);
       if (!apiUser || !apiUser.token) {
-        if (submitButton) submitButton.disabled = false;
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalSubmitText || "Login";
+          submitButton.removeAttribute("aria-busy");
+        }
         if (roleError) {
           roleError.textContent = "Invalid User ID or password.";
           roleError.hidden = false;
@@ -288,7 +301,7 @@
       const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
       const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
       const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
-      const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
+      const isCalendarSection = false;
       const isTeamPage = href === "onboarding.html" && currentPage === "onboarding.html";
       const isAdminPage = href === "admin.html" && currentPage === "admin.html";
 
