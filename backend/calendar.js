@@ -992,6 +992,7 @@ function _openDayPopup(clickEvent, date, events, state) {
   const userRole   = sessionStorage.getItem("dashboardRole") || "agent";
   const isDistrict = userRole === "district" || userRole === "admin";
   const dateLabel  = new Date(date + "T00:00:00").toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const attendanceEvent = events.find((event) => event.category !== "holiday");
 
   const popup = document.createElement("div");
   popup.id = "cal-day-popup";
@@ -1030,6 +1031,7 @@ function _openDayPopup(clickEvent, date, events, state) {
     <ul class="day-popup-list">${eventsHtml}</ul>
     <div class="day-popup-footer">
       <button class="day-popup-add-btn" id="day-popup-add-btn">${isDistrict ? "Add Event" : "Add Personal Event"}</button>
+      ${attendanceEvent ? `<button class="ghost-btn" id="day-popup-attendance-qr-btn" type="button">Attendance QR</button>` : ""}
     </div>
   `;
   document.body.appendChild(popup);
@@ -1061,6 +1063,14 @@ function _openDayPopup(clickEvent, date, events, state) {
       }, 0);
     }
   });
+
+  const attendanceQrBtn = document.getElementById("day-popup-attendance-qr-btn");
+  if (attendanceQrBtn) {
+    attendanceQrBtn.addEventListener("click", () => {
+      closeDayPopup();
+      openAttendanceQrDialog(attendanceEvent);
+    });
+  }
 
   // Wire Edit
   popup.querySelectorAll(".day-popup-edit-btn").forEach((btn) => {

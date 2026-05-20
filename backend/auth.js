@@ -95,6 +95,65 @@
       (link) => (link.getAttribute("href") || "").toLowerCase() === "calendar.html"
     );
 
+    const focusableMenuItems = (menu) => Array.from(menu.querySelectorAll("a, button")).filter((item) => !item.disabled);
+    const closeDisclosure = (menu, trigger) => {
+      if (!menu || !trigger) return;
+      const wrapper = trigger.closest(".overview-nav-menu, .calendar-nav-menu, .tools-nav-menu");
+      if (wrapper) wrapper.classList.remove("is-open");
+      trigger.setAttribute("aria-expanded", "false");
+    };
+    const openDisclosure = (menu, trigger) => {
+      if (!menu || !trigger) return;
+      const wrapper = trigger.closest(".overview-nav-menu, .calendar-nav-menu, .tools-nav-menu");
+      if (wrapper) wrapper.classList.add("is-open");
+      trigger.setAttribute("aria-expanded", "true");
+    };
+    const wireDisclosureKeyboard = (trigger, menu) => {
+      if (!trigger || !menu || trigger.dataset.keyboardWired === "true") return;
+      trigger.dataset.keyboardWired = "true";
+      const wrapper = trigger.closest(".overview-nav-menu, .calendar-nav-menu, .tools-nav-menu");
+      if (wrapper) {
+        wrapper.addEventListener("focusin", () => trigger.setAttribute("aria-expanded", "true"));
+        wrapper.addEventListener("focusout", () => {
+          window.setTimeout(() => {
+            if (!wrapper.contains(document.activeElement)) {
+              trigger.setAttribute("aria-expanded", "false");
+              wrapper.classList.remove("is-open");
+            }
+          }, 0);
+        });
+      }
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          openDisclosure(menu, trigger);
+          const first = focusableMenuItems(menu)[0];
+          if (first) first.focus();
+        }
+        if (event.key === "Escape") {
+          closeDisclosure(menu, trigger);
+          trigger.focus();
+        }
+      });
+      menu.addEventListener("keydown", (event) => {
+        const items = focusableMenuItems(menu);
+        const currentIndex = items.indexOf(document.activeElement);
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeDisclosure(menu, trigger);
+          trigger.focus();
+        }
+        if (event.key === "ArrowDown" && items.length) {
+          event.preventDefault();
+          items[(currentIndex + 1 + items.length) % items.length].focus();
+        }
+        if (event.key === "ArrowUp" && items.length) {
+          event.preventDefault();
+          items[(currentIndex - 1 + items.length) % items.length].focus();
+        }
+      });
+    };
+
     const hasCompareLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "agent-comparison.html"
     );
@@ -207,8 +266,9 @@
         }
       };
 
-      overviewLink.setAttribute("aria-haspopup", "true");
+      overviewLink.setAttribute("aria-haspopup", "menu");
       overviewLink.setAttribute("aria-expanded", "false");
+      overviewLink.setAttribute("aria-controls", "overview-scope-menu");
       overviewLink.addEventListener("click", (event) => {
         if (currentPage === "index.html") {
           event.preventDefault();
@@ -235,8 +295,9 @@
       calendarLink.insertAdjacentElement("beforebegin", calendarMenu);
       calendarMenu.appendChild(calendarLink);
       calendarLink.innerHTML = `<span>Calendar</span><span class="overview-caret" aria-hidden="true">&#9662;</span>`;
-      calendarLink.setAttribute("aria-haspopup", "true");
+      calendarLink.setAttribute("aria-haspopup", "menu");
       calendarLink.setAttribute("aria-expanded", "false");
+      calendarLink.setAttribute("aria-controls", "calendar-section-menu");
       calendarMenu.insertAdjacentHTML(
         "beforeend",
         `
@@ -255,11 +316,32 @@
           calendarLink.setAttribute("aria-expanded", String(isOpen));
         }
       });
+      calendarLink.dataset.navClickWired = "true";
 
       document.addEventListener("click", (event) => {
         if (!calendarMenu.contains(event.target)) {
           calendarMenu.classList.remove("is-open");
           calendarLink.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
+    const existingCalendarMenu = document.querySelector(".calendar-nav-menu");
+    const calendarSectionMenu = document.getElementById("calendar-section-menu");
+    const calendarTrigger = document.getElementById("calendar-nav-trigger") || calendarLink;
+    if (existingCalendarMenu && calendarTrigger && calendarSectionMenu && calendarTrigger.dataset.navClickWired !== "true") {
+      calendarTrigger.addEventListener("click", (event) => {
+        if (currentPage === "calendar.html" || currentPage === "attendance.html" || currentPage === "room-booking.html") {
+          event.preventDefault();
+          const isOpen = existingCalendarMenu.classList.toggle("is-open");
+          calendarTrigger.setAttribute("aria-expanded", String(isOpen));
+        }
+      });
+      calendarTrigger.dataset.navClickWired = "true";
+      document.addEventListener("click", (event) => {
+        if (!existingCalendarMenu.contains(event.target)) {
+          existingCalendarMenu.classList.remove("is-open");
+          calendarTrigger.setAttribute("aria-expanded", "false");
         }
       });
     }
@@ -272,6 +354,7 @@
         const isOpen = toolsMenu.classList.toggle("is-open");
         toolsTrigger.setAttribute("aria-expanded", String(isOpen));
       });
+      toolsTrigger.dataset.navClickWired = "true";
       document.addEventListener("click", (event) => {
         if (!toolsMenu.contains(event.target)) {
           toolsMenu.classList.remove("is-open");
@@ -284,18 +367,25 @@
     const navLinks = nav.querySelectorAll("a:not(#logout-link)");
     navLinks.forEach(link => {
       const href = (link.getAttribute("href") || "").toLowerCase();
+      const isCalendarTrigger = link.id === "calendar-nav-trigger" || (
+        href === "calendar.html" &&
+        link.parentElement &&
+        link.parentElement.classList.contains("calendar-nav-menu")
+      );
       // Check if current link matches page or if we're in a lead-related sub-page
       const isCurrentPage = href === currentPage || (currentPage === "index.html" && (href === "" || href === "index.html"));
       const isLeadsSubPage = href === "leads.html" && currentPage === "create-profile.html";
       const isComparisonPage = href === "agent-comparison.html" && currentPage === "agent-comparison.html";
-      const isCalendarSection = href === "calendar.html" && (currentPage === "attendance.html" || currentPage === "room-booking.html");
+      const isCalendarSection = isCalendarTrigger && (currentPage === "attendance.html" || currentPage === "room-booking.html");
       const isTeamPage = href === "onboarding.html" && currentPage === "onboarding.html";
       const isAdminPage = href === "admin.html" && currentPage === "admin.html";
 
       if (isCurrentPage || isLeadsSubPage || isCalendarSection || isComparisonPage || isTeamPage || isAdminPage) {
         link.classList.add("active");
+        link.setAttribute("aria-current", "page");
       } else {
         link.classList.remove("active");
+        link.removeAttribute("aria-current");
       }
     });
 
@@ -304,10 +394,16 @@
       const toolsPages = ["sales-tracker.html", "cpf-calculator.html"];
       if (toolsPages.includes(currentPage)) {
         toolsTriggerEl.classList.add("active");
+        toolsTriggerEl.setAttribute("aria-current", "page");
       } else {
         toolsTriggerEl.classList.remove("active");
+        toolsTriggerEl.removeAttribute("aria-current");
       }
     }
+
+    wireDisclosureKeyboard(document.querySelector(".overview-nav-menu > a"), document.getElementById("overview-scope-menu"));
+    wireDisclosureKeyboard(calendarTrigger, calendarSectionMenu);
+    wireDisclosureKeyboard(toolsTrigger, document.getElementById("tools-section-menu"));
 
     if (loggedRole && !document.getElementById("nav-user-meta")) {
       const userMeta = document.createElement("div");

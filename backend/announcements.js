@@ -4,6 +4,7 @@
       var canCreate = role === "leader" || role === "admin";
       var RESPONSES_KEY = "fm_announcement_responses_v1";
       var announcementsCache = null;
+      var responsesCache = null;
 
       function readJson(key, fallback) {
         try {
@@ -27,8 +28,64 @@
         return announcementsCache;
       }
 
-      function getResponsesStore() {
-        return readJson(RESPONSES_KEY, {});
+      function responsesToStore(rows) {
+        return (Array.isArray(rows) ? rows : []).reduce(function (store, row) {
+          var response = typeof mapAnnouncementResponse === "function" ? mapAnnouncementResponse(row) : {
+            announcementId: row.announcement_id,
+            userId: row.user_id,
+            choice: row.choice,
+            note: row.note || "",
+            at: row.responded_at
+          };
+          if (!response.announcementId || !response.userId) return store;
+          if (!store[response.announcementId]) store[response.announcementId] = {};
+          store[response.announcementId][String(response.userId).toUpperCase()] = {
+            choice: response.choice,
+            note: response.note || "",
+            at: response.at
+          };
+          return store;
+        }, {});
+      }
+
+      async function loadResponsesStore() {
+        if (responsesCache) return responsesCache;
+        try {
+          var path = role === "agent"
+            ? "/announcement-responses?userId=" + encodeURIComponent(user)
+            : "/announcement-responses";
+          var rows = await apiGet(path);
+          responsesCache = responsesToStore(rows);
+          saveJson(RESPONSES_KEY, responsesCache);
+          return responsesCache;
+        } catch (error) {
+          console.warn("Failed to load announcement responses from API:", error);
+          responsesCache = readJson(RESPONSES_KEY, {});
+          return responsesCache;
+        }
+      }
+
+      async function saveAnnouncementResponse(announcementId, choice, note) {
+        var payload = {
+          user_id: user,
+          choice: choice,
+          note: note || ""
+        };
+        try {
+          await apiPost("/announcements/" + encodeURIComponent(announcementId) + "/responses", payload);
+        } catch (error) {
+          console.warn("Failed to save announcement response to API:", error);
+        }
+
+        var store = responsesCache || readJson(RESPONSES_KEY, {});
+        if (!store[announcementId]) store[announcementId] = {};
+        store[announcementId][user] = {
+          choice: choice,
+          note: note || "",
+          at: new Date().toISOString()
+        };
+        responsesCache = store;
+        saveJson(RESPONSES_KEY, store);
       }
 
       function esc(value) {
@@ -176,7 +233,7 @@
 
       async function renderAnnouncements() {
         var announcements = await loadAnnouncements();
-        var responsesStore = getResponsesStore();
+        var responsesStore = await loadResponsesStore();
         var container = document.getElementById("announcement-list");
         if (!container) return;
         if (!announcements.length) {
@@ -208,7 +265,7 @@
         if (role !== "agent") return;
         var forms = document.querySelectorAll("[data-agent-response-form]");
         forms.forEach(function (form) {
-          form.addEventListener("submit", function (event) {
+          form.addEventListener("submit", async function (event) {
             event.preventDefault();
             var announcementId = form.getAttribute("data-agent-response-form");
             if (!announcementId) return;
@@ -216,16 +273,8 @@
             if (!selected) return;
             var noteField = form.querySelector('textarea[name="note"]');
             var noteValue = noteField ? noteField.value.trim() : "";
-
-            var store = getResponsesStore();
-            if (!store[announcementId]) store[announcementId] = {};
-            store[announcementId][user] = {
-              choice: selected.value,
-              note: noteValue,
-              at: new Date().toISOString()
-            };
-            saveJson(RESPONSES_KEY, store);
-            renderAnnouncements();
+            await saveAnnouncementResponse(announcementId, selected.value, noteValue);
+            await renderAnnouncements();
           });
         });
       }

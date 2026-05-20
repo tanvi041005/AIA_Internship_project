@@ -706,6 +706,39 @@
       border: 1px solid #fecaca;
     }
 
+    .room-load-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text-muted);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .room-load-status[hidden] {
+      display: none;
+    }
+
+    .room-load-status.error {
+      border-color: #fecaca;
+      background: #fff7f7;
+      color: #991b1b;
+    }
+
+    .room-load-status strong {
+      display: block;
+      color: var(--text);
+    }
+
+    .room-load-status.error strong {
+      color: #991b1b;
+    }
+
     @media (max-width: 720px) {
       .cal-toolbar {
         gap: 0.35rem;
@@ -758,7 +791,15 @@
       <button class="nav-btn" onclick="navigate(-1)">&#8249;</button>
       <span class="range-label" id="rangeLabel"></span>
       <button class="nav-btn" onclick="navigate(1)">&#8250;</button>
-      <button class="add-btn" onclick="openModal()">&#43; New Booking</button>
+      <button class="add-btn" data-requires-room-data onclick="openModal()">&#43; New Booking</button>
+    </div>
+
+    <div class="room-load-status" id="room-load-status" role="status" aria-live="polite">
+      <div>
+        <strong id="room-load-status-title">Loading room bookings</strong>
+        <span id="room-load-status-message">Fetching rooms and current reservations...</span>
+      </div>
+      <button type="button" class="ghost-btn" id="room-load-retry-btn" hidden>Retry</button>
     </div>
 
     <!-- Shell: calendar + sidebar -->
@@ -789,8 +830,8 @@
           <h3>Filter Rooms</h3>
           <div id="roomChips"></div>
           <div class="room-filter-actions">
-            <button type="button" onclick="selectAllRooms()">Select all</button>
-            <button type="button" onclick="clearRooms()">Clear</button>
+            <button type="button" data-requires-room-data onclick="selectAllRooms()">Select all</button>
+            <button type="button" data-requires-room-data onclick="clearRooms()">Clear</button>
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@
     let visibleRooms = new Set();
     let editingId = null;
     let _editingSeries = false;
+    let roomDataReady = false;
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
     function fmtDate(d) {
@@ -67,6 +68,26 @@
     }
     function visibleBookingsForDate(ds) {
       return bookings.filter((b) => b.date === ds && visibleRooms.has(b.room));
+    }
+
+    function setRoomLoadStatus(mode, title, message) {
+      const status = document.getElementById('room-load-status');
+      const titleEl = document.getElementById('room-load-status-title');
+      const messageEl = document.getElementById('room-load-status-message');
+      const retryBtn = document.getElementById('room-load-retry-btn');
+      if (!status || !titleEl || !messageEl || !retryBtn) return;
+
+      status.hidden = mode === 'ready';
+      status.classList.toggle('error', mode === 'error');
+      titleEl.textContent = title || '';
+      messageEl.textContent = message || '';
+      retryBtn.hidden = mode !== 'error';
+    }
+
+    function setRoomActionsEnabled(enabled) {
+      document.querySelectorAll('[data-requires-room-data]').forEach((el) => {
+        el.disabled = !enabled;
+      });
     }
 
     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -347,6 +368,7 @@
     }
 
     function slotClick(e, ds) {
+      if (!roomDataReady) return;
       if (e.target.closest('.booking-block')) return;
       const cell = e.target.closest('.hour-cell');
       let hour = 9;
@@ -360,6 +382,10 @@
 
     // ── Modal ─────────────────────────────────────────────────────────────────────
     function openModal(prefill = {}) {
+      if (!roomDataReady || ROOMS.length === 0) {
+        setRoomLoadStatus('error', 'Room data is not ready', 'Please retry loading rooms before creating a booking.');
+        return;
+      }
       editingId = null;
       _editingSeries = false;
       document.getElementById('modalTitle').textContent = 'New Reservation';
@@ -416,6 +442,10 @@
     }
 
     async function saveBooking() {
+      if (!roomDataReady) {
+        alert('Room booking data is still loading. Please try again after it finishes.');
+        return;
+      }
       const title = document.getElementById('fTitle').value.trim();
       const room = document.getElementById('fRoom').value;
       const date = document.getElementById('fDate').value;
@@ -497,10 +527,16 @@
         ));
       }
 
-      const refreshed = await apiGet('/room-bookings');
-      bookings = refreshed.map(mapBooking);
-      closeModal();
-      render();
+      try {
+        const refreshed = await apiGet('/room-bookings');
+        bookings = refreshed.map(mapBooking);
+        closeModal();
+        render();
+      } catch (error) {
+        console.warn('Failed to refresh room bookings:', error);
+        closeModal();
+        setRoomLoadStatus('error', 'Booking saved, but refresh failed', 'Please retry loading bookings to see the latest calendar.');
+      }
     }
 
     // ── Detail popup ──────────────────────────────────────────────────────────────
@@ -594,13 +630,41 @@
       }
     });
 
+    async function loadRoomBookingData() {
+      roomDataReady = false;
+      setRoomActionsEnabled(false);
+      setRoomLoadStatus('loading', 'Loading room bookings', 'Fetching rooms and current reservations...');
+
+      try {
+        const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
+        ROOMS = (Array.isArray(roomsData) ? roomsData : []).map(function(r) {
+          return { id: r.room_id, label: r.label || r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.dot_color || r.color || '#93c5fd' };
+        });
+        visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
+        bookings = (Array.isArray(bookingsData) ? bookingsData : []).map(mapBooking);
+        roomDataReady = true;
+        setRoomActionsEnabled(true);
+        setRoomLoadStatus('ready');
+        render();
+      } catch (error) {
+        console.warn('Failed to load room booking data:', error);
+        ROOMS = [];
+        bookings = [];
+        visibleRooms = new Set();
+        roomDataReady = false;
+        setRoomActionsEnabled(false);
+        renderToolbar();
+        document.getElementById('weekHeader').innerHTML = '';
+        document.getElementById('weekBody').innerHTML = '';
+        document.getElementById('monthGrid').innerHTML = '';
+        document.getElementById('miniCal').innerHTML = '';
+        document.getElementById('roomChips').innerHTML = '';
+        setRoomLoadStatus('error', 'Could not load room bookings', 'Please check your connection, then retry.');
+      }
+    }
+
+    const retryLoadBtn = document.getElementById('room-load-retry-btn');
+    if (retryLoadBtn) retryLoadBtn.addEventListener('click', loadRoomBookingData);
+
     // ── Init ──────────────────────────────────────────────────────────────────────
-    (async function() {
-      const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
-      ROOMS = roomsData.map(function(r) {
-        return { id: r.room_id, label: r.label || r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.dot_color || r.color || '#93c5fd' };
-      });
-      visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
-      bookings = bookingsData.map(mapBooking);
-      render();
-    })();
+    loadRoomBookingData();
