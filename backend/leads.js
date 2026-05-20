@@ -51,12 +51,14 @@ function renderKPIs(){
   const totalPrem = LEADS.reduce((a,l) => a + l.premium, 0);
   const closing = LEADS.filter(l => l.stage === "Closing").length;
   const avgAge = Math.round(LEADS.reduce((a,l) => a + l.age, 0) / LEADS.length);
+  const referred = LEADS.filter(l => l.referredBy && l.referredBy.trim() !== "").length;
+  const refRate = LEADS.length > 0 ? Math.round(referred / LEADS.length * 100) : 0;
   const kpis = [
     {label:"Total Leads", val:LEADS.length, sub:`${urgent} urgent`},
     {label:"In Closing", val:closing, sub:"ready to sign"},
     {label:"Est. Annual Premium", val:"SGD "+totalPrem.toLocaleString(), sub:"across all leads"},
-    {label:"Avg. Lead Age", val:avgAge+" yrs", sub:"average profile age"},
-    {label:"Referral Rate", val:"67%", sub:"4 of 6 referred"},
+    {label:"Avg. Lead Age", val:LEADS.length ? avgAge+" yrs" : "—", sub:"average profile age"},
+    {label:"Referral Rate", val:refRate+"%", sub:`${referred} of ${LEADS.length} referred`},
   ];
   document.getElementById("kpi-grid").innerHTML = kpis.map(k => `
     <div class="kpi-card">
@@ -108,9 +110,16 @@ function render(){
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted)">No leads match the current filters.</td></tr>`;
     return;
   }
-  tbody.innerHTML = filtered.map(l => `
+  tbody.innerHTML = filtered.map(l => {
+    const col = AVATAR_COLORS[Math.abs(l.id) % AVATAR_COLORS.length];
+    return `
     <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
-      <td><strong class="lead-name">${l.name}</strong></td>
+      <td>
+        <div class="lead-name-cell">
+          <div class="lead-mini-avatar" style="background:${col}">${initials(l.name)}</div>
+          <strong class="lead-name">${l.name}</strong>
+        </div>
+      </td>
       <td>${l.age}</td>
       <td class="lead-contact">${cleanContact(l.contact)}</td>
       <td class="lead-date">${formatDate(l.meetDate)}</td>
@@ -118,7 +127,8 @@ function render(){
       <td><span class="status-pill ${l.urgency}">${cap(l.urgency)}</span></td>
       <td><span class="stage-pill ${stageClass(l.stage)}">${l.stage}</span></td>
       <td class="lead-remarks" title="${l.remarks}">${l.remarks}</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 function formatDate(d){
@@ -140,7 +150,7 @@ function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 
 function initials(name){ return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
 
-function stageClass(stage){ return stage.toLowerCase().replace(/\s+/g, "-"); }
+function stageClass(stage){ return (stage||'').toLowerCase().replace(/[\s-]+/g, "-"); }
 
 function openDrawer(id){
   const lead = LEADS.find(l => l.id === id);
