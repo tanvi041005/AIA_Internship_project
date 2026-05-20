@@ -18,6 +18,22 @@
     return;
   }
 
+  if (loggedRole === "admin") {
+    const adminPages = new Set([
+      "calendar.html",
+      "room-booking.html",
+      "attendance.html",
+      "training.html",
+      "announcements.html",
+      "admin.html",
+      "resources.html"
+    ]);
+    if (!PUBLIC_PAGES.has(currentPage) && !adminPages.has(currentPage)) {
+      window.location.replace("calendar.html");
+      return;
+    }
+  }
+
   if (currentPage === "login.html") {
     const form = document.getElementById("role-login-form");
     const usernameInput = document.getElementById("login-username");
@@ -170,7 +186,7 @@
     const hasCompareLink = Array.from(nav.querySelectorAll("a")).some(
       (link) => (link.getAttribute("href") || "").toLowerCase() === "agent-comparison.html"
     );
-    if (!hasCompareLink) {
+    if (!hasCompareLink && loggedRole !== "admin") {
       const compareLink = document.createElement("a");
       compareLink.href = "agent-comparison.html";
       compareLink.textContent = "Compare";
@@ -241,11 +257,31 @@
       }
     }
 
+    if (loggedRole === "admin") {
+      const adminHiddenPages = new Set([
+        "index.html",
+        "leads.html",
+        "agent-comparison.html",
+        "sales-tracker.html",
+        "cpf-calculator.html"
+      ]);
+      nav.querySelectorAll("a").forEach((link) => {
+        const href = (link.getAttribute("href") || "").toLowerCase();
+        if (adminHiddenPages.has(href)) {
+          link.remove();
+        }
+      });
+      const toolsMenu = nav.querySelector(".tools-nav-menu");
+      if (toolsMenu) toolsMenu.remove();
+      const overviewMenu = nav.querySelector(".overview-nav-menu");
+      if (overviewMenu) overviewMenu.remove();
+    }
+
     const setOverviewLabel = (link, label) => {
       link.innerHTML = `<span>${label}</span><span class="overview-caret" aria-hidden="true">▾</span>`;
     };
 
-    if (overviewLink && !document.getElementById("overview-scope-menu")) {
+    if (loggedRole !== "admin" && overviewLink && !document.getElementById("overview-scope-menu")) {
       const scopeLabels = {
         district: "All Agencies Overview",
         agency: "Agency Overview",
