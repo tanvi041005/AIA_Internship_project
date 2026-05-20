@@ -1,9 +1,28 @@
 const API_BASE = 'https://afhnacykc0.execute-api.ap-southeast-1.amazonaws.com';
 
+function isPublicApiPath(path) {
+  return path === '/auth/login' || path === '/api/auth/login' || path === '/health' || path === '/api/health';
+}
+
+function requireApiToken(path) {
+  const token = sessionStorage.getItem('dashboardToken');
+  if (token || isPublicApiPath(path)) return token;
+
+  const currentPage = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const nextPath = currentPage + (window.location.search || '');
+  sessionStorage.removeItem('dashboardRole');
+  sessionStorage.removeItem('dashboardUser');
+  sessionStorage.removeItem('dashboardToken');
+  if (currentPage !== 'login.html') {
+    window.location.replace('login.html?next=' + encodeURIComponent(nextPath));
+  }
+  throw new Error('Login required before calling ' + path);
+}
+
 function apiHeaders(path, includeJson) {
   const headers = includeJson ? { 'Content-Type': 'application/json' } : {};
-  const token = sessionStorage.getItem('dashboardToken');
-  if (token && path !== '/auth/login' && path !== '/api/auth/login') {
+  const token = requireApiToken(path);
+  if (token && !isPublicApiPath(path)) {
     headers.Authorization = 'Bearer ' + token;
   }
   return headers;
