@@ -122,7 +122,8 @@ a {
   gap: 0.25rem;
 }
 
-.nav-inner a {
+.nav-inner a,
+.nav-inner button.nav-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -130,18 +131,29 @@ a {
   padding: 0.45rem 0.75rem;
   border-radius: 7px;
   border: 1px solid transparent;
+  background: transparent;
   font-size: 0.875rem;
   font-weight: 600;
+  font-family: inherit;
   color: var(--text-muted);
+  cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.nav-inner a:hover {
+.nav-inner a:hover,
+.nav-inner button.nav-link:hover {
   background: var(--surface-subtle);
   color: var(--brand);
 }
 
-.nav-inner a.active {
+.nav-inner a:focus-visible,
+.nav-inner button.nav-link:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.nav-inner a.active,
+.nav-inner button.nav-link.active {
   background: var(--brand-light);
   color: var(--brand);
   border-color: #f4cbd2;
@@ -2920,6 +2932,8 @@ table.data tr:last-child td {
 .day-popup-del-btn:hover  { color: #dc2626; background: #fee2e2; }
 
 .day-popup-footer {
+  display: grid;
+  gap: 0.45rem;
   padding: 0.6rem 0.9rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -3111,7 +3125,8 @@ table.data tr:last-child td {
     scrollbar-width: thin;
   }
 
-  .nav-inner a {
+  .nav-inner a,
+  .nav-inner button.nav-link {
     white-space: nowrap;
   }
 

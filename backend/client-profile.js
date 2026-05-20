@@ -48,9 +48,9 @@
 
   function formatCommissionRate(lead) {
     if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
-      return `${Number(lead.commissionRate)}%`;
+      return String(Number(lead.commissionRate));
     }
-    return lead && lead.commission ? lead.commission : "—";
+    return "—";
   }
 
   function formatCommissionAmount(lead, currency) {
@@ -547,7 +547,8 @@
             </label>
             <label>
               Contact
-              <input type="tel" id="g-contact" value="${escapeHtml(lead.contact || "")}" required maxlength="20" pattern="[0-9+()\-\s]{7,20}" />
+              <input type="tel" id="g-contact" value="${escapeHtml(lead.contact || "")}" required maxlength="8" pattern="^[89][0-9]{7}$" placeholder="e.g. 91234567" />
+              <small>Must be 8 digits, starting with 8 or 9</small>
             </label>
             <label>
               Email
@@ -867,6 +868,15 @@
             }
             return;
           }
+
+            // Enforce Singapore-style contact: 8 digits starting with 8 or 9
+            const contactRe = /^[89][0-9]{7}$/;
+            if (!contactRe.test(contact)) {
+              if (generalErrorEl) {
+                generalErrorEl.textContent = "Contact must be 8 digits and start with 8 or 9.";
+              }
+              return;
+            }
 
           updateLead(leadId, (currentLead) => ({
             ...currentLead,

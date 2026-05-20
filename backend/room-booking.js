@@ -9,12 +9,14 @@
     let nextId = 1;
 
     // ── State ────────────────────────────────────────────────────────────────────
-    let currentView = 'week';
+    let currentView = 'day';
     let currentDate = new Date(today);
     let miniDate = new Date(today);
     let visibleRooms = new Set();
+    let selectedRoomId = null;
     let editingId = null;
     let _editingSeries = false;
+    let roomDataReady = false;
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
     function fmtDate(d) {
@@ -69,11 +71,62 @@
       return bookings.filter((b) => b.date === ds && visibleRooms.has(b.room));
     }
 
+    function setRoomLoadStatus(mode, title, message) {
+      const status = document.getElementById('room-load-status');
+      const titleEl = document.getElementById('room-load-status-title');
+      const messageEl = document.getElementById('room-load-status-message');
+      const retryBtn = document.getElementById('room-load-retry-btn');
+      if (!status || !titleEl || !messageEl || !retryBtn) return;
+
+      status.hidden = mode === 'ready';
+      status.classList.toggle('error', mode === 'error');
+      titleEl.textContent = title || '';
+      messageEl.textContent = message || '';
+      retryBtn.hidden = mode !== 'error';
+    }
+
+    function setRoomActionsEnabled(enabled) {
+      document.querySelectorAll('[data-requires-room-data]').forEach((el) => {
+        el.disabled = !enabled;
+      });
+    }
+
     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const DAYS_SHORT = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
+
+    function hourLabel(hour) {
+      if (hour === 0) return '12am';
+      if (hour < 12) return hour + 'am';
+      if (hour === 12) return '12pm';
+      return (hour - 12) + 'pm';
+    }
+
+    function ensureSelectedRoom() {
+      if (!selectedRoomId || !ROOMS.some((r) => r.id === selectedRoomId)) {
+        selectedRoomId = ROOMS[0] ? ROOMS[0].id : null;
+      }
+    }
+
+    function bookingStyle(b) {
+      const dayStart = 6 * 60;
+      const dayEnd = 23 * 60;
+      const start = Math.max(timeToMins(b.start), dayStart);
+      const end = Math.min(timeToMins(b.end), dayEnd);
+      const top = ((start - dayStart) / 60) * 88;
+      const height = ((end - start) / 60) * 88;
+      return `top:${top}px;height:${Math.max(height, 28)}px`;
+    }
+
+    function isVisibleInTimeGrid(b) {
+      const dayStart = 6 * 60;
+      const dayEnd = 23 * 60;
+      return timeToMins(b.end) > dayStart && timeToMins(b.start) < dayEnd;
+    }
 
     // ── Render ────────────────────────────────────────────────────────────────────
     function render() {
+      ensureSelectedRoom();
       renderToolbar();
       if (currentView === 'week') renderWeek();
       else if (currentView === 'day') renderDay();
@@ -87,17 +140,33 @@
       document.getElementById('btn-week').className = currentView === 'week' ? 'active' : '';
       document.getElementById('btn-day').className = currentView === 'day' ? 'active' : '';
       document.getElementById('btn-month').className = currentView === 'month' ? 'active' : '';
+      const roomFilter = document.querySelector('.room-filter');
+      if (roomFilter) roomFilter.style.display = currentView === 'week' ? 'flex' : 'none';
+      const hint = document.getElementById('calendarHint');
+      if (hint) {
+        hint.textContent =
+          currentView === 'month'
+            ? 'Click a day to jump to it.'
+            : currentView === 'week'
+              ? 'Click a free slot to claim it, or click an existing booking to view, edit, or cancel.'
+              : 'Click a column to claim a slot. Click an existing booking to view, edit, or cancel.';
+      }
       if (currentView === 'week') {
         const ws = startOfWeek(currentDate);
         const we = offsetDate(ws, 6);
         const label =
           ws.getMonth() === we.getMonth()
-            ? `${MONTHS[ws.getMonth()]} ${ws.getDate()}–${we.getDate()}, ${ws.getFullYear()}`
-            : `${MONTHS[ws.getMonth()]} ${ws.getDate()} – ${MONTHS[we.getMonth()]} ${we.getDate()}, ${ws.getFullYear()}`;
+            ? `${MONTHS[ws.getMonth()]} ${ws.getDate()} – ${we.getDate()}`
+            : `${MONTHS[ws.getMonth()]} ${ws.getDate()} – ${MONTHS[we.getMonth()]} ${we.getDate()}`;
         document.getElementById('rangeLabel').textContent = label;
       } else if (currentView === 'day') {
         const d = currentDate;
-        document.getElementById('rangeLabel').textContent = `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        document.getElementById('rangeLabel').textContent = d.toLocaleDateString('en-SG', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        });
       } else {
         const d = currentDate;
         document.getElementById('rangeLabel').textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -105,50 +174,44 @@
     }
 
     function renderWeek() {
+      ensureSelectedRoom();
       document.querySelector('.week-grid-wrap').style.display = '';
       document.getElementById('monthView').style.display = 'none';
-      const ws = startOfWeek(currentDate);
-      const days = Array.from({ length: 7 }, (_, i) => offsetDate(ws, i));
       const hdr = document.getElementById('weekHeader');
       const body = document.getElementById('weekBody');
-      hdr.style.gridTemplateColumns = '';
-      body.style.gridTemplateColumns = '';
+      hdr.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+      body.style.gridTemplateColumns = '80px repeat(7, 1fr)';
 
-      hdr.innerHTML =
-        `<div class="week-header-cell"></div>` +
-        days
-          .map((d) => {
-            const isToday = fmtDate(d) === fmtDate(today);
-            return `<div class="week-header-cell">
-        ${DAYS_SHORT[(d.getDay() + 6) % 7]}
-        <div class="day-num${isToday ? ' today' : ''}">${d.getDate()}</div>
-      </div>`;
-          })
-          .join('');
+      const ws = startOfWeek(currentDate);
+      const days = Array.from({ length: 7 }, (_, i) => offsetDate(ws, i));
+      const room = roomById(selectedRoomId) || ROOMS[0];
 
-      const HOURS = Array.from({ length: 24 }, (_, i) => i);
-      let html = '';
-
-      html += `<div class="time-col">${HOURS.map((h) => `<div class="time-slot">${h}:00</div>`).join('')}</div>`;
-
-      days.forEach((d) => {
+      hdr.innerHTML = `<div class="week-header-cell"></div>` + days.map((d) => {
         const ds = fmtDate(d);
-        const dayBookings = visibleBookingsForDate(ds);
-        let colHtml = `<div class="day-col" data-date="${ds}" onclick="slotClick(event,'${ds}')">`;
+        return `<div class="week-header-cell">
+          ${DAYS_SHORT[(d.getDay() + 6) % 7]}
+          <span class="header-sub">${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}</span>
+        </div>`;
+      }).join('');
+
+      let html = '';
+      html += `<div class="time-col">${HOURS.map((h) => `<div class="time-slot">${hourLabel(h)}</div>`).join('')}</div>`;
+
+      days.forEach((day) => {
+        const ds = fmtDate(day);
+        let colHtml = `<div class="day-col" data-date="${ds}" data-room="${room ? room.id : ''}" onclick="slotClick(event,'${ds}','${room ? room.id : ''}')">`;
         HOURS.forEach((h) => {
           colHtml += `<div class="hour-cell" data-hour="${h}"></div>`;
         });
+        const dayBookings = room ? bookings.filter((b) => b.room === room.id && b.date === ds && isVisibleInTimeGrid(b)) : [];
         dayBookings.forEach((b) => {
-          const top = (timeToMins(b.start) / 60) * 48;
-          const height = ((timeToMins(b.end) - timeToMins(b.start)) / 60) * 48;
-          const room = roomById(b.room);
           colHtml += `<div class="booking-block ${room.cls}" 
-        style="top:${top}px;height:${Math.max(height, 20)}px"
+        style="${bookingStyle(b)}"
         data-id="${b.id}"
         onclick="showDetail(event,${b.id})"
-        title="${b.title} (${b.start}–${b.end})">
+        title="${b.title} · ${b.date} (${b.start}-${b.end})">
         <strong>${b.title}</strong>
-        <small>${b.start}–${b.end}</small>
+        <small>${b.start}-${b.end}</small>
       </div>`;
         });
         colHtml += `</div>`;
@@ -156,7 +219,7 @@
       });
 
       body.innerHTML = html;
-      body.scrollTop = 7 * 48;
+      body.scrollTop = 0;
     }
 
     function renderDay() {
@@ -165,40 +228,38 @@
       const ds = fmtDate(currentDate);
       const hdr = document.getElementById('weekHeader');
       const body = document.getElementById('weekBody');
-      const isToday = ds === fmtDate(today);
+      const rooms = ROOMS.slice(0, 6);
 
-      hdr.style.gridTemplateColumns = '52px 1fr';
-      body.style.gridTemplateColumns = '52px 1fr';
+      hdr.style.gridTemplateColumns = `80px repeat(${Math.max(rooms.length, 1)}, 1fr)`;
+      body.style.gridTemplateColumns = `80px repeat(${Math.max(rooms.length, 1)}, 1fr)`;
 
-      hdr.innerHTML = `<div class="week-header-cell"></div>
-    <div class="week-header-cell">
-      ${DAYS_SHORT[(currentDate.getDay() + 6) % 7]}
-      <div class="day-num${isToday ? ' today' : ''}">${currentDate.getDate()}</div>
-    </div>`;
+      hdr.innerHTML = `<div class="week-header-cell"></div>` + rooms.map((r) => `
+        <div class="week-header-cell resource-head">
+          <span class="room-dot" style="background:${r.dot}"></span>
+          <span>${r.label}</span>
+        </div>`).join('');
 
-      const HOURS = Array.from({ length: 24 }, (_, i) => i);
-      const dayBookings = visibleBookingsForDate(ds);
-      let html = `<div class="time-col">${HOURS.map((h) => `<div class="time-slot">${h}:00</div>`).join('')}</div>`;
-      let col = `<div class="day-col" data-date="${ds}" onclick="slotClick(event,'${ds}')">`;
-      HOURS.forEach((h) => {
-        col += `<div class="hour-cell" data-hour="${h}"></div>`;
+      let html = `<div class="time-col">${HOURS.map((h) => `<div class="time-slot">${hourLabel(h)}</div>`).join('')}</div>`;
+      rooms.forEach((room) => {
+        let col = `<div class="day-col" data-date="${ds}" data-room="${room.id}" onclick="slotClick(event,'${ds}','${room.id}')">`;
+        HOURS.forEach((h) => {
+          col += `<div class="hour-cell" data-hour="${h}"></div>`;
+        });
+        bookings.filter((b) => b.date === ds && b.room === room.id && isVisibleInTimeGrid(b)).forEach((b) => {
+          col += `<div class="booking-block ${room.cls}" 
+        style="${bookingStyle(b)}"
+        data-id="${b.id}"
+        onclick="showDetail(event,${b.id})"
+        title="${b.title}">
+        <strong>${b.title}</strong>
+        <small>${b.start}-${b.end}</small>
+      </div>`;
+        });
+        col += `</div>`;
+        html += col;
       });
-      dayBookings.forEach((b) => {
-        const top = (timeToMins(b.start) / 60) * 48;
-        const height = ((timeToMins(b.end) - timeToMins(b.start)) / 60) * 48;
-        const room = roomById(b.room);
-        col += `<div class="booking-block ${room.cls}" 
-      style="top:${top}px;height:${Math.max(height, 20)}px"
-      data-id="${b.id}"
-      onclick="showDetail(event,${b.id})"
-      title="${b.title}">
-      <strong>${b.title}</strong>
-      <small>${b.start}–${b.end} &middot; ${room.label}</small>
-    </div>`;
-      });
-      col += `</div>`;
-      body.innerHTML = html + col;
-      body.scrollTop = 7 * 48;
+      body.innerHTML = html;
+      body.scrollTop = 0;
     }
 
     function renderMonth() {
@@ -227,6 +288,7 @@
           </div>
           ${dayBookings.slice(0, 3).map((b) => {
             const room = roomById(b.room);
+            if (!room) return '';
             return `<button class="month-booking ${room.cls}" type="button" onclick="showDetail(event,${b.id})" title="${b.title} · ${room.label}">
               ${b.start} ${b.title}
             </button>`;
@@ -238,6 +300,7 @@
     }
 
     function renderMiniCal() {
+      if (!document.getElementById('miniCal')) return;
       const y = miniDate.getFullYear(),
         m = miniDate.getMonth();
       document.getElementById('miniMonthLabel').textContent = `${MONTHS[m]} ${y}`;
@@ -264,20 +327,16 @@
       const fRoomSel = document.getElementById('fRoom');
       el.innerHTML = ROOMS.map(
         (r) => `
-    <label class="room-chip" for="room-filter-${r.id}">
-      <input type="checkbox" id="room-filter-${r.id}" data-room-id="${r.id}" ${visibleRooms.has(r.id) ? 'checked' : ''} onchange="toggleRoom('${r.id}',this.checked)">
+    <button class="room-chip ${r.cls}${selectedRoomId === r.id ? ' active' : ''}" type="button" onclick="selectRoom('${r.id}')">
       <span class="room-dot" style="background:${r.dot}"></span>
       <span>${r.label}</span>
-    </label>`
+    </button>`
       ).join('');
       if (fRoomSel) fRoomSel.innerHTML = ROOMS.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
     }
 
     function syncRoomFilterUI() {
-      ROOMS.forEach((r) => {
-        const cb = document.getElementById(`room-filter-${r.id}`);
-        if (cb) cb.checked = visibleRooms.has(r.id);
-      });
+      renderRoomChips();
     }
 
 
@@ -327,6 +386,12 @@
       renderCurrentCalendar();
     }
 
+    function selectRoom(id) {
+      selectedRoomId = id;
+      renderRoomChips();
+      if (currentView === 'week') renderWeek();
+    }
+
     function selectAllRooms() {
       ROOMS.forEach((r) => visibleRooms.add(r.id));
       syncRoomFilterUI();
@@ -346,7 +411,8 @@
       renderMiniCal();
     }
 
-    function slotClick(e, ds) {
+    function slotClick(e, ds, roomId) {
+      if (!roomDataReady) return;
       if (e.target.closest('.booking-block')) return;
       const cell = e.target.closest('.hour-cell');
       let hour = 9;
@@ -355,16 +421,24 @@
       }
       const start = String(hour).padStart(2, '0') + ':00';
       const end = String(Math.min(hour + 1, 23)).padStart(2, '0') + ':00';
-      openModal({ date: ds, start, end });
+      const prefill = { date: ds || fmtDate(currentDate), start, end };
+      if (roomId) {
+        prefill.room = roomId;
+      }
+      openModal(prefill);
     }
 
     // ── Modal ─────────────────────────────────────────────────────────────────────
     function openModal(prefill = {}) {
+      if (!roomDataReady || ROOMS.length === 0) {
+        setRoomLoadStatus('error', 'Room data is not ready', 'Please retry loading rooms before creating a booking.');
+        return;
+      }
       editingId = null;
       _editingSeries = false;
       document.getElementById('modalTitle').textContent = 'New Reservation';
       document.getElementById('fTitle').value = '';
-      document.getElementById('fRoom').value = ROOMS[0].id;
+      document.getElementById('fRoom').value = prefill.room || ROOMS[0].id;
       document.getElementById('fDate').value = prefill.date || fmtDate(currentDate);
       document.getElementById('fStart').value = prefill.start || '09:00';
       document.getElementById('fEnd').value = prefill.end || '10:00';
@@ -416,6 +490,10 @@
     }
 
     async function saveBooking() {
+      if (!roomDataReady) {
+        alert('Room booking data is still loading. Please try again after it finishes.');
+        return;
+      }
       const title = document.getElementById('fTitle').value.trim();
       const room = document.getElementById('fRoom').value;
       const date = document.getElementById('fDate').value;
@@ -497,10 +575,16 @@
         ));
       }
 
-      const refreshed = await apiGet('/room-bookings');
-      bookings = refreshed.map(mapBooking);
-      closeModal();
-      render();
+      try {
+        const refreshed = await apiGet('/room-bookings');
+        bookings = refreshed.map(mapBooking);
+        closeModal();
+        render();
+      } catch (error) {
+        console.warn('Failed to refresh room bookings:', error);
+        closeModal();
+        setRoomLoadStatus('error', 'Booking saved, but refresh failed', 'Please retry loading bookings to see the latest calendar.');
+      }
     }
 
     // ── Detail popup ──────────────────────────────────────────────────────────────
@@ -594,13 +678,42 @@
       }
     });
 
+    async function loadRoomBookingData() {
+      roomDataReady = false;
+      setRoomActionsEnabled(false);
+      setRoomLoadStatus('loading', 'Loading room bookings', 'Fetching rooms and current reservations...');
+
+      try {
+        const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
+        ROOMS = (Array.isArray(roomsData) ? roomsData : []).map(function(r) {
+          return { id: r.room_id, label: r.label || r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.dot_color || r.color || '#93c5fd' };
+        });
+        visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
+        selectedRoomId = ROOMS[0] ? ROOMS[0].id : null;
+        bookings = (Array.isArray(bookingsData) ? bookingsData : []).map(mapBooking);
+        roomDataReady = true;
+        setRoomActionsEnabled(true);
+        setRoomLoadStatus('ready');
+        render();
+      } catch (error) {
+        console.warn('Failed to load room booking data:', error);
+        ROOMS = [];
+        bookings = [];
+        visibleRooms = new Set();
+        roomDataReady = false;
+        setRoomActionsEnabled(false);
+        renderToolbar();
+        document.getElementById('weekHeader').innerHTML = '';
+        document.getElementById('weekBody').innerHTML = '';
+        document.getElementById('monthGrid').innerHTML = '';
+        if (document.getElementById('miniCal')) document.getElementById('miniCal').innerHTML = '';
+        document.getElementById('roomChips').innerHTML = '';
+        setRoomLoadStatus('error', 'Could not load room bookings', 'Please check your connection, then retry.');
+      }
+    }
+
+    const retryLoadBtn = document.getElementById('room-load-retry-btn');
+    if (retryLoadBtn) retryLoadBtn.addEventListener('click', loadRoomBookingData);
+
     // ── Init ──────────────────────────────────────────────────────────────────────
-    (async function() {
-      const [roomsData, bookingsData] = await Promise.all([apiGet('/rooms'), apiGet('/room-bookings')]);
-      ROOMS = roomsData.map(function(r) {
-        return { id: r.room_id, label: r.label || r.name || r.room_id, cls: 'room-' + r.room_id, dot: r.dot_color || r.color || '#93c5fd' };
-      });
-      visibleRooms = new Set(ROOMS.map(function(r) { return r.id; }));
-      bookings = bookingsData.map(mapBooking);
-      render();
-    })();
+    loadRoomBookingData();

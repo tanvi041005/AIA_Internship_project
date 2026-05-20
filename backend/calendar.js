@@ -87,6 +87,7 @@ let _calendarLoaded = false;
 let _personalEvents = [];
 let _agencyEvents   = [];
 let _personalTasks  = [];
+let leadData         = [];
 let _agencyEditDialogState = { editSeries: false, recurrenceId: '' };
 let _hoverTimer = null;
 
@@ -155,12 +156,13 @@ async function loadCalendarFromApi() {
   const userId = sessionStorage.getItem('dashboardUser') || '';
   const qs = userId ? '?userId=' + encodeURIComponent(userId) : '';
 
-  let rawEvents = [], rawAgencyEvents = [], rawTasks = [];
+  let rawEvents = [], rawAgencyEvents = [], rawTasks = [], rawLeads = [];
   try {
-    [rawEvents, rawAgencyEvents, rawTasks] = await Promise.all([
+    [rawEvents, rawAgencyEvents, rawTasks, rawLeads] = await Promise.all([
       apiGet('/events' + qs),
       apiGet('/events?category=agency'),
       apiGet('/tasks'  + qs),
+      apiGet('/leads'  + qs),
     ]);
   } catch (e) {
     // Fall back to legacy endpoint
@@ -169,10 +171,20 @@ async function loadCalendarFromApi() {
       rawEvents = Array.isArray(data) ? data : (data.events || []);
     } catch (_) {}
     try { rawAgencyEvents = await apiGet('/events?category=agency'); } catch (_) {}
+    try { rawTasks = await apiGet('/tasks' + qs); } catch (_) {}
+    try { rawLeads = await apiGet('/leads' + qs); } catch (_) {}
   }
 
   const personalEvents = (Array.isArray(rawEvents) ? rawEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
   const agencyOnly     = (Array.isArray(rawAgencyEvents) ? rawAgencyEvents : []).map(mapCalendarEvent).filter(e => e.id && e.date);
+  leadData = (Array.isArray(rawLeads) ? rawLeads : []).map(mapLead).map((lead) => ({
+    id: lead.id,
+    name: lead.name || '',
+    meetupDate: lead.meetDate || '',
+    meetupLocation: lead.location || '',
+    meetingType: lead.meetType || '',
+    owner: lead.ownerId === userId ? 'agent' : 'district'
+  }));
 
   // Before overwriting, snapshot lead info stored in localStorage so it can be merged back
   // (the DB events table does not have lead_id/lead_name columns yet, so that info lives locally)
@@ -513,6 +525,11 @@ function formatTimeRange(event) {
   return "Time not set";
 }
 
+function isValidSameDayTimeRange(startTime, endTime) {
+  if (!startTime || !endTime) return false;
+  return endTime > startTime;
+}
+
 function getPublicHolidayEvents(year) {
   const holidays = _getSGHolidaysCached(year) || (year === 2026 ? _sgHolidays2026Fallback : []);
   return holidays.map((h) => ({
@@ -752,7 +769,10 @@ function wireCalendarPage() {
 
   // Show loading state while API fetch is in flight
   const grid = document.getElementById("calendar-grid");
-  if (grid) grid.innerHTML = '<p style="grid-column:1/-1;padding:2rem;color:var(--muted);text-align:center;">Loading events…</p>';
+  if (grid) grid.innerHTML = '<p style="grid-column:1/-1;padding:2rem;color:var(--muted);text-align:center;">Loading events...</p>';
+
+  // Render immediately from localStorage/fallback data; refresh again when API data arrives.
+  update();
 
   loadCalendarFromApi()
     .then(() => {
@@ -977,6 +997,7 @@ function _openDayPopup(clickEvent, date, events, state) {
   const userRole   = sessionStorage.getItem("dashboardRole") || "agent";
   const isDistrict = userRole === "district" || userRole === "admin";
   const dateLabel  = new Date(date + "T00:00:00").toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const attendanceEvent = events.find((event) => event.category !== "holiday");
 
   const popup = document.createElement("div");
   popup.id = "cal-day-popup";
@@ -1015,6 +1036,7 @@ function _openDayPopup(clickEvent, date, events, state) {
     <ul class="day-popup-list">${eventsHtml}</ul>
     <div class="day-popup-footer">
       <button class="day-popup-add-btn" id="day-popup-add-btn">${isDistrict ? "Add Event" : "Add Personal Event"}</button>
+      ${attendanceEvent ? `<button class="ghost-btn" id="day-popup-attendance-qr-btn" type="button">Attendance QR</button>` : ""}
     </div>
   `;
   document.body.appendChild(popup);
@@ -1046,6 +1068,14 @@ function _openDayPopup(clickEvent, date, events, state) {
       }, 0);
     }
   });
+
+  const attendanceQrBtn = document.getElementById("day-popup-attendance-qr-btn");
+  if (attendanceQrBtn) {
+    attendanceQrBtn.addEventListener("click", () => {
+      closeDayPopup();
+      openAttendanceQrDialog(attendanceEvent);
+    });
+  }
 
   // Wire Edit
   popup.querySelectorAll(".day-popup-edit-btn").forEach((btn) => {
@@ -1348,6 +1378,10 @@ function wireAgencyEventEditDialog(refreshCalendar) {
     const startTime = (dialog.querySelector("#agency-edit-dialog-start-time") || {}).value || "";
     const endTime   = (dialog.querySelector("#agency-edit-dialog-end-time")   || {}).value || "";
     if (!title) return;
+    if ((startTime || endTime) && !isValidSameDayTimeRange(startTime, endTime)) {
+      alert("End time must be after start time.");
+      return;
+    }
     const { editSeries, recurrenceId } = _agencyEditDialogState;
     const saveBtn = form.querySelector("[type=submit]");
     if (saveBtn) saveBtn.disabled = true;
@@ -1745,7 +1779,10 @@ function wirePersonalEventDialog(state, refreshCalendar) {
 
     const timeErr = document.getElementById("personal-event-time-error");
     const saveErr = document.getElementById("personal-event-save-error");
-    if (timeErr) timeErr.style.display = "none";
+    if (timeErr) {
+      timeErr.textContent = "Please set both a start and end time.";
+      timeErr.style.display = "none";
+    }
     if (saveErr) saveErr.style.display = "none";
 
     if (!date || !title) return;
@@ -1754,6 +1791,16 @@ function wirePersonalEventDialog(state, refreshCalendar) {
       if (timeErr) timeErr.style.display = "block";
       if (startTimeInput && !startTime) startTimeInput.focus();
       else if (endTimeInput) endTimeInput.focus();
+      return;
+    }
+    if (!isValidSameDayTimeRange(startTime, endTime)) {
+      if (timeErr) {
+        timeErr.textContent = "End time must be after start time.";
+        timeErr.style.display = "block";
+      } else {
+        alert("End time must be after start time.");
+      }
+      if (endTimeInput) endTimeInput.focus();
       return;
     }
 

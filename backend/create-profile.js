@@ -344,6 +344,13 @@
         return;
       }
 
+      // Enforce 8-digit contact starting with 8 or 9
+      var contactRe = /^[89][0-9]{7}$/;
+      if (!contactRe.test(contact)) {
+        err.textContent = "Contact must be 8 digits and start with 8 or 9.";
+        return;
+      }
+
       const existingPlansList = collectPlanInputs();
       const specificPlanType = document.getElementById("cp-plan-type").value.trim();
 

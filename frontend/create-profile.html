@@ -297,10 +297,11 @@
           </div>
         </div>
 
-        <div class="form-row">
+          <div class="form-row">
           <div>
             <label for="cp-contact">Contact Number <span aria-hidden="true">*</span></label>
-            <input type="text" id="cp-contact" required placeholder="e.g. 9123-4567" />
+            <input type="tel" id="cp-contact" required maxlength="8" pattern="^[89][0-9]{7}$" placeholder="e.g. 91234567" inputmode="numeric" />
+            <small>Must be 8 digits and start with 8 or 9</small>
           </div>
           <div>
             <label for="cp-email">Email Address <span aria-hidden="true">*</span></label>
