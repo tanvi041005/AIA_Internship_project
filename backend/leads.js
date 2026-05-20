@@ -6,9 +6,9 @@ const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec489
 
 function formatCommissionRate(lead) {
   if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
-    return `${Number(lead.commissionRate)}%`;
+    return String(Number(lead.commissionRate));
   }
-  return lead && lead.commission ? lead.commission : "—";
+  return "—";
 }
 
 function formatCommissionAmount(lead) {

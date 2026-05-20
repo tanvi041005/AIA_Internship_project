@@ -48,9 +48,9 @@
 
   function formatCommissionRate(lead) {
     if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
-      return `${Number(lead.commissionRate)}%`;
+      return String(Number(lead.commissionRate));
     }
-    return lead && lead.commission ? lead.commission : "—";
+    return "—";
   }
 
   function formatCommissionAmount(lead, currency) {

@@ -69,6 +69,7 @@
         </select>
         <button class="btn-ghost" id="clear-btn">Clear</button>
         <button class="btn-brand" id="add-lead-btn">+ Add Lead</button>
+        <button class="btn-ghost" id="generate-qr-btn">Generate QR</button>
       </div>
     </div>
 
@@ -316,6 +317,27 @@
   </div>
 </div>
 
+<!-- QR Code Modal -->
+<div id="qr-modal" class="modal" style="display:none;">
+  <div class="modal-overlay"></div>
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-header">
+      <h2>Lead Sign-up QR</h2>
+      <button class="modal-close" id="qr-modal-close">×</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <p class="modal-intro">Scan this QR code to open the lead sign-up form on your phone.</p>
+      <div id="qr-preview" style="margin:0 auto 1rem; width:300px; height:300px;"></div>
+      <input type="text" id="qr-link" style="width:100%;padding:.5rem;border:1px solid var(--border);border-radius:6px" readonly />
+      <div style="display:flex;gap:.5rem;margin-top:.6rem;justify-content:center">
+        <button id="qr-copy-btn" class="btn-ghost">Copy Link</button>
+        <a id="qr-open-link" class="btn-brand" href="#" target="_blank">Open</a>
+      </div>
+      <p style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem">Tip: You can print or share this QR with walk-up customers.</p>
+    </div>
+  </div>
+</div>
+
 <footer class="site-footer">Financial Agent Dashboard · Internal use only</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
@@ -323,5 +345,58 @@
 <script src="../backend/auth.js"></script>
 <script src="../backend/api.js"></script>
 <script src="../backend/leads.js"></script>
+
+<script>
+  (function(){
+    const genBtn = document.getElementById('generate-qr-btn');
+    const qrModal = document.getElementById('qr-modal');
+    const qrClose = document.getElementById('qr-modal-close');
+    const qrPreview = document.getElementById('qr-preview');
+    const qrLinkInput = document.getElementById('qr-link');
+    const qrCopyBtn = document.getElementById('qr-copy-btn');
+    const qrOpenLink = document.getElementById('qr-open-link');
+
+    if (!genBtn) return;
+
+    function buildSignupUrl(){
+      // create-profile.html is alongside leads.html in /frontend
+      const base = location.href.substring(0, location.href.lastIndexOf('/')) + '/';
+      return base + 'create-profile.html';
+    }
+
+    function showModal(){ qrModal.style.display = 'block'; }
+    function hideModal(){ qrModal.style.display = 'none'; }
+
+    genBtn.addEventListener('click', function(){
+      const url = buildSignupUrl();
+      // Use free QR generator image as fallback for devices
+      const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(url);
+      qrPreview.innerHTML = '<img alt="Lead signup QR" src="'+qrSrc+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px" />';
+      qrLinkInput.value = url;
+      qrOpenLink.href = url;
+      showModal();
+    });
+
+    qrClose.addEventListener('click', hideModal);
+    // click overlay to close
+    qrModal.querySelector('.modal-overlay').addEventListener('click', hideModal);
+
+    qrCopyBtn.addEventListener('click', function(){
+      const txt = qrLinkInput.value;
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(()=>{
+          qrCopyBtn.textContent = 'Copied!';
+          setTimeout(()=> qrCopyBtn.textContent = 'Copy Link', 1400);
+        }).catch(()=> alert('Copy failed — please copy manually'));
+      } else {
+        qrLinkInput.select();
+        try{ document.execCommand('copy'); qrCopyBtn.textContent='Copied!'; setTimeout(()=> qrCopyBtn.textContent='Copy Link',1400);}catch(e){ alert('Copy unsupported'); }
+      }
+    });
+
+    // close on Escape
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') hideModal(); });
+  })();
+</script>
 
 </body></html>
