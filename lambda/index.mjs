@@ -184,7 +184,9 @@ function authorizeRequest(auth, method, path, query, event) {
   const adminOnly =
     (method === "POST" && path === "/users") ||
     (["PUT", "DELETE"].includes(method) && /^\/users\/[^/]+$/.test(path)) ||
-    (method === "POST" && path === "/performance/bulk");
+    (method === "POST" && path === "/performance/bulk") ||
+    (method === "PUT" && path === "/training/topics") ||
+    (method === "DELETE" && /^\/training\/topics\/[^/]+$/.test(path));
   if (adminOnly && !isAdmin(auth)) return forbidden("Admin access required");
 
   if (method === "POST" && path === "/announcements" && !isAdminOrLeader(auth)) {
@@ -950,6 +952,111 @@ export const handler = async (event) => {
             })),
         }))
       );
+    }
+
+    if (method === "PUT" && path === "/training/topics") {
+      const { topics } = parseBody(event);
+      if (!Array.isArray(topics)) return bad("topics array required");
+
+      const cleanId = (value, fallback, max) => {
+        const raw = String(value || fallback || "").trim().replace(/[^a-z0-9_-]/gi, "");
+        return raw.slice(0, max);
+      };
+
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        for (let topicIndex = 0; topicIndex < topics.length; topicIndex += 1) {
+          const topic = topics[topicIndex] || {};
+          const topicId = cleanId(topic.topic_id || topic.id, `T${topicIndex + 1}`, 10);
+          const title = String(topic.title || "").trim();
+          const youtubeId = String(topic.youtube_id || topic.youtubeId || "").trim();
+          const questionsIn = Array.isArray(topic.questions)
+            ? topic.questions
+            : (Array.isArray(topic.quiz) ? topic.quiz : []);
+          if (!topicId || !title) {
+            await conn.rollback();
+            return bad("Each topic requires id and title");
+          }
+
+          await conn.query(
+            `INSERT INTO training_topics (topic_id, title, youtube_id, sort_order)
+             VALUES (?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+               title = VALUES(title),
+               youtube_id = VALUES(youtube_id),
+               sort_order = VALUES(sort_order)`,
+            [topicId, title, youtubeId, topicIndex + 1]
+          );
+          await conn.query(
+            `DELETE qo FROM quiz_options qo
+             JOIN quiz_questions qq ON qq.question_id = qo.question_id
+             WHERE qq.topic_id = ?`,
+            [topicId]
+          );
+          await conn.query("DELETE FROM quiz_questions WHERE topic_id = ?", [topicId]);
+
+          for (let questionIndex = 0; questionIndex < questionsIn.length; questionIndex += 1) {
+            const question = questionsIn[questionIndex] || {};
+            const questionId = cleanId(question.question_id || question.id, `${topicId}Q${questionIndex + 1}`, 20);
+            const questionText = String(question.question_text || question.question || "").trim();
+            const optionsIn = Array.isArray(question.options) ? question.options : [];
+            if (!questionId || !questionText) continue;
+
+            await conn.query(
+              `INSERT INTO quiz_questions (question_id, topic_id, question_text, sort_order)
+               VALUES (?,?,?,?)`,
+              [questionId, topicId, questionText, questionIndex + 1]
+            );
+            for (let optionIndex = 0; optionIndex < optionsIn.length; optionIndex += 1) {
+              const option = optionsIn[optionIndex] || {};
+              const optionId = cleanId(option.option_id || option.id, `${questionId}O${optionIndex + 1}`, 20);
+              const label = String(option.option_label || option.label || option.option_text || "").trim();
+              if (!optionId || !label) continue;
+              await conn.query(
+                `INSERT INTO quiz_options (option_id, question_id, label, is_correct, sort_order)
+                 VALUES (?,?,?,?,?)`,
+                [optionId, questionId, label, option.is_correct || option.correct ? 1 : 0, optionIndex + 1]
+              );
+            }
+          }
+        }
+        await conn.commit();
+        return ok({ saved: true });
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
+    }
+
+    const trainingTopicSingle = path.match(/^\/training\/topics\/([^/]+)$/);
+    if (trainingTopicSingle && method === "DELETE") {
+      const topicId = decodeURIComponent(trainingTopicSingle[1]).trim();
+      if (!topicId) return bad("topic id required");
+
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        await conn.query("DELETE FROM training_progress WHERE topic_id = ?", [topicId]);
+        await conn.query(
+          `DELETE qo FROM quiz_options qo
+           JOIN quiz_questions qq ON qq.question_id = qo.question_id
+           WHERE qq.topic_id = ?`,
+          [topicId]
+        );
+        await conn.query("DELETE FROM quiz_questions WHERE topic_id = ?", [topicId]);
+        const [result] = await conn.query("DELETE FROM training_topics WHERE topic_id = ?", [topicId]);
+        await conn.commit();
+        if (!result.affectedRows) return notFound("Training topic not found");
+        return ok({ deleted: topicId });
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
     }
 
     if (method === "GET" && path === "/training/progress") {

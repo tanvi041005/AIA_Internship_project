@@ -10,6 +10,10 @@
       var player = null;
       var ytReady = false;
       var progressStore = {};
+      var adminSaveBusy = false;
+      var adminStatusMessage = "";
+      var adminStatusIsError = false;
+      var adminPreviewMode = false;
 
       window.onYouTubeIframeAPIReady = function () { ytReady = true; render(); };
 
@@ -58,6 +62,7 @@
         });
       }
       function isTopicUnlocked(index) {
+        if (role === "admin") return true;
         if (index === 0) return true;
         var prevState = getTopicState(user, TOPICS[index - 1].id);
         return !!(prevState.videoDone && prevState.quizPassed);
@@ -74,6 +79,26 @@
       }
 
       function renderLearningPath() {
+        var pathRoot = document.getElementById("learning-path");
+        if (role === "admin" && !adminPreviewMode) {
+          var adminList = TOPICS.map(function (topic, index) {
+            return '<button type="button" draggable="true" class="training-admin-section' + (index === activeTopicIndex ? " active" : "") + '" data-admin-action="select-topic" data-topic-index="' + index + '">' +
+              '<span><b aria-hidden="true">::</b> Section ' + String(index + 1).padStart(2, "0") + '</span>' +
+              '<strong>' + esc(topic.title || "Untitled section") + '</strong>' +
+              '<small>' + ((topic.quiz || []).length) + ' quiz question' + ((topic.quiz || []).length === 1 ? "" : "s") + '</small>' +
+              '</button>';
+          }).join("");
+          pathRoot.innerHTML =
+            '<div class="training-admin-section-list">' +
+            (adminList || '<p class="training-admin-empty">No sections yet.</p>') +
+            '<button type="button" class="training-admin-add-section" data-admin-action="add-topic">Add section</button>' +
+            '</div>';
+          return;
+        }
+        if (!TOPICS.length) {
+          pathRoot.innerHTML = '<div class="p-4 text-sm text-slate-500">No training modules yet.</div>';
+          return;
+        }
         var html = "";
         TOPICS.forEach(function (topic, index) {
           var unlocked = isTopicUnlocked(index);
@@ -91,7 +116,7 @@
             '<div class="w-full bg-slate-200 h-1 rounded-full mt-3 overflow-hidden"><div class="bg-aia-red h-full" style="width:' + percent + '%"></div></div>' +
             '<p class="text-xs text-slate-500 mt-2">' + (complete ? "Completed" : unlocked ? ("In Progress (" + percent + "%)") : "Unlock after previous module") + "</p></div>";
         });
-        document.getElementById("learning-path").innerHTML = html;
+        pathRoot.innerHTML = html;
         document.querySelectorAll("[data-topic-index]").forEach(function (item) {
           item.addEventListener("click", function () {
             var index = Number(item.dataset.topicIndex);
@@ -103,7 +128,16 @@
       }
 
       function renderTopicView() {
+        if (role === "admin" && !adminPreviewMode) {
+          document.getElementById("topic-view").innerHTML = "";
+          return;
+        }
         var topic = TOPICS[activeTopicIndex];
+        if (!topic) {
+          document.getElementById("topic-view").innerHTML =
+            '<section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h2 class="text-xl font-bold">Video Lesson</h2><p class="text-sm text-slate-500 mt-1">No training module selected.</p></section>';
+          return;
+        }
         var state = getTopicState(user, topic.id);
         var url = "https://www.youtube.com/embed/" + topic.youtubeId + "?enablejsapi=1&rel=0&modestbranding=1";
         document.getElementById("topic-view").innerHTML =
@@ -139,9 +173,17 @@
       }
 
       function renderQuiz() {
+        if (role === "admin" && !adminPreviewMode) {
+          document.getElementById("quiz-view").innerHTML = "";
+          return;
+        }
         var topic = TOPICS[activeTopicIndex];
+        if (!topic) {
+          document.getElementById("quiz-view").innerHTML = "";
+          return;
+        }
         var state = getTopicState(user, topic.id);
-        if (!state.videoDone) {
+        if (!state.videoDone && !(role === "admin" && adminPreviewMode)) {
           document.getElementById("quiz-view").innerHTML =
             '<section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h2 class="text-xl font-bold flex items-center"><i class="fa-solid fa-lock aia-red mr-3 text-lg"></i> Topic Quiz</h2><p class="text-sm text-slate-500 mt-1">Finish the video first to unlock this quiz.</p></section>';
           return;
@@ -183,6 +225,11 @@
             return;
           }
           if (totalCorrect === quizItems.length) {
+            if (role === "admin" && adminPreviewMode) {
+              result.className = "text-sm text-green-700 font-medium";
+              result.textContent = "Preview passed with 100%.";
+              return;
+            }
             state.quizPassed = true;
             try {
               await saveProgressStore(user);
@@ -245,6 +292,10 @@
         var completed = TOPICS.filter(function (_, idx) { return isTopicComplete(idx); }).length;
         document.getElementById("achievement-note").textContent = "Complete " + Math.max(0, TOPICS.length - completed) + " more modules";
         var root = document.getElementById("progress-view");
+        if (role === "admin") {
+          root.innerHTML = "";
+          return;
+        }
         if (role === "agent") {
           root.innerHTML = '<section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h2 class="text-xl font-bold">Your Progress</h2><p class="text-sm text-slate-600 mt-2">' + esc(user) + ": " + summarizeUserProgress(user) + "</p></section>";
           return;
@@ -266,6 +317,286 @@
           "</section>";
       }
 
+      function trainingAdminRoot() {
+        var root = document.getElementById("training-admin-view");
+        if (root) return root;
+        root = document.createElement("section");
+        root.id = "training-admin-view";
+        root.className = "space-y-4";
+        var progress = document.getElementById("progress-view");
+        if (progress) progress.insertAdjacentElement("beforebegin", root);
+        return root;
+      }
+
+      function makeId(prefix, maxLength) {
+        return (prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)).slice(0, maxLength);
+      }
+
+      function extractYoutubeId(value) {
+        var input = String(value || "").trim();
+        var match = input.match(/[?&]v=([^&]+)/) || input.match(/youtu\.be\/([^?&]+)/) || input.match(/embed\/([^?&]+)/);
+        return match ? match[1] : input;
+      }
+
+      function defaultQuestion() {
+        return {
+          id: makeId("Q", 20),
+          question: "",
+          options: [
+            { id: makeId("O", 20), label: "", correct: true },
+            { id: makeId("O", 20), label: "", correct: false },
+            { id: makeId("O", 20), label: "", correct: false },
+            { id: makeId("O", 20), label: "", correct: false }
+          ]
+        };
+      }
+
+      function normalizeTopicForSave(topic, index) {
+        return {
+          id: topic.id || makeId("T", 10),
+          title: String(topic.title || ("Module " + (index + 1))).trim(),
+          youtubeId: extractYoutubeId(topic.youtubeId),
+          quiz: (topic.quiz || []).map(function (question, questionIndex) {
+            return {
+              id: question.id || makeId("Q", 20),
+              question: String(question.question || ("Question " + (questionIndex + 1))).trim(),
+              options: (question.options || []).filter(function (option) {
+                return String(option.label || "").trim();
+              }).map(function (option) {
+                return {
+                  id: option.id || makeId("O", 20),
+                  label: String(option.label || "").trim(),
+                  correct: !!option.correct
+                };
+              })
+            };
+          })
+        };
+      }
+
+      function renderTrainingAdmin() {
+        if (role !== "admin") return;
+        var root = trainingAdminRoot();
+        if (adminPreviewMode) {
+          root.innerHTML =
+            '<section class="training-admin-preview-bar">' +
+            '<div><strong>Agent view preview</strong><span>Review how agents will see the selected training section.</span></div>' +
+            '<button type="button" class="training-admin-btn secondary" data-admin-action="toggle-preview">Back to edit</button>' +
+            '</section>';
+          return;
+        }
+        var topicIndex = activeTopicIndex;
+        var topic = TOPICS[topicIndex];
+        if (!topic) {
+          root.innerHTML =
+            '<section class="training-admin-panel">' +
+            '<div class="training-admin-head"><div><h2>Training Admin</h2><p>Create the first training section to begin.</p></div>' +
+            '<div class="training-admin-actions"><button type="button" class="training-admin-btn" data-admin-action="add-topic">Add section</button></div></div>' +
+            '<div class="training-admin-body"><p class="training-admin-empty">No section selected.</p></div>' +
+            '</section>';
+          return;
+        }
+        var questions = (topic.quiz || []).map(function (question, questionIndex) {
+          var options = (question.options || []).map(function (option, optionIndex) {
+            return '<div class="training-admin-option">' +
+              '<input class="training-admin-input" data-admin-field="option-label" data-topic-index="' + topicIndex + '" data-question-index="' + questionIndex + '" data-option-index="' + optionIndex + '" value="' + esc(option.label) + '" placeholder="Answer option" />' +
+              '<label class="training-admin-correct"><input type="radio" name="correct-' + topicIndex + '-' + questionIndex + '" data-admin-field="option-correct" data-topic-index="' + topicIndex + '" data-question-index="' + questionIndex + '" data-option-index="' + optionIndex + '"' + (option.correct ? " checked" : "") + ' /> Correct</label>' +
+              '</div>';
+          }).join("");
+          return '<div class="training-admin-question">' +
+            '<div class="training-admin-question-head"><span>Question ' + (questionIndex + 1) + '</span></div>' +
+            '<input class="training-admin-input training-admin-question-input" data-admin-field="question" data-topic-index="' + topicIndex + '" data-question-index="' + questionIndex + '" value="' + esc(question.question) + '" placeholder="Quiz question" />' +
+            '<div class="training-admin-options">' + options + '</div>' +
+            '<button type="button" class="training-admin-small" data-admin-action="add-option" data-topic-index="' + topicIndex + '" data-question-index="' + questionIndex + '">Add option</button>' +
+            '</div>';
+        }).join("");
+        root.innerHTML =
+          '<section class="training-admin-panel">' +
+          '<div class="training-admin-head"><div><h2>Edit Section ' + String(topicIndex + 1).padStart(2, "0") + '</h2><p>Update the title, video link, and quiz questions for this section.</p></div>' +
+          '<div class="training-admin-actions"><button type="button" class="training-admin-btn" data-admin-action="save"' + (adminSaveBusy ? " disabled" : "") + '>' + (adminSaveBusy ? "Saving..." : "Save training") + '</button><button type="button" class="training-admin-btn secondary" data-admin-action="toggle-preview">Agent view</button><button type="button" class="training-admin-btn delete" data-admin-action="delete-topic" data-topic-index="' + topicIndex + '">Delete section</button></div></div>' +
+          '<div class="training-admin-body">' +
+          '<article class="training-admin-card">' +
+          '<div class="training-admin-grid">' +
+          '<label class="training-admin-label">Section title<input class="training-admin-input" data-admin-field="topic-title" data-topic-index="' + topicIndex + '" value="' + esc(topic.title) + '" placeholder="Module title" /></label>' +
+          '<label class="training-admin-label">Video link<input class="training-admin-input" data-admin-field="topic-video" data-topic-index="' + topicIndex + '" value="' + esc(topic.youtubeId) + '" placeholder="YouTube ID or URL" /></label>' +
+          '</div>' +
+          '<div class="training-admin-questions">' + (questions || '<p class="training-admin-empty">No quiz questions yet.</p>') + '</div>' +
+          '<button type="button" class="training-admin-small" data-admin-action="add-question" data-topic-index="' + topicIndex + '">Add quiz question</button>' +
+          '</article>' +
+          '<p id="training-admin-status" class="training-admin-status' + (adminStatusIsError ? " error" : "") + '">' + esc(adminStatusMessage) + '</p></div>' +
+          '</section>';
+      }
+
+      function wireTrainingAdmin() {
+        if (role !== "admin" || document.body.dataset.trainingAdminWired === "true") return;
+        document.body.dataset.trainingAdminWired = "true";
+        var draggedTopicIndex = null;
+        document.addEventListener("input", function (event) {
+          var field = event.target && event.target.dataset ? event.target.dataset.adminField : "";
+          if (!field) return;
+          var topic = TOPICS[Number(event.target.dataset.topicIndex)];
+          if (!topic) return;
+          if (field === "topic-title") topic.title = event.target.value;
+          if (field === "topic-video") topic.youtubeId = extractYoutubeId(event.target.value);
+          if (field === "question") {
+            var question = (topic.quiz || [])[Number(event.target.dataset.questionIndex)];
+            if (question) question.question = event.target.value;
+          }
+          if (field === "option-label") {
+            var q = (topic.quiz || [])[Number(event.target.dataset.questionIndex)];
+            var option = q && (q.options || [])[Number(event.target.dataset.optionIndex)];
+            if (option) option.label = event.target.value;
+          }
+        });
+        document.addEventListener("change", function (event) {
+          if (!event.target || event.target.dataset.adminField !== "option-correct") return;
+          var topic = TOPICS[Number(event.target.dataset.topicIndex)];
+          var question = topic && (topic.quiz || [])[Number(event.target.dataset.questionIndex)];
+          if (!question) return;
+          question.options.forEach(function (option, index) {
+            option.correct = index === Number(event.target.dataset.optionIndex);
+          });
+          renderTrainingAdmin();
+        });
+        document.addEventListener("dragstart", function (event) {
+          var section = event.target && event.target.closest ? event.target.closest(".training-admin-section") : null;
+          if (!section) return;
+          draggedTopicIndex = Number(section.dataset.topicIndex);
+          section.classList.add("dragging");
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(draggedTopicIndex));
+          }
+        });
+        document.addEventListener("dragend", function (event) {
+          var section = event.target && event.target.closest ? event.target.closest(".training-admin-section") : null;
+          if (section) section.classList.remove("dragging");
+          draggedTopicIndex = null;
+          document.querySelectorAll(".training-admin-section.drag-over").forEach(function (item) {
+            item.classList.remove("drag-over");
+          });
+        });
+        document.addEventListener("dragover", function (event) {
+          var section = event.target && event.target.closest ? event.target.closest(".training-admin-section") : null;
+          if (!section || draggedTopicIndex == null) return;
+          event.preventDefault();
+          section.classList.add("drag-over");
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+        });
+        document.addEventListener("dragleave", function (event) {
+          var section = event.target && event.target.closest ? event.target.closest(".training-admin-section") : null;
+          if (section) section.classList.remove("drag-over");
+        });
+        document.addEventListener("drop", function (event) {
+          var section = event.target && event.target.closest ? event.target.closest(".training-admin-section") : null;
+          if (!section || draggedTopicIndex == null) return;
+          event.preventDefault();
+          var dropIndex = Number(section.dataset.topicIndex);
+          document.querySelectorAll(".training-admin-section.drag-over").forEach(function (item) {
+            item.classList.remove("drag-over");
+          });
+          if (dropIndex === draggedTopicIndex || dropIndex < 0 || dropIndex >= TOPICS.length) return;
+          var moved = TOPICS.splice(draggedTopicIndex, 1)[0];
+          TOPICS.splice(dropIndex, 0, moved);
+          activeTopicIndex = dropIndex;
+          adminStatusMessage = "Section order updated. Remember to save.";
+          adminStatusIsError = false;
+          draggedTopicIndex = null;
+          render();
+        });
+        document.addEventListener("click", async function (event) {
+          var actionEl = event.target && event.target.closest ? event.target.closest("[data-admin-action]") : null;
+          var action = actionEl && actionEl.dataset ? actionEl.dataset.adminAction : "";
+          if (!action) return;
+          if (action === "toggle-preview") {
+            adminPreviewMode = !adminPreviewMode;
+            render();
+          }
+          if (action === "add-topic") {
+            adminStatusMessage = "";
+            adminPreviewMode = false;
+            TOPICS.push({ id: makeId("T", 10), title: "New Training Section", youtubeId: "", quiz: [defaultQuestion()] });
+            activeTopicIndex = TOPICS.length - 1;
+            render();
+          }
+          if (action === "select-topic") {
+            activeTopicIndex = Number(actionEl.dataset.topicIndex);
+            render();
+          }
+          if (action === "delete-topic") {
+            var deleteIndex = Number(actionEl.dataset.topicIndex);
+            var deleteTopic = TOPICS[deleteIndex];
+            if (!deleteTopic) return;
+            var confirmed = window.confirm('Delete "' + (deleteTopic.title || "this section") + '"? This also removes quiz questions and agent progress for this section.');
+            if (!confirmed) return;
+            try {
+              adminSaveBusy = true;
+              adminStatusMessage = "";
+              adminStatusIsError = false;
+              renderTrainingAdmin();
+              await apiDelete("/training/topics/" + encodeURIComponent(deleteTopic.id));
+              TOPICS.splice(deleteIndex, 1);
+              activeTopicIndex = Math.max(0, Math.min(deleteIndex, TOPICS.length - 1));
+              adminStatusMessage = "Section deleted.";
+              adminStatusIsError = false;
+              render();
+            } catch (error) {
+              if (error && String(error.message || "").indexOf("404") !== -1) {
+                TOPICS.splice(deleteIndex, 1);
+                activeTopicIndex = Math.max(0, Math.min(deleteIndex, TOPICS.length - 1));
+                adminStatusMessage = "Unsaved section removed.";
+                adminStatusIsError = false;
+                render();
+              } else {
+                adminStatusMessage = "Could not delete section. Please check the API and try again.";
+                adminStatusIsError = true;
+                renderTrainingAdmin();
+              }
+            } finally {
+              adminSaveBusy = false;
+              renderTrainingAdmin();
+            }
+          }
+          if (action === "add-question") {
+            var topic = TOPICS[Number(actionEl.dataset.topicIndex)];
+            if (topic) {
+              adminStatusMessage = "";
+              if (!Array.isArray(topic.quiz)) topic.quiz = [];
+              topic.quiz.push(defaultQuestion());
+              renderTrainingAdmin();
+            }
+          }
+          if (action === "add-option") {
+            var t = TOPICS[Number(actionEl.dataset.topicIndex)];
+            var q = t && (t.quiz || [])[Number(actionEl.dataset.questionIndex)];
+            if (q) {
+              adminStatusMessage = "";
+              q.options.push({ id: makeId("O", 20), label: "", correct: false });
+              renderTrainingAdmin();
+            }
+          }
+          if (action === "save") {
+            try {
+              adminSaveBusy = true;
+              adminStatusMessage = "";
+              adminStatusIsError = false;
+              renderTrainingAdmin();
+              TOPICS = TOPICS.map(normalizeTopicForSave);
+              await apiPut("/training/topics", { topics: TOPICS });
+              adminStatusMessage = "Training saved.";
+              adminStatusIsError = false;
+              render();
+            } catch (error) {
+              adminStatusMessage = "Could not save training. Please check the API and try again.";
+              adminStatusIsError = true;
+            } finally {
+              adminSaveBusy = false;
+              renderTrainingAdmin();
+            }
+          }
+        });
+      }
+
       function esc(value) {
         var node = document.createElement("div");
         node.textContent = String(value || "");
@@ -273,9 +604,11 @@
       }
 
       function render() {
+        if (activeTopicIndex >= TOPICS.length) activeTopicIndex = Math.max(0, TOPICS.length - 1);
         renderLearningPath();
         renderTopicView();
         renderQuiz();
+        renderTrainingAdmin();
         renderProgress();
       }
 
@@ -330,5 +663,6 @@
           }));
         } catch (e) { console.warn("Failed to load managed training progress:", e); }
       }
+      wireTrainingAdmin();
       render();
     })();
