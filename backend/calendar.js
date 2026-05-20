@@ -95,6 +95,11 @@ let _hoverTimer = null;
 let _calendarLeads = null;
 let _calendarLeadsFetchPromise = null;
 
+// Team-member calendar view (district/admin only).
+let _teamMemberEvents  = [];   // personal events of the currently selected team member
+let _viewingAgentId    = "";   // userId of the agent being viewed ("" = own calendar)
+let _viewingAgentName  = "";
+
 async function _ensureCalendarLeads() {
   if (_calendarLeads !== null) return _calendarLeads;
   // Use the globally loaded leadData if it is already populated
@@ -336,12 +341,13 @@ function addPersonalTask(payload) {
 }
 
 function addPersonalEvent(payload) {
-  const { date, title, startTime = '', endTime = '', location = '', notes = '', taskTitle = '', taskId = '', type = 'Appointment', recurrenceId = '', leadId = '', leadName = '' } = payload;
+  const { date, title, startTime = '', endTime = '', location = '', notes = '', taskTitle = '', taskId = '', type = 'Appointment', recurrenceId = '', leadId = '', leadName = '', reminder = 'none' } = payload;
   const ev = {
     id:       `personal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     date,
     title, startTime, endTime, location, notes, taskTitle, taskId, type,
     category: 'personal',
+    reminder,
     ...(leadId      ? { leadId }      : {}),
     ...(leadName    ? { leadName }    : {}),
     ...(recurrenceId ? { recurrenceId } : {}),
@@ -530,6 +536,16 @@ function isValidSameDayTimeRange(startTime, endTime) {
   return endTime > startTime;
 }
 
+function hasTimeConflict(events) {
+  const timed = events.filter(e => e.startTime && e.endTime && e.category !== 'holiday');
+  for (let i = 0; i < timed.length; i++) {
+    for (let j = i + 1; j < timed.length; j++) {
+      if (timed[i].startTime < timed[j].endTime && timed[j].startTime < timed[i].endTime) return true;
+    }
+  }
+  return false;
+}
+
 function getPublicHolidayEvents(year) {
   const holidays = _getSGHolidaysCached(year) || (year === 2026 ? _sgHolidays2026Fallback : []);
   return holidays.map((h) => ({
@@ -572,10 +588,18 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
 
   const holidayEvents = getPublicHolidayEvents(options.year || new Date().getFullYear());
 
+  const teamEvents = _teamMemberEvents.map(event => ({
+    ...event,
+    category: "team",
+    editable:  false,
+    agentName: _viewingAgentName,
+  }));
+
   const events = [];
   if (options.showPersonal) events.push(...personalLeads, ...personalCustomEvents);
   if (options.showAgency)   events.push(...agencyMeetups);
   if (options.showHolidays !== false) events.push(...holidayEvents);
+  if (teamEvents.length)    events.push(...teamEvents);
   return events;
 }
 
@@ -675,17 +699,23 @@ function renderCalendar(currentDate, role, viewOptions) {
     const visibleEvs  = dailyEvents.slice(0, MAX_SHOW);
     const extraCount  = dailyEvents.length - MAX_SHOW;
 
+    const hasConflict = hasTimeConflict(dailyEvents);
     const eventTags = hasEvents
       ? visibleEvs.map((ev) => {
           const label     = ev.title.length > 22 ? ev.title.slice(0, 21) + "…" : ev.title;
           const typeClass = ev.category === "agency" ? `agency-${(ev.type || "event").toLowerCase()}` : "";
-          return `<small class="event-tag ${ev.category} ${typeClass}" data-event-id="${ev.id || ""}" data-event-editable="${ev.editable ? "true" : "false"}" title="${ev.title.replace(/"/g, "&quot;")}">${label}</small>`;
+          const draggable = ev.editable && ev.category !== "holiday" ? ' draggable="true"' : "";
+          return `<small class="event-tag ${ev.category} ${typeClass}"${draggable} data-event-id="${ev.id || ""}" data-event-editable="${ev.editable ? "true" : "false"}" title="${ev.title.replace(/"/g, "&quot;")}">${label}</small>`;
         }).join("") + (extraCount > 0 ? `<small class="event-tag more">+${extraCount} more</small>` : "")
       : "";
 
+    const conflictStyle = hasConflict
+      ? ' style="outline:2px solid #fca5a5;outline-offset:-2px;position:relative;" title="Scheduling conflict on this day"'
+      : ' style="position:relative;"';
     html += `
-      <div class="cal-cell ${hasEvents ? "has-event" : ""} ${isToday ? "is-today" : ""} cal-cell-clickable" data-date="${dateString}" role="button" tabindex="0" aria-label="Open events for ${dateString}">
+      <div class="cal-cell ${hasEvents ? "has-event" : ""} ${isToday ? "is-today" : ""} ${hasConflict ? "has-conflict" : ""} cal-cell-clickable" data-date="${dateString}" role="button" tabindex="0" aria-label="Open events for ${dateString}"${conflictStyle}>
         <span class="pill ${hasEvents ? "highlight" : ""}">${day}</span>
+        ${hasConflict ? `<span style="position:absolute;top:3px;right:4px;font-size:0.65rem;color:#dc2626;" title="Time conflict">⚠</span>` : ""}
         ${eventTags}
       </div>
     `;
@@ -695,9 +725,422 @@ function renderCalendar(currentDate, role, viewOptions) {
   // Planner sidebar renders #todo-reminder-list itself via renderReminders()
 }
 
+// ── Drag-and-drop rescheduling ────────────────────────────────────────────────
+
+let _dragEvId = null;
+
+function wireCalendarDragDrop(state) {
+  document.querySelectorAll('.event-tag[draggable="true"]').forEach(tag => {
+    tag.addEventListener('dragstart', (e) => {
+      _dragEvId = tag.dataset.eventId;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dragEvId);
+      tag.style.opacity = '0.5';
+    });
+    tag.addEventListener('dragend', () => { tag.style.opacity = ''; });
+  });
+
+  document.querySelectorAll('.cal-cell-clickable[data-date]').forEach(cell => {
+    cell.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.style.background = 'var(--brand-light,#fdf2f3)';
+    });
+    cell.addEventListener('dragleave', (e) => {
+      if (!cell.contains(e.relatedTarget)) cell.style.background = '';
+    });
+    cell.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      cell.style.background = '';
+      const evId = e.dataTransfer.getData('text/plain') || _dragEvId;
+      _dragEvId = null;
+      if (!evId) return;
+      const newDate = cell.dataset.date;
+      const role = localStorage.getItem('calendarRole') || 'agent';
+      const ev = getCalendarEventsForView(role, { showPersonal: true, showAgency: true, showHolidays: false, canManageAgency: state.canManageAgency })
+        .find(x => x.id === evId);
+      if (!ev || ev.date === newDate || !ev.editable) return;
+      try {
+        if (ev.category === 'personal') {
+          await updatePersonalEvent(ev.id, { ...ev, date: newDate });
+        } else if (ev.category === 'agency' && state.canManageAgency) {
+          await apiPut('/events/' + ev.id, { title: ev.title, event_date: newDate, start_time: ev.startTime || null, end_time: ev.endTime || null });
+          saveAgencyEvents(getAgencyEvents().map(a => a.id === ev.id ? { ...a, date: newDate } : a));
+        }
+        if (_calendarRefresh) _calendarRefresh();
+        const label = new Date(newDate + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+        showCalendarToast('Event moved to ' + label);
+      } catch (err) {
+        showCalendarToast('Could not move event.');
+        console.error('Drag-drop move failed:', err);
+      }
+    });
+  });
+}
+
+// ── Week view ─────────────────────────────────────────────────────────────────
+
+function renderWeekView(currentDate, role, viewOptions) {
+  const grid = document.getElementById('calendar-grid');
+  const monthLabel = document.getElementById('calendar-month-label');
+  if (!grid || !monthLabel) return;
+
+  grid.className = 'cal-week-grid';
+  grid.style.display = 'block';
+
+  const d = new Date(currentDate);
+  const weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - d.getDay());
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  monthLabel.textContent = `${weekStart.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+  const year = weekStart.getFullYear();
+  const events = getLeadEvents(role, { ...viewOptions, year });
+  const today = new Date().toISOString().slice(0, 10);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 07:00–21:00
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d2 = new Date(weekStart);
+    d2.setDate(weekStart.getDate() + i);
+    return d2.toISOString().slice(0, 10);
+  });
+
+  const eventMap = new Map();
+  events.forEach(ev => {
+    if (!eventMap.has(ev.date)) eventMap.set(ev.date, []);
+    eventMap.get(ev.date).push(ev);
+  });
+
+  let html = `<div style="overflow-x:auto;overflow-y:auto;max-height:72vh;border:1px solid var(--border,#e5e7eb);border-radius:8px;">
+  <table style="width:100%;border-collapse:collapse;min-width:520px;table-layout:fixed;">
+    <colgroup><col style="width:3.5rem"/>${weekDates.map(() => '<col/>').join('')}</colgroup>
+    <thead>
+      <tr>
+        <th style="padding:0.4rem;border-bottom:2px solid var(--border,#e5e7eb);position:sticky;top:0;background:#fff;z-index:3;"></th>`;
+
+  weekDates.forEach((date, i) => {
+    const isToday = date === today;
+    const dayNum = new Date(date + 'T00:00:00').getDate();
+    html += `<th data-date="${date}" style="padding:0.4rem;text-align:center;border-bottom:2px solid var(--border,#e5e7eb);border-left:1px solid var(--border,#e5e7eb);font-size:0.82rem;background:${isToday ? '#eff6ff' : '#fff'};position:sticky;top:0;z-index:3;">
+      <div style="font-size:0.68rem;color:var(--text-muted,#6b7280);text-transform:uppercase;">${dayNames[i]}</div>
+      <div style="font-weight:700;font-size:0.95rem;${isToday ? 'color:var(--brand,#a6192e);' : ''}">${dayNum}</div>
+    </th>`;
+  });
+  html += `</tr>`;
+
+  // All-day row
+  const hasAllDay = weekDates.some(date => (eventMap.get(date) || []).some(ev => !ev.startTime));
+  if (hasAllDay) {
+    html += `<tr><td style="padding:0.25rem 0.3rem;font-size:0.68rem;color:var(--text-muted,#6b7280);text-align:right;vertical-align:top;border-top:1px solid var(--border,#e5e7eb);position:sticky;top:0;background:#fff;z-index:2;">All day</td>`;
+    weekDates.forEach(date => {
+      const dayEvs = (eventMap.get(date) || []).filter(ev => !ev.startTime);
+      html += `<td data-date="${date}" class="cal-cell-clickable" style="border-left:1px solid var(--border,#e5e7eb);border-top:1px solid var(--border,#e5e7eb);padding:0.2rem;vertical-align:top;min-height:1.5rem;">`;
+      dayEvs.slice(0, 2).forEach(ev => {
+        const catCls = ev.category === 'agency' ? `agency-${(ev.type || 'event').toLowerCase()}` : ev.category;
+        const draggable = ev.editable && ev.category !== 'holiday' ? ' draggable="true"' : '';
+        html += `<small class="event-tag ${catCls}"${draggable} data-event-id="${ev.id}" title="${(ev.title || '').replace(/"/g, '&quot;')}" style="display:block;margin-bottom:1px;font-size:0.7rem;">${ev.title.length > 16 ? ev.title.slice(0, 15) + '…' : ev.title}</small>`;
+      });
+      html += `</td>`;
+    });
+    html += `</tr></thead>`;
+  } else {
+    html += `</thead>`;
+  }
+
+  html += `<tbody>`;
+  hours.forEach(h => {
+    const timeLabel = `${String(h).padStart(2, '0')}:00`;
+    html += `<tr style="height:2.8rem;">
+      <td style="padding:0.15rem 0.35rem;font-size:0.68rem;color:var(--text-muted,#6b7280);text-align:right;vertical-align:top;border-top:1px solid var(--border,#e5e7eb);white-space:nowrap;">${timeLabel}</td>`;
+    weekDates.forEach(date => {
+      const isToday = date === today;
+      const slotEvs = (eventMap.get(date) || []).filter(ev => {
+        if (!ev.startTime) return false;
+        return parseInt(ev.startTime.split(':')[0], 10) === h;
+      });
+      html += `<td data-date="${date}" class="cal-cell-clickable" style="border-left:1px solid var(--border,#e5e7eb);border-top:1px solid var(--border,#e5e7eb);padding:0.1rem;vertical-align:top;${isToday ? 'background:#fafbff;' : ''}">`;
+      slotEvs.forEach(ev => {
+        const catCls = ev.category === 'agency' ? `agency-${(ev.type || 'event').toLowerCase()}` : ev.category;
+        const draggable = ev.editable && ev.category !== 'holiday' ? ' draggable="true"' : '';
+        html += `<small class="event-tag ${catCls}"${draggable} data-event-id="${ev.id}" title="${(ev.title || '').replace(/"/g, '&quot;')}" style="display:block;margin-bottom:1px;font-size:0.7rem;"><strong>${ev.startTime}${ev.endTime ? '–' + ev.endTime : ''}</strong> ${ev.title.length > 12 ? ev.title.slice(0, 11) + '…' : ev.title}</small>`;
+      });
+      html += `</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+  grid.innerHTML = html;
+}
+
+// ── Day view ──────────────────────────────────────────────────────────────────
+
+function renderDayView(currentDate, role, viewOptions) {
+  const grid = document.getElementById('calendar-grid');
+  const monthLabel = document.getElementById('calendar-month-label');
+  if (!grid || !monthLabel) return;
+
+  grid.className = 'cal-day-grid';
+  grid.style.display = 'block';
+
+  const dateStr = currentDate.toISOString().slice(0, 10);
+  const today   = new Date().toISOString().slice(0, 10);
+  monthLabel.textContent = currentDate.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const year   = currentDate.getFullYear();
+  const events = getLeadEvents(role, { ...viewOptions, year });
+  const dayEvs = events.filter(ev => ev.date === dateStr);
+  const allDay = dayEvs.filter(ev => !ev.startTime);
+  const timed  = dayEvs.filter(ev => ev.startTime);
+  const hours  = Array.from({ length: 15 }, (_, i) => i + 7);
+
+  let html = `<div style="overflow-y:auto;max-height:72vh;border:1px solid var(--border,#e5e7eb);border-radius:8px;">`;
+
+  if (allDay.length) {
+    html += `<div style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--border,#e5e7eb);background:#f9fafb;display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:0.72rem;color:var(--text-muted,#6b7280);margin-right:0.25rem;">All day</span>`;
+    allDay.forEach(ev => {
+      const catCls = ev.category === 'agency' ? `agency-${(ev.type || 'event').toLowerCase()}` : ev.category;
+      html += `<small class="event-tag ${catCls}" data-event-id="${ev.id}" title="${(ev.title || '').replace(/"/g, '&quot;')}">${ev.title}</small>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<table style="width:100%;border-collapse:collapse;">`;
+  hours.forEach(h => {
+    const timeLabel = `${String(h).padStart(2, '0')}:00`;
+    const slotEvs = timed.filter(ev => parseInt(ev.startTime.split(':')[0], 10) === h);
+    const isNow   = new Date().getHours() === h && dateStr === today;
+    html += `<tr style="min-height:3rem;${isNow ? 'background:#fffbeb;' : ''}">
+      <td style="width:4rem;padding:0.25rem 0.5rem;font-size:0.75rem;color:var(--text-muted,#6b7280);text-align:right;vertical-align:top;border-top:1px solid var(--border,#e5e7eb);white-space:nowrap;">${timeLabel}</td>
+      <td data-date="${dateStr}" class="cal-cell-clickable" style="border-top:1px solid var(--border,#e5e7eb);padding:0.2rem 0.4rem;vertical-align:top;">`;
+    slotEvs.forEach(ev => {
+      const catCls = ev.category === 'agency' ? `agency-${(ev.type || 'event').toLowerCase()}` : ev.category;
+      const draggable = ev.editable && ev.category !== 'holiday' ? ' draggable="true"' : '';
+      html += `<div class="event-tag ${catCls}"${draggable} data-event-id="${ev.id}" style="padding:0.3rem 0.6rem;border-radius:6px;margin-bottom:3px;cursor:pointer;display:flex;gap:0.4rem;align-items:baseline;">
+        <strong style="font-size:0.78rem;white-space:nowrap;">${ev.startTime}${ev.endTime ? ' – ' + ev.endTime : ''}</strong>
+        <span style="font-size:0.88rem;">${ev.title}</span>
+        ${ev.location ? `<span style="font-size:0.75rem;opacity:0.75;margin-left:auto;">📍 ${ev.location}</span>` : ''}
+      </div>`;
+    });
+    if (!slotEvs.length) html += `&nbsp;`;
+    html += `</td></tr>`;
+  });
+  html += `</table></div>`;
+  grid.innerHTML = html;
+}
+
+// ── Agenda view ───────────────────────────────────────────────────────────────
+
+function renderAgendaView(currentDate, role, viewOptions) {
+  const grid = document.getElementById('calendar-grid');
+  const monthLabel = document.getElementById('calendar-month-label');
+  if (!grid || !monthLabel) return;
+
+  grid.className = 'cal-agenda-grid';
+  grid.style.display = 'block';
+  monthLabel.textContent = 'Agenda';
+
+  const year   = currentDate.getFullYear();
+  const today  = new Date().toISOString().slice(0, 10);
+  const events = getLeadEvents(role, { ...viewOptions, year })
+    .filter(ev => ev.date >= today)
+    .sort((a, b) => {
+      const dd = a.date.localeCompare(b.date);
+      return dd !== 0 ? dd : (a.startTime || '').localeCompare(b.startTime || '');
+    });
+
+  if (!events.length) {
+    grid.innerHTML = `<p style="padding:2rem;text-align:center;color:var(--text-muted,#6b7280);">No upcoming events</p>`;
+    return;
+  }
+
+  const grouped = new Map();
+  events.forEach(ev => {
+    if (!grouped.has(ev.date)) grouped.set(ev.date, []);
+    grouped.get(ev.date).push(ev);
+  });
+
+  const dotColor = (cat, type) => {
+    if (cat === 'holiday') return '#16a34a';
+    if (type === 'Training') return '#7c3aed';
+    if (type === 'Meeting')  return '#0f766e';
+    return cat === 'personal' ? '#1d4ed8' : '#c2410c';
+  };
+
+  let html = `<div style="border:1px solid var(--border,#e5e7eb);border-radius:8px;overflow:hidden;max-height:72vh;overflow-y:auto;">`;
+  grouped.forEach((dayEvs, date) => {
+    const isToday   = date === today;
+    const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    html += `<div style="padding:0.45rem 0.75rem;background:${isToday ? '#eff6ff' : '#f9fafb'};border-bottom:1px solid var(--border,#e5e7eb);font-weight:700;font-size:0.82rem;color:${isToday ? 'var(--brand,#a6192e)' : 'var(--text)'};position:sticky;top:0;z-index:1;">${isToday ? 'Today · ' : ''}${dateLabel}</div>`;
+    dayEvs.forEach(ev => {
+      const timeStr = ev.startTime ? `${ev.startTime}${ev.endTime ? ' – ' + ev.endTime : ''}` : 'All day';
+      const color   = dotColor(ev.category, ev.type);
+      html += `<div class="cal-cell-clickable" data-date="${date}" data-event-id="${ev.id}" style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0.75rem;border-bottom:1px solid var(--border,#e5e7eb);cursor:pointer;" onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background=''">
+        <div style="min-width:5rem;font-size:0.78rem;color:var(--text-muted,#6b7280);padding-top:0.15rem;">${timeStr}</div>
+        <div style="width:3px;min-height:1.4rem;background:${color};border-radius:2px;margin-top:0.25rem;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.88rem;">${ev.title}</div>
+          ${ev.location ? `<div style="font-size:0.78rem;color:var(--text-muted,#6b7280);">📍 ${ev.location}</div>` : ''}
+          ${ev.leadName ? `<div style="font-size:0.78rem;color:var(--text-muted,#6b7280);">👤 ${ev.leadName}</div>` : ''}
+        </div>
+        <span style="font-size:0.7rem;color:var(--text-muted,#6b7280);padding-top:0.2rem;white-space:nowrap;">${ev.type || ''}</span>
+      </div>`;
+    });
+  });
+  html += `</div>`;
+  grid.innerHTML = html;
+}
+
+// ── iCal export ───────────────────────────────────────────────────────────────
+
+function exportToIcs() {
+  const role  = localStorage.getItem('calendarRole') || 'agent';
+  const events = getCalendarEventsForView(role, { showPersonal: true, showAgency: true, showHolidays: false, canManageAgency: true });
+  const esc  = s => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const fmtDt = (date, time) => {
+    const [y, mo, d] = date.split('-');
+    if (time) { const [h, mi] = time.split(':'); return `${y}${mo}${d}T${h}${mi}00`; }
+    return `${y}${mo}${d}`;
+  };
+  const stamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Financial Agent Dashboard//Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  events.forEach(ev => {
+    if (!ev.date) return;
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${ev.id || Date.now()}@aia-dashboard`);
+    lines.push(`DTSTAMP:${stamp}`);
+    if (ev.startTime) {
+      lines.push(`DTSTART:${fmtDt(ev.date, ev.startTime)}`);
+      lines.push(`DTEND:${fmtDt(ev.date, ev.endTime || ev.startTime)}`);
+    } else {
+      const next = new Date(ev.date + 'T00:00:00'); next.setDate(next.getDate() + 1);
+      lines.push(`DTSTART;VALUE=DATE:${ev.date.replace(/-/g, '')}`);
+      lines.push(`DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`);
+    }
+    lines.push(`SUMMARY:${esc(ev.title)}`);
+    if (ev.location) lines.push(`LOCATION:${esc(ev.location)}`);
+    const desc = [ev.notes, ev.leadName ? 'Lead: ' + ev.leadName : ''].filter(Boolean).join('\\n');
+    if (desc) lines.push(`DESCRIPTION:${esc(desc)}`);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'calendar-export.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showCalendarToast('Calendar exported as .ics');
+}
+
+// ── Reminder scheduler ────────────────────────────────────────────────────────
+
+function scheduleEventReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now   = Date.now();
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(now + 86400000).toISOString().slice(0, 10);
+  const role  = localStorage.getItem('calendarRole') || 'agent';
+  const events = getCalendarEventsForView(role, { showPersonal: true, showAgency: true })
+    .filter(ev => ev.reminder && ev.reminder !== 'none' && (ev.date === today || ev.date === tomorrow));
+
+  events.forEach(ev => {
+    let remindAt;
+    if (ev.startTime) {
+      const [h, m] = ev.startTime.split(':').map(Number);
+      const evMs = new Date(ev.date + 'T00:00:00').setHours(h, m, 0, 0);
+      if (ev.reminder === '15min') remindAt = evMs - 15 * 60 * 1000;
+      else if (ev.reminder === '1hr')  remindAt = evMs - 60 * 60 * 1000;
+      else if (ev.reminder === '1day') remindAt = evMs - 24 * 60 * 60 * 1000;
+      else if (ev.reminder === 'onday') remindAt = new Date(ev.date + 'T08:00:00').getTime();
+    } else if (ev.reminder === 'onday' || ev.reminder === '1day') {
+      remindAt = new Date(ev.date + 'T08:00:00').getTime();
+    }
+    if (!remindAt) return;
+    const delay = remindAt - now;
+    if (delay > 0 && delay < 25 * 3600 * 1000) {
+      setTimeout(() => {
+        try {
+          new Notification('Reminder: ' + ev.title, {
+            body: new Date(ev.date + 'T00:00:00').toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' }) + (ev.startTime ? ' at ' + ev.startTime : ''),
+          });
+        } catch (_) {}
+      }, delay);
+    }
+  });
+}
+
 // ── Calendar page wiring ──────────────────────────────────────────────────────
 
 let _calendarRefresh = null;
+
+async function _wireAgentSelector(refreshCalendar) {
+  const bar    = document.getElementById("calendar-agent-bar");
+  const select = document.getElementById("calendar-agent-select");
+  const legend = document.getElementById("calendar-team-legend");
+  if (!bar || !select) return;
+
+  // Fetch team members from /performance
+  let agents = [];
+  try {
+    const rows = await apiGet("/performance");
+    const myId = sessionStorage.getItem("dashboardUser") || "";
+    agents = (Array.isArray(rows) ? rows : [])
+      .filter(r => r.agent_id && String(r.agent_id) !== String(myId))
+      .map(r => ({ id: String(r.agent_id), name: r.full_name || r.agent_id }));
+    // Deduplicate by id
+    const seen = new Set();
+    agents = agents.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+  } catch (e) {
+    console.warn("Calendar: could not fetch team members", e);
+  }
+
+  if (!agents.length) return; // no team members → don't show the bar
+
+  // Populate dropdown
+  agents.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a.id;
+    opt.textContent = a.name;
+    select.appendChild(opt);
+  });
+  bar.style.display = "flex";
+
+  select.addEventListener("change", async () => {
+    const agentId = select.value;
+    if (!agentId) {
+      // Revert to own calendar
+      _teamMemberEvents = [];
+      _viewingAgentId   = "";
+      _viewingAgentName = "";
+      if (legend) legend.style.display = "none";
+      if (refreshCalendar) refreshCalendar();
+      return;
+    }
+
+    const agent = agents.find(a => a.id === agentId);
+    _viewingAgentId   = agentId;
+    _viewingAgentName = agent ? agent.name : agentId;
+
+    try {
+      const rows = await apiGet("/events?userId=" + encodeURIComponent(agentId));
+      _teamMemberEvents = (Array.isArray(rows) ? rows : [])
+        .map(mapCalendarEvent)
+        .filter(e => e.id && e.date && (e.category === "personal" || e.category === "calendar"));
+    } catch (e) {
+      console.warn("Calendar: could not load team member events", e);
+      _teamMemberEvents = [];
+    }
+
+    if (legend) legend.style.display = "inline-flex";
+    if (refreshCalendar) refreshCalendar();
+  });
+}
 
 function wireCalendarPage() {
   const prevBtn           = document.getElementById("prev-month-btn");
@@ -715,6 +1158,7 @@ function wireCalendarPage() {
     viewDate: new Date(_now.getFullYear(), _now.getMonth(), 1),
     showPersonal: true, showAgency: true, showHolidays: true,
     selectedDate: null, canManageAgency,
+    view: 'month',
   };
 
   const update = () => {
@@ -724,8 +1168,19 @@ function wireCalendarPage() {
         if (state.viewDate.getFullYear() === viewYear) update();
       });
     }
-    renderCalendar(state.viewDate, role, state);
+    const grid = document.getElementById('calendar-grid');
+    if (grid) {
+      if (state.view === 'month') {
+        grid.className = 'cal-grid';
+        grid.style.display = '';
+      }
+    }
+    if      (state.view === 'week')   renderWeekView(state.viewDate, role, state);
+    else if (state.view === 'day')    renderDayView(state.viewDate, role, state);
+    else if (state.view === 'agenda') renderAgendaView(state.viewDate, role, state);
+    else                              renderCalendar(state.viewDate, role, state);
     wireCalendarDateClicks(state);
+    if (state.view === 'month') wireCalendarDragDrop(state);
   };
 
   _calendarRefresh = update;
@@ -744,23 +1199,75 @@ function wireCalendarPage() {
   agencyCheckbox.addEventListener("change", syncViewToggles);
   if (holidaysCheckbox) holidaysCheckbox.addEventListener("change", syncViewToggles);
 
-  prevBtn.addEventListener("click", () => { state.viewDate.setMonth(state.viewDate.getMonth() - 1); update(); });
-  nextBtn.addEventListener("click", () => { state.viewDate.setMonth(state.viewDate.getMonth() + 1); update(); });
+  prevBtn.addEventListener("click", () => {
+    if (state.view === 'week') state.viewDate.setDate(state.viewDate.getDate() - 7);
+    else if (state.view === 'day') state.viewDate.setDate(state.viewDate.getDate() - 1);
+    else state.viewDate.setMonth(state.viewDate.getMonth() - 1);
+    update();
+  });
+  nextBtn.addEventListener("click", () => {
+    if (state.view === 'week') state.viewDate.setDate(state.viewDate.getDate() + 7);
+    else if (state.view === 'day') state.viewDate.setDate(state.viewDate.getDate() + 1);
+    else state.viewDate.setMonth(state.viewDate.getMonth() + 1);
+    update();
+  });
 
   const todayBtn = document.getElementById("today-btn");
   if (todayBtn) {
     todayBtn.addEventListener("click", () => {
       const now = new Date();
-      state.viewDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      state.viewDate = (state.view === 'month')
+        ? new Date(now.getFullYear(), now.getMonth(), 1)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
       update();
     });
   }
 
   document.addEventListener("keydown", (e) => {
     if (document.activeElement && document.activeElement.closest(".cal-cell-clickable")) return;
-    if (e.altKey && e.key === "ArrowLeft")  { state.viewDate.setMonth(state.viewDate.getMonth() - 1); update(); }
-    if (e.altKey && e.key === "ArrowRight") { state.viewDate.setMonth(state.viewDate.getMonth() + 1); update(); }
+    if (e.altKey && e.key === "ArrowLeft") {
+      if (state.view === 'week') state.viewDate.setDate(state.viewDate.getDate() - 7);
+      else if (state.view === 'day') state.viewDate.setDate(state.viewDate.getDate() - 1);
+      else state.viewDate.setMonth(state.viewDate.getMonth() - 1);
+      update();
+    }
+    if (e.altKey && e.key === "ArrowRight") {
+      if (state.view === 'week') state.viewDate.setDate(state.viewDate.getDate() + 7);
+      else if (state.view === 'day') state.viewDate.setDate(state.viewDate.getDate() + 1);
+      else state.viewDate.setMonth(state.viewDate.getMonth() + 1);
+      update();
+    }
   });
+
+  // View toggle buttons
+  document.querySelectorAll('.cal-view-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.view = btn.dataset.view;
+      document.querySelectorAll('.cal-view-btn[data-view]').forEach(b => {
+        b.style.background = b === btn ? 'var(--brand,#a6192e)' : '#fff';
+        b.style.color      = b === btn ? '#fff' : '';
+        b.style.borderColor = b === btn ? 'var(--brand,#a6192e)' : '';
+      });
+      // When switching to day view, snap viewDate to today if on month/first
+      if (state.view === 'day') {
+        const now = new Date();
+        const d   = state.viewDate;
+        if (d.getDate() === 1 && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+          state.viewDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        }
+      }
+      update();
+    });
+  });
+
+  // Export .ics button
+  const exportBtn = document.getElementById('cal-export-ics-btn');
+  if (exportBtn) exportBtn.addEventListener('click', exportToIcs);
+
+  // District / admin: populate the agent selector and wire it
+  if (userRole === "district" || userRole === "admin") {
+    _wireAgentSelector(update);
+  }
 
   wirePersonalEventDialog(state, update);
   wireCalendarEventDialog();
@@ -778,6 +1285,7 @@ function wireCalendarPage() {
     .then(() => {
       update();
       showTodayRemindersOnce(state);
+      scheduleEventReminders();
     })
     .catch((err) => {
       console.warn("Calendar: could not load events from DB", err);
@@ -964,6 +1472,14 @@ function wireCalendarDateClicks(state) {
     });
 
     cell.addEventListener("click", (e) => {
+      // Agenda view: the cell itself is an event row with data-event-id
+      if (cell.dataset.eventId) {
+        e.stopPropagation();
+        const role2 = localStorage.getItem("calendarRole") || "agent";
+        const ev = getCalendarEventsForView(role2, state).find(x => x.id === cell.dataset.eventId);
+        if (ev) { closeDayPopup(); closeCalendarDetailPopup(); showCalendarDetailPopup(e, ev, state); }
+        return;
+      }
       const tag = e.target.closest(".event-tag[data-event-id]");
       if (tag && tag.dataset.eventId) {
         e.stopPropagation();
@@ -1557,6 +2073,9 @@ function openPersonalEventDialog(date, existingEvent = null, editSeries = false)
   if (timeErrEl) timeErrEl.style.display = "none";
   if (saveErrEl) saveErrEl.style.display = "none";
 
+  const reminderSelect = document.getElementById("personal-event-dialog-reminder");
+  if (reminderSelect) reminderSelect.value = isEdit ? (existingEvent.reminder || 'none') : 'none';
+
   dialog.showModal();
   titleInput.focus();
 }
@@ -1776,6 +2295,8 @@ function wirePersonalEventDialog(state, refreshCalendar) {
     const repeatUntil    = repeatEndInput ? repeatEndInput.value : "";
     const leadId    = leadIdInput   ? leadIdInput.value   : "";
     const leadName  = leadNameInput ? leadNameInput.value : "";
+    const reminderEl = document.getElementById("personal-event-dialog-reminder");
+    const reminder   = reminderEl ? reminderEl.value : "none";
 
     const timeErr = document.getElementById("personal-event-time-error");
     const saveErr = document.getElementById("personal-event-save-error");
@@ -1820,7 +2341,7 @@ function wirePersonalEventDialog(state, refreshCalendar) {
           await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type, leadId, leadName });
         }
       } else if (editId) {
-        await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type, leadId, leadName });
+        await updatePersonalEvent(editId, { date, title, startTime, endTime, location, notes, type, leadId, leadName, reminder });
       } else if (source === "agency") {
         if (recurrenceType !== "none" && repeatUntil) {
           const recurrenceId = `recur-${Date.now()}`;
@@ -1834,13 +2355,14 @@ function wirePersonalEventDialog(state, refreshCalendar) {
         const task = taskTitle
           ? addPersonalTask({ title: taskTitle, source: "calendar", dueDate: date, eventTitle: title })
           : null;
+        if (reminder !== 'none') requestNotificationPermission();
         if (recurrenceType !== "none" && repeatUntil) {
           const recurrenceId = `recur-${Date.now()}`;
           for (const d of generateRecurringDates(date, recurrenceType, repeatUntil)) {
-            addPersonalEvent({ date: d, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, recurrenceId, leadId, leadName });
+            addPersonalEvent({ date: d, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, recurrenceId, leadId, leadName, reminder });
           }
         } else {
-          addPersonalEvent({ date, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, leadId, leadName });
+          addPersonalEvent({ date, title, startTime, endTime, location, notes, taskTitle, taskId: task ? task.id : "", type, leadId, leadName, reminder });
         }
       }
       dialog.close();

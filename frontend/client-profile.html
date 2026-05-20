@@ -688,6 +688,7 @@
     .remarks-section {
       grid-column: span 2;
       margin-top: 0;
+      margin-bottom: 1.5rem;
     }
 
     @media (max-width: 768px) {
@@ -742,6 +743,250 @@
     .loading {
       text-align: center;
       padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Referral Network Tree ── */
+    .referrals-section {
+      grid-column: span 2;
+      margin-bottom: 1.5rem;
+    }
+
+    .rt-tree-wrap {
+      overflow-x: auto;
+      padding: 1rem 0.5rem;
+    }
+
+    .rt-tree {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100%;
+    }
+
+    .rt-level-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .rt-v-connector {
+      width: 2px;
+      height: 28px;
+      background: #c9c3b8;
+    }
+
+    .rt-siblings {
+      display: flex;
+      justify-content: center;
+    }
+
+    .rt-sib-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1.25rem;
+      position: relative;
+    }
+
+    .rt-sib-col::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #c9c3b8;
+    }
+
+    .rt-sib-col:first-child::before { left: 50%; }
+    .rt-sib-col:last-child::before  { right: 50%; }
+    .rt-sib-col:only-child::before  { display: none; }
+
+    .rt-sib-v {
+      width: 2px;
+      height: 28px;
+      background: #c9c3b8;
+      position: relative;
+      z-index: 1;
+    }
+
+    .rt-node {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      text-align: center;
+      min-width: 140px;
+      max-width: 172px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .rt-node-clickable {
+      cursor: pointer;
+    }
+
+    .rt-node-clickable:hover {
+      border-color: var(--brand);
+      box-shadow: 0 4px 16px rgba(166,25,46,0.12);
+    }
+
+    .rt-node-root {
+      border-color: var(--brand);
+      box-shadow: 0 4px 16px rgba(166,25,46,0.15);
+    }
+
+    .rt-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 auto 0.5rem;
+    }
+
+    .rt-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.18rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rt-occ {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.38rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rt-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      justify-content: center;
+    }
+
+    .rt-badge {
+      font-size: 0.63rem;
+      font-weight: 700;
+      padding: 0.12rem 0.42rem;
+      border-radius: 999px;
+    }
+
+    .rt-badge-count {
+      background: #f5e6d3;
+      color: #92400e;
+    }
+
+    .rt-empty {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      padding: 0.75rem 0;
+    }
+
+    /* Referral edit form */
+    .referral-mode-opts {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .referral-mode-opt {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.7rem 0.9rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .referral-mode-opt.rmo-selected {
+      border-color: var(--brand);
+      background: var(--brand-light);
+      color: var(--brand);
+    }
+
+    .referral-mode-opt input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--brand);
+      flex-shrink: 0;
+    }
+
+    .referral-edit-list {
+      display: grid;
+      gap: 0.42rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.2rem;
+      margin-top: 0.6rem;
+    }
+
+    .referral-edit-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .referral-edit-item:hover { background: #faf9f7; }
+
+    .referral-edit-item.rei-checked {
+      border-color: var(--brand);
+      background: var(--brand-light);
+    }
+
+    .referral-edit-item input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--brand);
+      flex-shrink: 0;
+    }
+
+    .ri-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .ri-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .ri-detail {
+      font-size: 0.72rem;
       color: var(--text-muted);
     }
   </style>

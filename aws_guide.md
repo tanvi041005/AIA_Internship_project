@@ -829,12 +829,89 @@ async function handleHelpdesk(method, event, conn) {
 }
 
 // ── Calendar Events ───────────────────────────────────────────────────────────
-async function handleCalendar(method, event, conn) {
+async function handleCalendarEvents(method, event, conn) {
+  const id = event.pathParameters?.id;
+
   if (method === 'GET') {
-    const [events] = await conn.execute('SELECT * FROM calendar_events ORDER BY event_date');
-    const [holidays] = await conn.execute('SELECT * FROM public_holidays ORDER BY holiday_date');
-    return ok({ events, holidays });
+    const userId = event.queryStringParameters?.userId;
+    let rows;
+    if (userId) {
+      [rows] = await conn.execute(
+        `SELECT * FROM calendar_events
+         WHERE created_by = ? OR category IN ('agency','holiday')
+         ORDER BY event_date`,
+        [userId]
+      );
+    } else {
+      [rows] = await conn.execute('SELECT * FROM calendar_events ORDER BY event_date');
+    }
+    return ok(rows);
   }
+
+  if (method === 'POST') {
+    const d = JSON.parse(event.body || '{}');
+    const eventId = 'ev-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    await conn.execute(
+      `INSERT INTO calendar_events
+         (event_id, title, event_date, start_time, end_time, location, event_type, category, notes, recurrence_id, linked_task_id, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [eventId, d.title, d.event_date, d.start_time || null, d.end_time || null,
+       d.location || null, d.event_type || null, d.category || 'personal',
+       d.notes || null, d.recurrence_id || null, d.linked_task_id || null,
+       d.created_by || null]
+    );
+    return created({ event_id: eventId, event_date: d.event_date });
+  }
+
+  if (method === 'PUT' && id) {
+    const d = JSON.parse(event.body || '{}');
+    await conn.execute(
+      `UPDATE calendar_events
+       SET title=?, event_date=?, start_time=?, end_time=?, location=?, event_type=?, notes=?
+       WHERE event_id=?`,
+      [d.title, d.event_date, d.start_time || null, d.end_time || null,
+       d.location || null, d.event_type || null, d.notes || null, id]
+    );
+    return ok({ event_id: id });
+  }
+
+  if (method === 'DELETE' && id) {
+    await conn.execute('DELETE FROM calendar_events WHERE event_id = ?', [id]);
+    return ok({ deleted: id });
+  }
+
+  return notFound();
+}
+
+// ── Calendar Tasks ─────────────────────────────────────────────────────────────
+async function handleCalendarTasks(method, event, conn) {
+  if (method === 'GET') {
+    const userId = event.queryStringParameters?.userId;
+    let rows;
+    if (userId) {
+      [rows] = await conn.execute(
+        'SELECT * FROM personal_tasks WHERE user_id = ? ORDER BY created_at DESC',
+        [userId]
+      );
+    } else {
+      [rows] = await conn.execute('SELECT * FROM personal_tasks ORDER BY created_at DESC');
+    }
+    return ok(rows);
+  }
+
+  if (method === 'POST') {
+    const d = JSON.parse(event.body || '{}');
+    const taskId = 'task-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    await conn.execute(
+      `INSERT INTO personal_tasks
+         (task_id, user_id, title, due_date, source, linked_event_title, is_done)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [taskId, d.user_id, d.title, d.due_date || null,
+       d.source || 'manual', d.linked_event_title || null, d.is_done ? 1 : 0]
+    );
+    return created({ task_id: taskId });
+  }
+
   return notFound();
 }
 
@@ -852,10 +929,11 @@ export const handler = async (event) => {
     if (path === '/leads')         return await handleLeads(method, event, conn);
     if (path === '/announcements') return await handleAnnouncements(method, event, conn);
     if (path === '/sales')         return await handleSales(method, event, conn);
-    if (path.startsWith('/room-bookings')) return await handleRoomBookings(method, event, conn);
+    if (path.startsWith('/bookings'))        return await handleRoomBookings(method, event, conn);
     if (path === '/training')      return await handleTraining(method, event, conn);
     if (path === '/helpdesk')      return await handleHelpdesk(method, event, conn);
-    if (path === '/calendar')      return await handleCalendar(method, event, conn);
+    if (path.startsWith('/calendar/events')) return await handleCalendarEvents(method, event, conn);
+    if (path.startsWith('/calendar/tasks'))  return await handleCalendarTasks(method, event, conn);
     return notFound();
   } finally {
     await conn.end();

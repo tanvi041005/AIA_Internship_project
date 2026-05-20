@@ -2,6 +2,18 @@
   const LEADS_STORAGE_KEY = "financial_leads_data";
   const AVATAR_COLORS = ["#a6192e", "#3b82f6", "#16a34a", "#f59e0b", "#8b5cf6", "#ec4899"];
 
+  const STAGE_COLORS = {
+    "Prospecting":    { bg: "#f3f4f6", text: "#6b7280" },
+    "Fact Find":      { bg: "#eff6ff", text: "#2563eb" },
+    "Fact-Find":      { bg: "#eff6ff", text: "#2563eb" },
+    "Needs Analysis": { bg: "#f5f3ff", text: "#7c3aed" },
+    "Proposal Sent":  { bg: "#fffbeb", text: "#d97706" },
+    "Proposal":       { bg: "#fffbeb", text: "#d97706" },
+    "Closing":        { bg: "#fee2e2", text: "#dc2626" },
+    "Onboarding":     { bg: "#dcfce7", text: "#16a34a" },
+    "Active":         { bg: "#dcfce7", text: "#16a34a" },
+  };
+
   function getLeads() {
     try {
       var stored = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY));
@@ -24,6 +36,99 @@
     input.addEventListener("input", () => {
       input.value = cleanContact(input.value);
     });
+  }
+
+  function buildLeadExtraPayload(lead) {
+    return {
+      specificPlanType:  lead.specificPlanType  || "",
+      generalPlanType:   lead.generalPlanType   || "",
+      commissionRate:    lead.commissionRate     || 0,
+      commissionAmount:  lead.commissionAmount   || 0,
+      cpfMA:             lead.cpfMA             || 0,
+      bankBalance:       lead.bankBalance        || 0,
+      generalExpense:    lead.generalExpense     || "",
+      surplus:           lead.surplus            || "",
+      existingPlans:     lead.existingPlans      || "",
+      existingPlansList: lead.existingPlansList  || [],
+      currency:          lead.currency           || "SGD",
+      sumAssured:        lead.sumAssured         || 0,
+      agency:            lead.agency             || "",
+      proposedPlans:     lead.proposedPlans      || [],
+      noReferrals:       !!lead.noReferrals,
+      referredByLeadId:  lead.referredByLeadId   || "",
+    };
+  }
+
+  function saveReferrals(currentLeadId, selectedIds, noReferrals) {
+    const leads = getLeads();
+    const toSync = [];
+
+    leads.forEach((l) => {
+      const prevRefId = normalizeId(l.referredByLeadId);
+      const prevNoRef = !!l.noReferrals;
+
+      if (normalizeId(l.id) === normalizeId(currentLeadId)) {
+        l.noReferrals = noReferrals;
+      } else if (noReferrals) {
+        if (normalizeId(l.referredByLeadId) === normalizeId(currentLeadId)) {
+          l.referredByLeadId = "";
+        }
+      } else {
+        if (selectedIds.has(normalizeId(l.id))) {
+          l.referredByLeadId = normalizeId(currentLeadId);
+        } else if (normalizeId(l.referredByLeadId) === normalizeId(currentLeadId)) {
+          l.referredByLeadId = "";
+        }
+      }
+
+      if (normalizeId(l.referredByLeadId) !== prevRefId || !!l.noReferrals !== prevNoRef) {
+        toSync.push(l);
+      }
+    });
+
+    saveLeads(leads);
+
+    if (typeof apiPut === "function") {
+      toSync.forEach((l) => {
+        apiPut(`/leads/${l.id}`, { extra: buildLeadExtraPayload(l) }).catch(() => {});
+      });
+    }
+  }
+
+  function buildReferralNode(lead, allLeads, isRoot, depth, maxDepth) {
+    const color = AVATAR_COLORS[(parseInt(lead.id) - 1) % AVATAR_COLORS.length] || AVATAR_COLORS[0];
+    const sc = STAGE_COLORS[lead.stage] || { bg: "#f3f4f6", text: "#6b7280" };
+    const children = depth < maxDepth
+      ? allLeads.filter((l) => normalizeId(l.referredByLeadId) === normalizeId(lead.id))
+      : [];
+
+    const card = `
+      <div class="rt-node${isRoot ? " rt-node-root" : " rt-node-clickable"}"${
+        !isRoot ? ` onclick="window.location.href='client-profile.html?id=${encodeURIComponent(normalizeId(lead.id))}';"` : ""
+      }>
+        <div class="rt-avatar" style="background:${color}">${initials(lead.name)}</div>
+        <div class="rt-name">${escapeHtml(lead.name)}</div>
+        ${lead.occupation ? `<div class="rt-occ">${escapeHtml(lead.occupation)}</div>` : ""}
+        <div class="rt-badges">
+          ${lead.stage ? `<span class="rt-badge" style="background:${sc.bg};color:${sc.text}">${escapeHtml(lead.stage)}</span>` : ""}
+          ${children.length ? `<span class="rt-badge rt-badge-count">${children.length} referral${children.length !== 1 ? "s" : ""}</span>` : ""}
+        </div>
+      </div>`;
+
+    if (!children.length) return card;
+
+    return `
+      <div class="rt-level-wrap">
+        ${card}
+        <div class="rt-v-connector"></div>
+        <div class="rt-siblings">
+          ${children.map((child) => `
+            <div class="rt-sib-col">
+              <div class="rt-sib-v"></div>
+              ${buildReferralNode(child, allLeads, false, depth + 1, maxDepth)}
+            </div>`).join("")}
+        </div>
+      </div>`;
   }
 
   function normalizeId(value) {
@@ -533,6 +638,7 @@
     const followUps = followUpsWithFirstMeetup(lead);
     const isGeneralEdit = editSection === "general";
     const isFinancialEdit = editSection === "financial";
+    const isReferralsEdit = editSection === "referrals";
     const isProposedEdit = editSection === "proposed";
     const isTimelineEdit = editSection === "timeline";
     const isRemarksEdit = editSection === "remarks";
@@ -604,10 +710,6 @@
               Occupation
               <input type="text" id="g-occupation" value="${escapeHtml(lead.occupation || "")}" maxlength="80" pattern="[A-Za-z0-9 .,'&/-]{0,80}" />
             </label>
-            <label>
-              Referred By
-              <input type="text" id="g-referred-by" value="${escapeHtml(lead.referredBy || "")}" maxlength="80" pattern="[A-Za-z0-9 .,'&/-]{0,80}" />
-            </label>
           </div>
           <p class="section-edit-error" id="general-edit-error"></p>
           <div class="section-edit-actions">
@@ -621,10 +723,6 @@
           <div class="info-item">
             <div class="info-label">Occupation</div>
             <div class="info-value">${escapeHtml(lead.occupation || "—")}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Referred By</div>
-            <div class="info-value">${escapeHtml(lead.referredBy || "—")}</div>
           </div>
           <div class="info-item">
             <div class="info-label">Stage</div>
@@ -777,6 +875,60 @@
         </div>
       `;
 
+    // ── Referral Network section ──────────────────────────────────────────────
+    const allLeads = getLeads();
+    const allOtherLeads = allLeads.filter((l) => normalizeId(l.id) !== normalizeId(leadId));
+    const directReferrals = allLeads.filter((l) => normalizeId(l.referredByLeadId) === normalizeId(leadId));
+
+    let referralSectionBody;
+    if (isReferralsEdit) {
+      const checkedIds = new Set(directReferrals.map((l) => normalizeId(l.id)));
+      const listItems = allOtherLeads.length === 0
+        ? '<p style="color:var(--text-muted);font-size:0.88rem;padding:0.5rem 0;">No other leads found.</p>'
+        : allOtherLeads.map((l) => {
+            const lColor = AVATAR_COLORS[(parseInt(l.id) - 1) % AVATAR_COLORS.length] || AVATAR_COLORS[0];
+            const checked = checkedIds.has(normalizeId(l.id));
+            return `
+              <label class="referral-edit-item${checked ? " rei-checked" : ""}">
+                <input type="checkbox" class="referral-check" value="${escapeHtml(normalizeId(l.id))}" ${checked ? "checked" : ""} />
+                <div class="ri-avatar" style="background:${lColor}">${initials(l.name)}</div>
+                <div>
+                  <div class="ri-name">${escapeHtml(l.name)}</div>
+                  <div class="ri-detail">${escapeHtml(l.occupation || l.stage || "")}</div>
+                </div>
+              </label>`;
+          }).join("");
+
+      referralSectionBody = `
+        <div class="section-edit-form">
+          <div class="referral-mode-opts">
+            <label class="referral-mode-opt${lead.noReferrals ? " rmo-selected" : ""}" id="rmo-none-label">
+              <input type="radio" name="rmode" id="rmode-none" value="none" ${lead.noReferrals ? "checked" : ""} />
+              No referrals — this client did not refer anyone
+            </label>
+            <label class="referral-mode-opt${!lead.noReferrals ? " rmo-selected" : ""}" id="rmo-has-label">
+              <input type="radio" name="rmode" id="rmode-has" value="has" ${!lead.noReferrals ? "checked" : ""} />
+              This client referred the following leads:
+            </label>
+          </div>
+          <div id="referral-list-wrap" ${lead.noReferrals ? 'style="display:none"' : ""}>
+            <div class="referral-edit-list" id="referral-edit-list">${listItems}</div>
+          </div>
+          <p class="section-edit-error" id="referrals-edit-error"></p>
+          <div class="section-edit-actions">
+            <button type="button" class="btn-secondary" id="referrals-cancel-btn">Cancel</button>
+            <button type="button" class="btn-primary" id="referrals-save-btn">Save Referrals</button>
+          </div>
+        </div>`;
+    } else if (lead.noReferrals) {
+      referralSectionBody = '<p class="rt-empty">This client has no referrals.</p>';
+    } else if (directReferrals.length === 0) {
+      referralSectionBody = '<p class="rt-empty">No referrals recorded yet. Click <strong>Edit Section</strong> to add referrals.</p>';
+    } else {
+      const treeHtml = buildReferralNode(lead, allLeads, true, 0, 3);
+      referralSectionBody = `<div class="rt-tree-wrap"><div class="rt-tree">${treeHtml}</div></div>`;
+    }
+
     const remarksSectionBody = isRemarksEdit
       ? `
         <form id="remarks-edit-form" class="section-edit-form" novalidate>
@@ -848,6 +1000,15 @@
         <div class="section-divider"></div>
         ${remarksSectionBody}
       </div>
+
+      <div class="card referrals-section">
+        <div class="section-header">
+          <h2 class="card-title">🤝 Referral Network</h2>
+          ${isReferralsEdit ? "" : '<button type="button" class="btn-secondary section-edit-btn" id="edit-referrals-btn">Edit Section</button>'}
+        </div>
+        <div class="section-divider"></div>
+        ${referralSectionBody}
+      </div>
     `;
 
     if (!isGeneralEdit) {
@@ -908,10 +1069,56 @@
             meetDate,
             urgency: document.getElementById("g-urgency")?.value || "non-urgent",
             stage: document.getElementById("g-stage")?.value || "Prospecting",
-            occupation: document.getElementById("g-occupation")?.value.trim() || "",
-            referredBy: document.getElementById("g-referred-by")?.value.trim() || ""
+            occupation: document.getElementById("g-occupation")?.value.trim() || ""
           }));
 
+          renderProfile(leadId);
+        });
+      }
+    }
+
+    // ── Referrals section handlers ────────────────────────────────────────────
+    if (!isReferralsEdit) {
+      const editReferralsBtn = document.getElementById("edit-referrals-btn");
+      if (editReferralsBtn) {
+        editReferralsBtn.addEventListener("click", () => renderProfile(leadId, "referrals"));
+      }
+    } else {
+      const rmodeNone = document.getElementById("rmode-none");
+      const rmodeHas  = document.getElementById("rmode-has");
+      const listWrap  = document.getElementById("referral-list-wrap");
+      const rmoNoneLbl = document.getElementById("rmo-none-label");
+      const rmoHasLbl  = document.getElementById("rmo-has-label");
+
+      function syncRmodeStyles() {
+        if (rmodeNone && rmoNoneLbl) rmoNoneLbl.classList.toggle("rmo-selected", rmodeNone.checked);
+        if (rmodeHas  && rmoHasLbl)  rmoHasLbl.classList.toggle("rmo-selected",  rmodeHas.checked);
+        if (listWrap) listWrap.style.display = (rmodeNone && rmodeNone.checked) ? "none" : "";
+      }
+
+      if (rmodeNone) rmodeNone.addEventListener("change", syncRmodeStyles);
+      if (rmodeHas)  rmodeHas.addEventListener("change",  syncRmodeStyles);
+
+      // Highlight checked items
+      const editList = document.getElementById("referral-edit-list");
+      if (editList) {
+        editList.addEventListener("change", (e) => {
+          const item = e.target.closest(".referral-edit-item");
+          if (item) item.classList.toggle("rei-checked", e.target.checked);
+        });
+      }
+
+      const cancelBtn = document.getElementById("referrals-cancel-btn");
+      if (cancelBtn) cancelBtn.addEventListener("click", () => renderProfile(leadId));
+
+      const saveBtn = document.getElementById("referrals-save-btn");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", () => {
+          const noReferrals = !!(rmodeNone && rmodeNone.checked);
+          const selectedIds = new Set(
+            Array.from(document.querySelectorAll(".referral-check:checked")).map((cb) => cb.value)
+          );
+          saveReferrals(leadId, selectedIds, noReferrals);
           renderProfile(leadId);
         });
       }
@@ -1144,7 +1351,7 @@
   const leadId = params.get("id");
   const editMode = params.get("edit") === "true";
   const section = (params.get("section") || "").toLowerCase();
-  const allowedSections = new Set(["general", "financial", "proposed", "timeline", "remarks"]);
+  const allowedSections = new Set(["general", "financial", "referrals", "proposed", "timeline", "remarks"]);
   const editSection = allowedSections.has(section) ? section : (editMode ? "general" : "");
 
   // Prime cache from API (GET /leads?userId=...) before rendering
@@ -1161,7 +1368,17 @@
           mergedById.set(normalizeId(lead.id), lead);
         });
         localLeads.forEach((lead) => {
-          mergedById.set(normalizeId(lead.id), lead);
+          const remote = mergedById.get(normalizeId(lead.id));
+          if (remote) {
+            // Referral fields are now server-authoritative — prefer server values
+            mergedById.set(normalizeId(lead.id), {
+              ...lead,
+              referredByLeadId: remote.referredByLeadId || lead.referredByLeadId || "",
+              noReferrals: remote.noReferrals !== undefined ? remote.noReferrals : !!lead.noReferrals,
+            });
+          } else {
+            mergedById.set(normalizeId(lead.id), lead);
+          }
         });
 
         saveLeads(Array.from(mergedById.values()));

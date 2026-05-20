@@ -43,13 +43,30 @@
           <button type="button" id="prev-month-btn">Prev</button>
           <button type="button" id="next-month-btn">Next</button>
         </div>
+        <div style="display:flex;gap:0.5rem;padding:0.4rem 0 0;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+          <div style="display:flex;gap:0.25rem;">
+            <button type="button" class="cal-view-btn active" data-view="month" style="padding:0.3rem 0.65rem;border-radius:6px;border:1px solid var(--border);background:#fff;font:inherit;font-size:0.82rem;font-weight:600;cursor:pointer;">Month</button>
+            <button type="button" class="cal-view-btn" data-view="week" style="padding:0.3rem 0.65rem;border-radius:6px;border:1px solid var(--border);background:#fff;font:inherit;font-size:0.82rem;font-weight:600;cursor:pointer;">Week</button>
+            <button type="button" class="cal-view-btn" data-view="day" style="padding:0.3rem 0.65rem;border-radius:6px;border:1px solid var(--border);background:#fff;font:inherit;font-size:0.82rem;font-weight:600;cursor:pointer;">Day</button>
+            <button type="button" class="cal-view-btn" data-view="agenda" style="padding:0.3rem 0.65rem;border-radius:6px;border:1px solid var(--border);background:#fff;font:inherit;font-size:0.82rem;font-weight:600;cursor:pointer;">Agenda</button>
+          </div>
+          <button type="button" id="cal-export-ics-btn" class="ghost-btn" style="font-size:0.82rem;">Export .ics</button>
+        </div>
       </div>
+      <div id="calendar-agent-bar" style="display:none;align-items:center;gap:0.6rem;padding:0.5rem 0 0.25rem;flex-wrap:wrap;">
+        <label for="calendar-agent-select" style="font-size:0.85rem;font-weight:600;color:var(--text-muted,#6b7280);">Viewing:</label>
+        <select id="calendar-agent-select" style="padding:0.3rem 0.6rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:0.85rem;cursor:pointer;">
+          <option value="">My Calendar</option>
+        </select>
+      </div>
+
       <p class="calendar-legend">
         <span class="event-indicator personal">Personal</span>
         <span class="event-indicator agency">Event</span>
         <span class="event-indicator agency-meeting">Meeting</span>
         <span class="event-indicator agency-training">Training</span>
         <span class="event-indicator holiday">Holidays</span>
+        <span class="event-indicator team-member" id="calendar-team-legend" style="display:none;">Team Member</span>
       </p>
 
       <div class="cal-grid" id="calendar-grid" role="grid" aria-label="Lead meet-up calendar"></div>
@@ -196,6 +213,17 @@
           <div id="personal-event-repeat-end-wrap" style="display:none;">
             <label for="personal-event-dialog-repeat-end" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Repeat Until</label>
             <input type="date" id="personal-event-dialog-repeat-end" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;" />
+          </div>
+
+          <div id="personal-event-reminder-section">
+            <label for="personal-event-dialog-reminder" style="display:block;font-weight:700;font-size:0.9rem;margin-bottom:0.35rem;">Reminder</label>
+            <select id="personal-event-dialog-reminder" style="width:100%;padding:0.5rem;border:1px solid var(--border);border-radius:8px;font:inherit;">
+              <option value="none">No reminder</option>
+              <option value="15min">15 minutes before</option>
+              <option value="1hr">1 hour before</option>
+              <option value="1day">1 day before</option>
+              <option value="onday">Morning of event (8:00 AM)</option>
+            </select>
           </div>
         </div>
 
