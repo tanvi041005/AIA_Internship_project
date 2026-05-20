@@ -166,6 +166,18 @@ function mapAnnouncement(r) {
   });
 }
 
+function mapAnnouncementResponse(r) {
+  var extra = parseExtra(r);
+  return Object.assign({}, extra, {
+    id:             r.response_id,
+    announcementId: r.announcement_id,
+    userId:         r.user_id,
+    choice:         r.choice,
+    note:           r.note || '',
+    at:             r.responded_at,
+  });
+}
+
 function mapSalesEntry(r, activityTypes) {
   var extra = parseExtra(r);
   var type = (activityTypes || []).find(function(t) { return t.id === r.activity_type_id; });

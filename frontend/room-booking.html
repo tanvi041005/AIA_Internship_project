@@ -21,14 +21,14 @@
       --text-muted: #69655e;
       --radius: 8px;
       --shadow-soft: 0 1px 2px rgba(32, 33, 36, 0.06);
+      --hour-height: 88px;
     }
 
     .cal-toolbar {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.55rem;
-      margin-bottom: 1rem;
+      gap: 0.45rem;
     }
 
     .cal-toolbar .view-toggle {
@@ -97,11 +97,10 @@
     }
 
     .range-label {
-      font-size: 0.95rem;
+      margin: 0;
+      font-size: 1.05rem;
       font-weight: 700;
       color: var(--text);
-      min-width: 130px;
-      text-align: center;
     }
 
     .add-btn {
@@ -124,17 +123,16 @@
       background: var(--brand-dark);
     }
 
-    .cal-shell {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 220px;
-      gap: 1rem;
-      align-items: start;
+    .booking-calendar-panel {
+      margin-top: 1rem;
     }
 
-    @media (max-width: 860px) {
-      .cal-shell {
-        grid-template-columns: 1fr;
-      }
+    .booking-calendar-head {
+      margin-bottom: 0.6rem;
+    }
+
+    .cal-shell {
+      display: block;
     }
 
     .week-grid-wrap {
@@ -143,6 +141,7 @@
       border-radius: var(--radius);
       box-shadow: var(--shadow-soft);
       overflow: hidden;
+      margin-top: 0.75rem;
     }
 
     .month-view {
@@ -152,6 +151,7 @@
       box-shadow: var(--shadow-soft);
       overflow: hidden;
       display: none;
+      margin-top: 0.75rem;
     }
 
     .month-grid {
@@ -176,7 +176,7 @@
     }
 
     .month-cell {
-      min-height: 118px;
+      min-height: 112px;
       padding: 0.5rem;
       border-right: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
@@ -198,6 +198,7 @@
     }
 
     .month-cell.today {
+      background: #fff0f1;
       box-shadow: inset 0 0 0 2px var(--brand);
     }
 
@@ -223,9 +224,9 @@
       border: none;
       border-radius: 5px;
       margin-bottom: 0.28rem;
-      padding: 0.18rem 0.35rem;
+      padding: 0.1rem 0.35rem;
       font: inherit;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
       text-align: left;
       overflow: hidden;
@@ -243,7 +244,7 @@
 
     .week-header {
       display: grid;
-      grid-template-columns: 52px repeat(7, 1fr);
+      grid-template-columns: 80px repeat(7, 1fr);
       border-bottom: 1px solid var(--border);
       background: var(--surface-subtle);
       padding-right: 16px;
@@ -251,14 +252,40 @@
     }
 
     .week-header-cell {
-      padding: 0.55rem 0.3rem;
-      text-align: center;
-      font-size: 0.75rem;
+      min-height: 58px;
+      padding: 0.55rem 0.65rem;
+      text-align: left;
+      font-size: 0.78rem;
       font-weight: 700;
-      text-transform: uppercase;
+      text-transform: none;
       letter-spacing: 0.04em;
       color: var(--text-muted);
       border-right: 1px solid var(--border);
+      word-break: break-word;
+      line-height: 1.25;
+    }
+
+    .week-header-cell.resource-head {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    .week-header-cell .header-sub {
+      display: block;
+      margin-top: 0.12rem;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .room-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
     .week-header-cell:last-child {
@@ -285,8 +312,9 @@
 
     .week-body {
       display: grid;
-      grid-template-columns: 52px repeat(7, 1fr);
-      max-height: 560px;
+      grid-template-columns: 80px repeat(7, 1fr);
+      max-height: 72vh;
+      min-height: 560px;
       overflow-y: auto;
       scrollbar-gutter: stable;
     }
@@ -296,7 +324,7 @@
     }
 
     .time-slot {
-      height: 48px;
+      height: var(--hour-height);
       padding: 0.25rem 0.35rem 0;
       font-size: 0.68rem;
       color: var(--text-muted);
@@ -314,7 +342,7 @@
     }
 
     .hour-cell {
-      height: 48px;
+      height: var(--hour-height);
       border-bottom: 1px solid #f0ede8;
     }
 
@@ -322,16 +350,16 @@
       position: absolute;
       left: 2px;
       right: 2px;
-      border-radius: 5px;
-      padding: 0.2rem 0.35rem;
-      font-size: 0.72rem;
+      border-radius: 8px;
+      padding: 0.24rem 0.42rem;
+      font-size: 0.7rem;
       font-weight: 600;
       overflow: hidden;
       cursor: pointer;
       z-index: 2;
       transition: filter 0.15s;
       line-height: 1.3;
-      border-left: 3px solid rgba(0, 0, 0, 0.15);
+      border-left: none;
     }
 
     .booking-block:hover {
@@ -340,175 +368,95 @@
 
     .booking-block strong {
       display: block;
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .booking-block small {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       opacity: 0.85;
     }
 
     .room-eagle {
-      background: #bfdbfe;
-      color: #1e3a8a;
+      background: #dbeafe;
+      color: #1d4ed8;
     }
     .room-summit {
-      background: #fecdd3;
-      color: #9f1239;
+      background: #ffedd5;
+      color: #c2410c;
     }
     .room-ark {
-      background: #bbf7d0;
-      color: #14532d;
+      background: #ccfbf1;
+      color: #0f766e;
     }
     .room-armour {
-      background: #99f6e4;
-      color: #134e4a;
+      background: #ede9fe;
+      color: #6d28d9;
     }
     .room-inspiration {
-      background: #e9d5ff;
-      color: #581c87;
+      background: #dcfce7;
+      color: #166534;
     }
     .room-nest {
-      background: #fde68a;
-      color: #78350f;
-    }
-
-    .sidebar {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .mini-month {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.85rem;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .mini-month-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.6rem;
-    }
-
-    .mini-month-head span {
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-
-    .mini-nav {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-muted);
-      font-size: 1rem;
-      padding: 0.1rem 0.25rem;
-      border-radius: 4px;
-    }
-
-    .mini-nav:hover {
-      color: var(--brand);
-      background: var(--brand-light);
-    }
-
-    .mini-cal {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-      text-align: center;
-      font-size: 0.75rem;
-    }
-
-    .mini-cal .dow {
-      color: var(--text-muted);
-      font-weight: 700;
-      text-transform: uppercase;
-      font-size: 0.65rem;
-      padding: 0.2rem 0;
-    }
-
-    .mini-cal .d {
-      padding: 0.25rem;
-      border-radius: 50%;
-      cursor: pointer;
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    .mini-cal .d:hover {
-      background: var(--surface-subtle);
-      color: var(--brand);
-    }
-
-    .mini-cal .d.today {
-      background: var(--brand);
-      color: #fff;
-      font-weight: 700;
-    }
-
-    .mini-cal .d.selected {
-      outline: 2px solid var(--brand);
-    }
-
-    .mini-cal .d.other-month {
-      color: var(--border-strong);
-    }
-
-    .mini-cal .d.has-event::after {
-      content: '';
-      display: block;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--brand);
-      margin: 1px auto 0;
+      background: #f3f4f6;
+      color: #4b5563;
     }
 
     .room-filter {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.85rem;
-      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.4rem 0 0.9rem;
     }
 
     .room-filter h3 {
-      margin: 0 0 0.7rem;
-      font-size: 0.875rem;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.75rem;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #roomChips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
     }
 
     .room-chip {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      margin-bottom: 0.45rem;
+      padding: 0.2rem 0.55rem;
+      border: 0;
+      border-radius: 999px;
       cursor: pointer;
+      color: var(--text-muted);
+      font: inherit;
       font-size: 0.82rem;
       font-weight: 600;
       user-select: none;
     }
 
-    .room-chip input {
-      accent-color: var(--brand);
-      width: 14px;
-      height: 14px;
-      cursor: pointer;
+    .room-chip.active {
+      outline: 2px solid #d9b8b8;
+      outline-offset: 1px;
     }
 
-    .room-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
+    .room-chip:hover {
+      outline: 1px solid #d9b8b8;
+      color: var(--brand);
     }
 
     .room-filter-actions {
-      display: flex;
+      display: none;
       gap: 0.4rem;
       margin-top: 0.65rem;
     }
@@ -706,13 +654,64 @@
       border: 1px solid #fecaca;
     }
 
+    .room-load-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 1rem 0;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text-muted);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .room-load-status[hidden] {
+      display: none;
+    }
+
+    .room-load-status.error {
+      border-color: #fecaca;
+      background: #fff7f7;
+      color: #991b1b;
+    }
+
+    .room-load-status strong {
+      display: block;
+      color: var(--text);
+    }
+
+    .room-load-status.error strong {
+      color: #991b1b;
+    }
+
     @media (max-width: 720px) {
+      main {
+        padding: 1rem 0.75rem 2rem;
+      }
+      .booking-topbar {
+        grid-template-columns: 1fr;
+      }
+      .cal-toolbar {
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+      }
+      .range-label {
+        min-width: 210px;
+      }
+      .room-filter {
+        align-items: flex-start;
+        flex-direction: column;
+      }
       .cal-toolbar {
         gap: 0.35rem;
       }
       .week-header,
       .week-body {
-        grid-template-columns: 40px repeat(7, 1fr);
+        grid-template-columns: 60px repeat(6, 1fr);
       }
       .month-grid {
         grid-template-columns: repeat(7, minmax(92px, 1fr));
@@ -747,54 +746,52 @@
     <h2 class="page-title">Room Booking Calendar</h2>
     <p class="page-lede">Click any slot to create a reservation. Click an existing booking to view details.</p>
 
-    <!-- Toolbar -->
-    <div class="cal-toolbar">
-      <div class="view-toggle">
-        <button id="btn-week" class="active" onclick="setView('week')">Week</button>
-        <button id="btn-day" onclick="setView('day')">Day</button>
-        <button id="btn-month" onclick="setView('month')">Month</button>
-      </div>
-      <button class="today-btn" onclick="goToday()">Today</button>
-      <button class="nav-btn" onclick="navigate(-1)">&#8249;</button>
-      <span class="range-label" id="rangeLabel"></span>
-      <button class="nav-btn" onclick="navigate(1)">&#8250;</button>
-      <button class="add-btn" onclick="openModal()">&#43; New Booking</button>
-    </div>
-
-    <!-- Shell: calendar + sidebar -->
-    <div class="cal-shell">
-      <!-- Week/Day grid -->
-      <div class="week-grid-wrap">
-        <div class="week-header" id="weekHeader"></div>
-        <div class="week-body" id="weekBody"></div>
-      </div>
-      <div class="month-view" id="monthView">
-        <div class="month-grid" id="monthGrid"></div>
-      </div>
-
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <!-- Mini month -->
-        <div class="mini-month">
-          <div class="mini-month-head">
-            <button class="mini-nav" onclick="miniNav(-1)">&#8249;</button>
-            <span id="miniMonthLabel"></span>
-            <button class="mini-nav" onclick="miniNav(1)">&#8250;</button>
+    <section class="panel booking-calendar-panel">
+      <div class="panel-head booking-calendar-head">
+        <h2 class="range-label" id="rangeLabel"></h2>
+        <div class="calendar-controls cal-toolbar">
+          <div class="view-toggle">
+            <button id="btn-week" onclick="setView('week')">Week</button>
+            <button id="btn-day" class="active" onclick="setView('day')">Day</button>
+            <button id="btn-month" onclick="setView('month')">Month</button>
           </div>
-          <div class="mini-cal" id="miniCal"></div>
-        </div>
-
-        <!-- Room filters -->
-        <div class="room-filter">
-          <h3>Filter Rooms</h3>
-          <div id="roomChips"></div>
-          <div class="room-filter-actions">
-            <button type="button" onclick="selectAllRooms()">Select all</button>
-            <button type="button" onclick="clearRooms()">Clear</button>
-          </div>
+          <button class="today-btn" onclick="goToday()">Today</button>
+          <button class="nav-btn" onclick="navigate(-1)" aria-label="Previous">&#8249;</button>
+          <button class="nav-btn" onclick="navigate(1)" aria-label="Next">&#8250;</button>
+          <button class="add-btn" data-requires-room-data onclick="openModal()">&#43; New Booking</button>
         </div>
       </div>
-    </div>
+
+      <div class="room-filter">
+        <h3>Room</h3>
+        <div id="roomChips"></div>
+        <div class="room-filter-actions">
+          <button type="button" data-requires-room-data onclick="selectAllRooms()">Select all</button>
+          <button type="button" data-requires-room-data onclick="clearRooms()">Clear</button>
+        </div>
+      </div>
+
+      <div class="room-load-status" id="room-load-status" role="status" aria-live="polite">
+        <div>
+          <strong id="room-load-status-title">Loading room bookings</strong>
+          <span id="room-load-status-message">Fetching rooms and current reservations...</span>
+        </div>
+        <button type="button" class="ghost-btn" id="room-load-retry-btn" hidden>Retry</button>
+      </div>
+
+      <!-- Shell: calendar + sidebar -->
+      <div class="cal-shell">
+        <!-- Week/Day grid -->
+        <div class="week-grid-wrap">
+          <div class="week-header" id="weekHeader"></div>
+          <div class="week-body" id="weekBody"></div>
+        </div>
+        <div class="month-view" id="monthView">
+          <div class="month-grid" id="monthGrid"></div>
+        </div>
+      </div>
+      <p class="page-lede" id="calendarHint">Click a free slot to claim it, or click an existing booking to view, edit, or cancel.</p>
+    </section>
   </main>
 
   <footer class="site-footer">Financial Agent Dashboard · Internal use only</footer>
