@@ -1,6 +1,7 @@
 
 const STAGES = ["Prospecting","Fact Find","Opening","Closing"];
 const STAGE_COLORS = ["#d4a574","#a6192e","#8b5cf6","#1e3a8a"];
+const LEADS_STORAGE_KEY = "financial_leads_data";
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
 const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
 
@@ -28,6 +29,10 @@ function followUpsWithFirstMeetup(lead) {
   if (lead.meetDate && !items.some((f) => f && (f.isFirstMeetup || (f.label === "First Meet-up" && f.date === lead.meetDate)))) {
     items.unshift({ label: "First Meet-up", date: lead.meetDate, done: true, isFirstMeetup: true });
   }
+  // Ensure there is a default Follow-up step (pending) for display
+  if (!items.some((it) => it && String(it.label).toLowerCase() === "follow-up")) {
+    items.push({ label: "Follow-up", date: "", done: false });
+  }
   return items;
 }
 
@@ -53,10 +58,12 @@ function renderKPIs(){
   const avgAge = Math.round(LEADS.reduce((a,l) => a + l.age, 0) / LEADS.length);
   const referred = LEADS.filter(l => l.referredBy && l.referredBy.trim() !== "").length;
   const refRate = LEADS.length > 0 ? Math.round(referred / LEADS.length * 100) : 0;
+  const avgCase = LEADS.length ? Math.round(totalPrem / LEADS.length) : 0;
   const kpis = [
     {label:"Total Leads", val:LEADS.length, sub:`${urgent} urgent`},
     {label:"In Closing", val:closing, sub:"ready to sign"},
     {label:"Est. Annual Premium", val:"SGD "+totalPrem.toLocaleString(), sub:"across all leads"},
+    {label:"Avg. Case Size", val: "SGD " + avgCase.toLocaleString(), sub: "per lead"},
     {label:"Avg. Lead Age", val:LEADS.length ? avgAge+" yrs" : "—", sub:"average profile age"},
     {label:"Referral Rate", val:refRate+"%", sub:`${referred} of ${LEADS.length} referred`},
   ];
@@ -139,7 +146,12 @@ function formatDate(d){
 }
 
 function getNextMeetDate(lead){
+  // Prefer an explicitly stored nextMeetDate (set when timeline is saved).
   if(lead.nextMeetDate) return lead.nextMeetDate;
+  // Otherwise, if any follow-ups exist return the most recent event date (latest)
+  const allDates = (lead.followUps || []).map(f => f.date).filter(Boolean).sort();
+  if(allDates.length) return allDates[allDates.length - 1];
+  // Fallback: find the earliest pending follow-up date
   const pending = (lead.followUps || [])
     .filter(f => !f.done && f.date)
     .sort((a,b) => a.date.localeCompare(b.date));
@@ -573,6 +585,21 @@ function bindEvents(){
   });
   document.addEventListener("keydown", e => {
     if(e.key === "Escape" && activeId) closeDrawer();
+  });
+
+  // Listen for localStorage changes (made by client-profile page) and refresh leads view
+  window.addEventListener('storage', (e) => {
+    if (e.key !== LEADS_STORAGE_KEY) return;
+    try {
+      const newVal = JSON.parse(e.newValue || '[]') || [];
+      // localStorage contains lead objects saved by the UI; use them as-is
+      LEADS = Array.isArray(newVal) ? newVal : [];
+      filtered = [...LEADS];
+      renderKPIs();
+      sortData();
+      render();
+      renderClosure();
+    } catch (err) { /* ignore parse errors */ }
   });
 }
 

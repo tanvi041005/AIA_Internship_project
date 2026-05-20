@@ -251,6 +251,10 @@
         isFirstMeetup: true,
       });
     }
+    // Ensure there is a default Follow-up step (pending) for users to edit
+    if (!items.some((it) => it && String(it.label).toLowerCase() === "follow-up")) {
+      items.push({ label: "Follow-up", date: "", done: false });
+    }
     return items;
   }
 
@@ -1338,9 +1342,13 @@
     if (saveButton) {
       saveButton.addEventListener("click", () => {
         const followUps = readTimelineRows();
+        // Persist follow-ups and update the lead's nextMeetDate to the latest event date
+        const dates = followUps.map(f => f.date).filter(Boolean).sort();
+        const latestDate = dates.length ? dates[dates.length - 1] : "";
         updateLead(leadId, (currentLead) => ({
           ...currentLead,
-          followUps
+          followUps,
+          nextMeetDate: latestDate
         }));
         renderProfile(leadId);
       });
