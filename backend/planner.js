@@ -114,8 +114,7 @@ function wirePersonalTodo() {
 
 function wireFloatingTodo() {
   if (document.getElementById("floating-task-form")) return;
-  const main = document.getElementById("main");
-  if (!main) return;
+  if (!document.body) return;
 
   const widget = document.createElement("aside");
   widget.id = "todo-sidebar";

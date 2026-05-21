@@ -587,4 +587,5 @@
   } else {
     enhanceNav();
   }
+  window.addEventListener("load", ensurePersistentPlanner);
 })();
