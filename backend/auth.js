@@ -102,7 +102,7 @@
       sessionStorage.setItem("dashboardUser", resolvedUser);
       sessionStorage.setItem("announcementPromptPending", "1");
       localStorage.setItem("calendarRole", resolvedRole === "admin" ? "admin" : "agent");
-      localStorage.setItem("overviewScope", "agency");
+      localStorage.setItem("overviewScope", resolvedRole === "agent" ? "personal" : "agency");
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "";
       const safeNext = /^[a-z0-9-]+\.html(\?.*)?$/i.test(next) ? next : "index.html";
@@ -286,7 +286,7 @@
 
     if (loggedRole !== "admin" && overviewLink && !document.getElementById("overview-scope-menu")) {
       const scopeLabels = {
-        district: "All Agencies Overview",
+        district: "District Overview",
         agency: "Agency Overview",
         personal: "Personal Overview"
       };
@@ -295,15 +295,15 @@
       overviewMenu.className = "overview-nav-menu";
       overviewLink.insertAdjacentElement("beforebegin", overviewMenu);
       overviewMenu.appendChild(overviewLink);
-      setOverviewLabel(overviewLink, scopeLabels[initialOverviewScope] || scopeLabels.agency);
+      setOverviewLabel(overviewLink, scopeLabels[initialOverviewScope] || scopeLabels.personal);
       overviewMenu.insertAdjacentHTML(
         "beforeend",
         `
-          <div class="overview-scope-menu" id="overview-scope-menu" role="menu" aria-label="Overview scope">
-            <button type="button" role="menuitem" data-overview-menu-scope="district">All Agencies Overview</button>
-            <button type="button" role="menuitem" data-overview-menu-scope="agency">Agency Overview</button>
-            <button type="button" role="menuitem" data-overview-menu-scope="personal">Personal Overview</button>
-          </div>
+        <div class="overview-scope-menu" id="overview-scope-menu" role="menu" aria-label="Overview scope">
+          <button type="button" role="menuitem" data-overview-menu-scope="district">District Overview</button>
+          <button type="button" role="menuitem" data-overview-menu-scope="agency">Agency Overview</button>
+          <button type="button" role="menuitem" data-overview-menu-scope="personal">Personal Overview</button>
+        </div>
         `
       );
 

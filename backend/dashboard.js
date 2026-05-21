@@ -78,6 +78,7 @@ async function ensureSGHolidaysLoaded(year, onLoaded) {
 
 // GET /cpf?agentId=... → maps to { name, accountFocus, status, amount, note }
 let cpfTrackerData = [];
+let currentUserAgency = "";
 
 // GET /performance → leaderboard rows; yearlyFyc summed from ytd_fyc; monthly/weekly not yet in API
 let performanceData = {
@@ -145,9 +146,17 @@ const ATTENDANCE_EVENTS_STORAGE_KEY = "attendanceEvents";
 async function loadOverviewData() {
   if (typeof apiGet !== 'function') return;
   const userId = sessionStorage.getItem('dashboardUser');
+  const role = sessionStorage.getItem("dashboardRole") || "agent";
   if (!userId) return;
   try {
-    const rows = await apiGet('/leads?userId=' + encodeURIComponent(userId));
+    let rows = [];
+    try {
+      rows = role === "agent"
+        ? await apiGet('/leads?userId=' + encodeURIComponent(userId))
+        : await apiGet('/leads');
+    } catch (allLeadError) {
+      rows = await apiGet('/leads?userId=' + encodeURIComponent(userId));
+    }
     if (Array.isArray(rows)) {
       leadData = rows.map(mapLead).map(function(r) {
         var u = r.urgency || '';
@@ -165,6 +174,7 @@ async function loadOverviewData() {
           premium: r.premium || 0,
           commissionType: r.commission || '',
           stage: r.stage || '',
+          ownerId: r.ownerId || '',
           owner: r.ownerId === userId ? 'agent' : 'district',
           agency: r.agency || ''
         };
@@ -172,20 +182,36 @@ async function loadOverviewData() {
     }
   } catch (e) { console.warn('Failed to load leads for overview:', e); }
   try {
+    const users = await apiGet('/users');
+    if (Array.isArray(users)) {
+      const currentUser = users.find(function(row) {
+        return String(row.user_id || "").toUpperCase() === String(userId || "").toUpperCase();
+      });
+      currentUserAgency = currentUser ? String(currentUser.agency || "").trim() : "";
+    }
+  } catch (e) { console.warn('Failed to load user agency for overview:', e); }
+  if (!currentUserAgency) {
+    const ownLead = leadData.find(function(lead) { return lead.ownerId === userId && lead.agency; });
+    currentUserAgency = ownLead ? String(ownLead.agency || "").trim() : "";
+  }
+  try {
     const perf = await apiGet('/performance');
     if (Array.isArray(perf) && perf.length > 0) {
       performanceData = {
         yearlyFyc: perf.reduce(function(s, r) { return s + Number(r.ytd_fyc || 0); }, 0),
-        yearlyTarget: 0,
+        yearlyTarget: perf.reduce(function(s, r) { return s + Number(r.yearly_target || r.target || 0); }, 0),
         weeklyFyc: 0,
         lastWeekFyc: 0,
         leaderboard: perf.map(function(r) {
           return {
+            agentId: String(r.agent_id || r.user_id || "").toUpperCase(),
             agent: r.full_name || r.agent_id,
-            monthlyProduction: 0,
+            monthlyProduction: Number(r.monthly_production || r.monthly_fyc || r.mtd_fyc || 0),
             ytdFyc: Number(r.ytd_fyc || 0),
+            yearlyTarget: Number(r.yearly_target || r.target || 0),
             delta: Number(r.delta_pct || r.delta || 0),
             ytdCases: Number(r.total_cases || 0),
+            monthlyCases: Number(r.monthly_cases || r.mtd_cases || 0),
             agency: r.team_name || r.agency || ''
           };
         }),
@@ -670,70 +696,43 @@ function getSelectedOverviewAgency() {
 }
 
 function filterAgencyLeads(leads) {
-  const selectedAgency = getSelectedOverviewAgency();
+  const selectedAgency = getSelectedOverviewAgency() || currentUserAgency;
   if (!selectedAgency) return leads;
   return leads.filter((lead) => String(lead.agency || "").trim() === selectedAgency);
 }
 
 function filterAgencyLeaderboard(rows) {
-  const selectedAgency = getSelectedOverviewAgency();
+  const selectedAgency = getSelectedOverviewAgency() || currentUserAgency;
   if (!selectedAgency) return rows;
   return rows.filter((item) => String(item.agency || "").trim() === selectedAgency);
 }
 
+function summarizePerformance(rows) {
+  const leaderboard = Array.isArray(rows) ? rows : [];
+  return {
+    yearlyFyc: leaderboard.reduce((sum, item) => sum + Number(item.ytdFyc || 0), 0),
+    yearlyTarget: leaderboard.reduce((sum, item) => sum + Number(item.yearlyTarget || item.target || 0), 0),
+    weeklyFyc: leaderboard.reduce((sum, item) => sum + Number(item.weeklyFyc || 0), 0),
+    lastWeekFyc: leaderboard.reduce((sum, item) => sum + Number(item.lastWeekFyc || 0), 0),
+    leaderboard,
+    monthlyYtd: performanceData.monthlyYtd || [],
+    menteeStatuses: performanceData.menteeStatuses || [],
+    weekly: performanceData.weekly || []
+  };
+}
+
 function getOverviewDataset(scope = "district") {
   if (scope === "personal") {
-    const personalLeads = leadData.filter((lead) => lead.owner === "agent");
-    const personalFyc = 34525;
-    return {
-      scope,
-      leads: personalLeads,
-      data: {
-        yearlyFyc: personalFyc,
-        yearlyTarget: 180000,
-        weeklyFyc: 4200,
-        lastWeekFyc: 3600,
-        leaderboard: [
-          { agent: "You", monthlyProduction: 4200, ytdFyc: personalFyc, delta: 18 },
-          { agent: "Team Average", monthlyProduction: 3100, ytdFyc: 23210, delta: 9 },
-          { agent: "Best Peer", monthlyProduction: 5600, ytdFyc: 52400, delta: 27 }
-        ],
-        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.31) })),
-        menteeStatuses: ["Follow-up due", "Proposal pending", "Closing conversation"],
-        weekly: [
-          { day: "Mon", fyc: 1200, cases: 1 },
-          { day: "Tue", fyc: 0, cases: 0 },
-          { day: "Wed", fyc: 2100, cases: 1 },
-          { day: "Thu", fyc: 900, cases: 1 },
-          { day: "Fri", fyc: 0, cases: 0 }
-        ]
-      }
-    };
+    const userId = String(sessionStorage.getItem("dashboardUser") || "").toUpperCase();
+    const personalLeads = leadData.filter((lead) => String(lead.ownerId || "").toUpperCase() === userId || lead.owner === "agent");
+    const personalLeaderboard = performanceData.leaderboard.filter((item) => String(item.agentId || "").toUpperCase() === userId);
+    return { scope, leads: personalLeads, data: summarizePerformance(personalLeaderboard) };
   }
 
   if (scope === "agency") {
-    const agencyLeads = filterAgencyLeads(leadData.filter((lead) => lead.owner === "agent"));
-    const agencyLeaderboard = filterAgencyLeaderboard(performanceData.leaderboard).slice(0, 6);
-    return {
-      scope,
-      leads: agencyLeads,
-      data: {
-        yearlyFyc: 83540,
-        yearlyTarget: 650000,
-        weeklyFyc: 5200,
-        lastWeekFyc: 4800,
-        leaderboard: agencyLeaderboard,
-        monthlyYtd: performanceData.monthlyYtd.map((item) => ({ ...item, value: Math.round(item.value * 0.72) })),
-        menteeStatuses: ["Top producer", "Strong pipeline", "Needs weekly coaching", "Follow-up discipline"],
-        weekly: [
-          { day: "Mon", fyc: 2900, cases: 1 },
-          { day: "Tue", fyc: 4500, cases: 2 },
-          { day: "Wed", fyc: 1800, cases: 1 },
-          { day: "Thu", fyc: 6100, cases: 3 },
-          { day: "Fri", fyc: 3400, cases: 1 }
-        ]
-      }
-    };
+    const agencyLeads = filterAgencyLeads(leadData);
+    const agencyLeaderboard = filterAgencyLeaderboard(performanceData.leaderboard);
+    return { scope, leads: agencyLeads, data: summarizePerformance(agencyLeaderboard) };
   }
 
   return { scope: "district", leads: leadData, data: performanceData };
@@ -868,11 +867,12 @@ function renderFycKpis(data = performanceData, leads = leadData) {
   const urgentLeads = document.getElementById("urgent-leads-count");
   const nearClose = document.getElementById("near-close-count");
 
-  const targetPercent = Math.min(100, Math.round((data.yearlyFyc / data.yearlyTarget) * 1000) / 10);
+  const targetPercent = data.yearlyTarget > 0
+    ? Math.min(100, Math.round((data.yearlyFyc / data.yearlyTarget) * 1000) / 10)
+    : 0;
   const weekDelta = data.lastWeekFyc
     ? Math.round(((data.weeklyFyc - data.lastWeekFyc) / data.lastWeekFyc) * 1000) / 10
     : 0;
-  const totalCases = data.weekly.reduce((sum, item) => sum + item.cases, 0);
 
   if (yearlyValue) yearlyValue.textContent = compactMoney(data.yearlyFyc);
   if (yearlyProgress) yearlyProgress.style.width = `${targetPercent}%`;
@@ -881,7 +881,7 @@ function renderFycKpis(data = performanceData, leads = leadData) {
   if (weeklyValue) weeklyValue.textContent = compactMoney(data.weeklyFyc);
   if (weeklyLast) weeklyLast.textContent = `${compactMoney(data.lastWeekFyc)} vs previous MTD`;
   if (weeklyChange) weeklyChange.textContent = `${weekDelta > 0 ? "+" : ""}${weekDelta}%`;
-  if (totalLeads) totalLeads.textContent = String(totalCases);
+  if (totalLeads) totalLeads.textContent = String(leads.length);
   if (urgentLeads) urgentLeads.textContent = `${leads.filter((lead) => lead.urgency === "Urgent").length} urgent`;
   if (nearClose) nearClose.textContent = `${leads.filter((lead) => lead.stage === "Closing" || lead.stage === "Proposal Sent").length} near close`;
 }
@@ -889,7 +889,7 @@ function renderFycKpis(data = performanceData, leads = leadData) {
 function renderLeaderboard(data = performanceData) {
   const tbody = document.getElementById("leaderboard-table-body");
   if (!tbody) return;
-  tbody.innerHTML = data.leaderboard
+  tbody.innerHTML = data.leaderboard.slice().sort((a, b) => b.ytdFyc - a.ytdFyc)
     .map(
       (item, index) => `
       <tr>
@@ -926,10 +926,12 @@ function renderAgentFycChart(data = performanceData, scope = "agency") {
         </thead>
         <tbody>
           ${data.leaderboard
-            .slice(0, 9)
+            .slice().sort((a, b) => b.ytdCases - a.ytdCases).slice(0, 9)
             .map((item, index) => {
               const ytdCases = getYtdCaseCount(item, index);
-              const monthlyCases = Math.max(0, Math.round(item.monthlyProduction / 1800));
+              const monthlyCases = Number.isFinite(item.monthlyCases)
+                ? item.monthlyCases
+                : Math.max(0, Math.round(item.monthlyProduction / 1800));
               return `
                 <tr class="case-leaderboard-row">
                   <td>${index + 1}</td>
