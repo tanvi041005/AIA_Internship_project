@@ -312,6 +312,14 @@
         localStorage.setItem("overviewScope", normalizedScope);
         setOverviewLabel(overviewLink, scopeLabels[normalizedScope]);
         overviewMenu.classList.remove("is-open");
+        overviewLink.setAttribute("aria-expanded", "false");
+        const navStrip = document.querySelector(".nav-strip");
+        const hamburger = document.getElementById("nav-hamburger-btn");
+        if (navStrip) navStrip.classList.remove("nav-open");
+        if (hamburger) {
+          hamburger.setAttribute("aria-expanded", "false");
+          hamburger.setAttribute("aria-label", "Open menu");
+        }
         window.dispatchEvent(new CustomEvent("overviewScopeChanged", { detail: { scope: normalizedScope } }));
         if (currentPage !== "index.html") {
           window.location.assign("index.html");

@@ -4503,15 +4503,13 @@ button {
   }
 
   .cal-grid {
-    grid-template-columns: repeat(7, minmax(78px, 1fr));
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(7, minmax(56px, 1fr));
+    overflow: hidden;
   }
 
   .cal-head,
   .cal-cell {
-    min-width: 78px;
+    min-width: 0;
   }
 
   .todo-sidebar-toggle {
@@ -4643,9 +4641,17 @@ button {
 
   .calendar-controls {
     width: 100%;
-    justify-content: space-between;
-    gap: 0.3rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0.45rem;
     flex-wrap: wrap;
+  }
+
+  .calendar-controls > * {
+    min-width: 0;
+    width: 100%;
   }
 
   .calendar-controls button {
@@ -4655,7 +4661,40 @@ button {
   }
 
   .calendar-both-toggle {
+    display: inline-flex;
+    justify-content: center;
+    flex: none;
+    min-height: 36px;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
     font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .calendar-both-toggle input {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  #calendar-agent-bar {
+    display: flex;
+  }
+
+  #calendar-agent-bar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(44px, 1fr));
+    overflow: hidden;
+  }
+
+  .cal-head,
+  .cal-cell {
+    min-width: 0;
   }
 
   /* Legend wraps with smaller pills */
