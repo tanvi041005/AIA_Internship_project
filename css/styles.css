@@ -245,6 +245,51 @@ a {
   opacity: 0.9;
 }
 
+/* ── Hamburger button (hidden on desktop, shown on mobile) ───────────────── */
+/* Use .nav-inner specificity to reliably override any Tailwind preflight      */
+.nav-inner .nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.nav-inner .nav-hamburger:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border);
+}
+
+.nav-inner .nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.nav-open .nav-hamburger span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.nav-open .nav-hamburger span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.nav-open .nav-hamburger span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
 main {
   max-width: 1120px;
   margin: 0 auto;
@@ -1851,27 +1896,33 @@ table.data tr:last-child td {
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .cal-head {
-  padding: 0.5rem;
+  padding: 0.65rem 0.5rem;
   min-width: 0;
   text-align: center;
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   background: var(--surface-subtle);
   color: var(--text-muted);
 }
 
 .cal-cell {
   min-width: 0;
-  min-height: 86px;
-  padding: 0.5rem;
+  height: 110px;
+  padding: 0.45rem 0.4rem;
   background: #fff;
   font-size: 0.8125rem;
+  transition: background 0.12s;
   overflow: hidden;
+}
+
+.cal-cell.weekend {
+  background: #fafafa;
 }
 
 .cal-cell-clickable {
@@ -1879,7 +1930,7 @@ table.data tr:last-child td {
 }
 
 .cal-cell-clickable:hover {
-  background: #fbfaf8;
+  background: #f5f0f0 !important;
 }
 
 .cal-cell-clickable:focus-visible {
@@ -1888,29 +1939,43 @@ table.data tr:last-child td {
 }
 
 .cal-cell.muted {
+  background: #f7f7f7;
   color: transparent;
+  pointer-events: none;
 }
 
 .cal-cell.is-today {
-  background: #fff0f1;
-  box-shadow: inset 0 0 0 2px var(--brand);
+  background: #fffbfb;
+  border-top: 2.5px solid var(--brand);
 }
 
 .cal-cell .pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  font-weight: 700;
-  font-size: 0.75rem;
+  font-weight: 600;
+  font-size: 0.8rem;
   border: none;
   background: transparent;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
-.cal-cell .pill.highlight {
+.cal-cell.is-today .pill {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.cal-cell .pill.highlight:not(.cal-cell.is-today .pill) {
+  background: var(--brand);
+  color: #fff;
+}
+
+.cal-cell:not(.is-today) .pill.highlight {
   background: var(--brand);
   color: #fff;
 }
@@ -1984,17 +2049,20 @@ table.data tr:last-child td {
 
 .event-tag {
   display: block;
-  margin-top: 0.3rem;
-  font-size: 0.68rem;
-  border-radius: 999px;
-  width: fit-content;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 4px;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 0.08rem 0.35rem;
+  padding: 0.13rem 0.4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
+  border-left: 3px solid transparent;
+  box-sizing: border-box;
 }
 
 .event-tag[data-event-id] {
@@ -2002,37 +2070,52 @@ table.data tr:last-child td {
 }
 
 .event-tag[data-event-editable="true"]:hover {
-  filter: brightness(0.88);
+  filter: brightness(0.9);
 }
 
 .event-tag.personal {
   background: #dbeafe;
-  color: #1d4ed8;
+  color: #1e40af;
+  border-left-color: #3b82f6;
 }
 
 .event-tag.agency {
   background: #ffedd5;
   color: #c2410c;
+  border-left-color: #f97316;
 }
 
 .event-tag.agency-training {
   background: #ede9fe;
-  color: #6d28d9;
+  color: #5b21b6;
+  border-left-color: #8b5cf6;
 }
 
 .event-tag.agency-meeting {
   background: #ccfbf1;
   color: #0f766e;
+  border-left-color: #14b8a6;
 }
 
 .event-tag.holiday {
   background: #dcfce7;
   color: #166534;
+  border-left-color: #22c55e;
+}
+
+.event-tag.team {
+  background: #fce7f3;
+  color: #9d174d;
+  border-left-color: #ec4899;
 }
 
 .event-tag.more {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: transparent;
+  color: #9ca3af;
+  border-left-color: transparent;
+  font-weight: 500;
+  font-size: 0.66rem;
+  padding-left: 0.4rem;
 }
 
 .agency-manager {
@@ -3129,16 +3212,175 @@ table.data tr:last-child td {
     justify-items: start;
   }
 
-  .nav-inner {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-    scrollbar-width: thin;
+  /* ── Hamburger nav ───────────────────────────────────────────────────────── */
+
+  /* Absolutely position the hamburger so it stays top-right regardless of
+     flex order — this lets user-meta use order:-1 to appear first in the list */
+  .nav-inner .nav-hamburger {
+    display: flex;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.45rem;
+    margin-left: 0;
+    z-index: 2;
   }
 
-  .nav-inner a,
-  .nav-inner button.nav-link {
-    white-space: nowrap;
+  .nav-inner {
+    position: relative;
+    flex-wrap: wrap;
+    gap: 0;
+    overflow-x: visible;
+    /* Right padding reserves space under the absolute hamburger */
+    padding: 0.35rem 3.5rem 0.35rem 1rem;
+    scrollbar-width: none;
+    align-items: flex-start;
+    min-height: 46px;
+  }
+
+  /* Hide all nav items by default (hamburger excluded — it's absolute) */
+  .nav-inner > *:not(.nav-hamburger) {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Show items when menu is open */
+  .nav-open .nav-inner > a,
+  .nav-open .nav-inner > button.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.65rem 0.75rem;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    white-space: normal;
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .nav-open .nav-inner > .calendar-nav-menu,
+  .nav-open .nav-inner > .tools-nav-menu,
+  .nav-open .nav-inner > .overview-nav-menu {
+    display: block;
+    border-top: 1px solid var(--border);
+  }
+
+  /* When open, add top padding to clear the absolute hamburger button */
+  .nav-open .nav-inner {
+    padding-top: 3rem;
+  }
+
+  /* User meta: order -1 so it appears FIRST in the open menu list */
+  .nav-open .nav-inner > #nav-user-meta {
+    order: -1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    border-top: none;
+    border-bottom: 2px solid var(--border);
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    background: var(--surface-subtle);
+    margin-left: 0;
+    min-width: unset;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 0.1rem;
+  }
+
+  .nav-open .nav-inner > #nav-user-meta span {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-open .nav-inner > #nav-user-meta strong {
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+
+  /* Logout link: prominent red at bottom of mobile menu */
+  .nav-open .nav-inner > #logout-link {
+    color: var(--brand);
+    font-weight: 700;
+    border-top: 1px solid #fecaca;
+    background: #fff1f3;
+  }
+
+  .nav-open .nav-inner > #logout-link:hover {
+    background: #fee2e2;
+    color: var(--brand-dark);
+  }
+
+  /* Sub-menus: static (not absolute) in mobile menu */
+  .nav-open .calendar-section-menu,
+  .nav-open .tools-section-menu,
+  .nav-open .overview-scope-menu {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    min-width: unset;
+    width: 100%;
+    padding: 0;
+    background: var(--surface-subtle);
+  }
+
+  .nav-open .calendar-section-menu a,
+  .nav-open .tools-section-menu a,
+  .nav-open .overview-scope-menu button {
+    padding: 0.6rem 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    border-radius: 0;
+  }
+
+  /* Trigger links act as section labels on mobile */
+  .nav-open #calendar-nav-trigger,
+  .nav-open #tools-nav-trigger {
+    display: block;
+    padding: 0.5rem 0.75rem 0.2rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-height: unset;
+    opacity: 0.75;
+    pointer-events: none;
+    cursor: default;
+    background: none;
+    border: none;
+    text-align: left;
+  }
+
+  .nav-open #calendar-nav-trigger .overview-caret,
+  .nav-open #tools-nav-trigger .overview-caret {
+    display: none;
+  }
+
+  /* Overview nav trigger: show as a full-width clickable link (navigates to index.html) */
+  .nav-open .overview-nav-menu > a {
+    display: flex;
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    min-height: 44px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-sizing: border-box;
+  }
+
+  .overview-nav-menu,
+  .calendar-nav-menu,
+  .tools-nav-menu {
+    flex: unset;
   }
 
   .kpi-grid,
@@ -3149,12 +3391,6 @@ table.data tr:last-child td {
   .performance-toolbar {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .overview-nav-menu,
-  .calendar-nav-menu,
-  .tools-nav-menu {
-    flex: 0 0 auto;
   }
 
   .performance-kpis,
@@ -3421,11 +3657,6 @@ dialog::backdrop {
   font-weight: 600;
 }
 
-.cal-cell.has-event small {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.7rem;
-}
 
 
 /* ── Production Report ───────────────────────────────────────────────────── */
@@ -4174,26 +4405,6 @@ button {
     padding: 1rem 0.75rem 2rem;
   }
 
-  .nav-inner {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.75rem;
-    scrollbar-width: thin;
-  }
-
-  .nav-inner a,
-  .nav-inner button.nav-link {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .nav-user-meta,
-  .header-user-meta {
-    margin-left: 0;
-  }
-
   .overview-scope-menu,
   .calendar-section-menu,
   .tools-section-menu {
@@ -4334,11 +4545,6 @@ button {
     font-size: 0.88rem;
   }
 
-  .nav-inner {
-    padding-left: 0.55rem;
-    padding-right: 0.55rem;
-  }
-
   .panel,
   .kpi-card {
     border-radius: 8px;
@@ -4385,5 +4591,117 @@ button {
   .todo-sidebar-panel {
     width: 100vw;
     right: 0;
+  }
+}
+
+/* ── Calendar mobile improvements ────────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Compact calendar cells */
+  .cal-cell {
+    height: 72px;
+    padding: 0.2rem 0.15rem;
+  }
+
+  .cal-head {
+    padding: 0.4rem 0.1rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* Day number pill smaller */
+  .cal-cell .pill {
+    width: 22px;
+    height: 22px;
+    font-size: 0.72rem;
+  }
+
+  /* Event tags: show as colored dot bars instead of text */
+  .event-tag {
+    height: 5px;
+    padding: 0;
+    border-left-width: 0;
+    border-radius: 999px;
+    font-size: 0;
+    line-height: 0;
+    margin-top: 2px;
+    overflow: hidden;
+  }
+
+  .event-tag.more {
+    font-size: 0.58rem;
+    line-height: 1;
+    height: auto;
+    padding: 0 0.2rem;
+    border-radius: 4px;
+    background: transparent;
+  }
+
+  /* Calendar controls: wrap cleanly */
+  .cal-panel-head {
+    gap: 0.5rem;
+  }
+
+  .calendar-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .calendar-controls button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    min-height: 36px;
+  }
+
+  .calendar-both-toggle {
+    font-size: 0.8rem;
+  }
+
+  /* Legend wraps with smaller pills */
+  .calendar-legend {
+    flex-wrap: wrap;
+    gap: 0.3rem 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .event-indicator {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  /* View toggle buttons full width on mobile */
+  .cal-view-btn {
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.78rem !important;
+    flex: 1;
+  }
+
+  /* Week/Day/Agenda view overflow scroll for narrow screens */
+  .cal-week-grid,
+  .cal-day-grid,
+  .cal-agenda-grid {
+    overflow-x: auto;
+  }
+
+  /* Event detail popup: full-width on mobile */
+  #cal-detail-popup {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    max-width: calc(100vw - 1rem) !important;
+    min-width: unset !important;
+  }
+
+  /* Modals: full width on mobile */
+  .modal-card {
+    width: calc(100vw - 2rem);
+    max-width: 100%;
+    padding: 1rem;
+    margin: auto;
+  }
+
+  /* Touch-friendly tap targets for calendar cells */
+  .cal-cell-clickable {
+    min-height: 44px;
   }
 }

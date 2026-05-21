@@ -81,14 +81,37 @@ body { font-family: "Inter", sans-serif; background-color: #f8fafc; }
 .nav-user-meta { margin-left: auto; }
 #logout-link { margin-left: 0; }
 
+/* disable sticky sidebar on mobile — it stacks full-width and sticky is disruptive */
+@media (max-width: 1023px) {
+  aside .sticky { position: relative; top: auto; }
+}
+
 @media (max-width: 720px) {
-  .nav-inner { overflow-x: auto; flex-wrap: nowrap; gap: .35rem; scrollbar-width: thin; }
-  .nav-inner a { white-space: nowrap; }
-  .header-user-meta { margin-left: .25rem; justify-items: start; }
+  /* training-admin layout */
   .training-admin-head, .training-admin-option { display: block; }
   .training-admin-head { padding: 1rem; }
   .training-admin-preview-bar { display: grid; }
   .training-admin-actions { justify-content: flex-start; flex-wrap: wrap; margin-top: .75rem; }
   .training-admin-grid { grid-template-columns: 1fr; }
   .training-admin-correct { margin-top: .4rem; }
+
+  /* training body padding */
+  .training-admin-body { padding: 1rem; }
+  .training-admin-card { padding: .75rem; }
+}
+
+@media (max-width: 600px) {
+  /* video keeps aspect ratio — no change needed */
+
+  /* admin question inputs full width */
+  .training-admin-option { gap: .35rem; }
+  .training-admin-input { font-size: .9rem; }
+
+  /* admin action buttons stack */
+  .training-admin-actions { gap: .4rem; }
+  .training-admin-btn { width: 100%; justify-content: center; }
+
+  /* section list tighter */
+  .training-admin-section-list { padding: .25rem; }
+  .training-admin-section { padding: .65rem .7rem; }
 }

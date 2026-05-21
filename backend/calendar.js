@@ -737,10 +737,14 @@ function renderCalendar(currentDate, role, viewOptions) {
   const heads = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const MAX_SHOW = 2;
+  const MAX_SHOW = 3;
 
   let html = heads.map((day) => `<div class="cal-head">${day}</div>`).join("");
-  for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell muted">·</div>`;
+  for (let i = 0; i < firstDay; i++) {
+    const dow = i % 7;
+    const isWknd = dow === 0 || dow === 6;
+    html += `<div class="cal-cell muted${isWknd ? " weekend" : ""}"></div>`;
+  }
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateString  = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -749,11 +753,13 @@ function renderCalendar(currentDate, role, viewOptions) {
     const isToday     = dateString === today;
     const visibleEvs  = dailyEvents.slice(0, MAX_SHOW);
     const extraCount  = dailyEvents.length - MAX_SHOW;
+    const dow         = new Date(dateString).getDay();
+    const isWeekend   = dow === 0 || dow === 6;
 
     const hasConflict = hasTimeConflict(dailyEvents);
     const eventTags = hasEvents
       ? visibleEvs.map((ev) => {
-          const label     = ev.title.length > 22 ? ev.title.slice(0, 21) + "…" : ev.title;
+          const label     = ev.title.length > 24 ? ev.title.slice(0, 23) + "…" : ev.title;
           const typeClass = ev.category === "agency" ? `agency-${(ev.type || "event").toLowerCase()}` : "";
           const draggable = ev.editable && ev.category !== "holiday" ? ' draggable="true"' : "";
           return `<small class="event-tag ${ev.category} ${typeClass}"${draggable} data-event-id="${ev.id || ""}" data-event-editable="${ev.editable ? "true" : "false"}" title="${ev.title.replace(/"/g, "&quot;")}">${label}</small>`;
@@ -764,8 +770,8 @@ function renderCalendar(currentDate, role, viewOptions) {
       ? ' style="outline:2px solid #fca5a5;outline-offset:-2px;position:relative;" title="Scheduling conflict on this day"'
       : ' style="position:relative;"';
     html += `
-      <div class="cal-cell ${hasEvents ? "has-event" : ""} ${isToday ? "is-today" : ""} ${hasConflict ? "has-conflict" : ""} cal-cell-clickable" data-date="${dateString}" role="button" tabindex="0" aria-label="Open events for ${dateString}"${conflictStyle}>
-        <span class="pill ${hasEvents ? "highlight" : ""}">${day}</span>
+      <div class="cal-cell ${hasEvents ? "has-event" : ""} ${isToday ? "is-today" : ""} ${isWeekend ? "weekend" : ""} ${hasConflict ? "has-conflict" : ""} cal-cell-clickable" data-date="${dateString}" role="button" tabindex="0" aria-label="Open events for ${dateString}"${conflictStyle}>
+        <span class="pill ${hasEvents && !isToday ? "highlight" : ""}">${day}</span>
         ${hasConflict ? `<span style="position:absolute;top:3px;right:4px;font-size:0.65rem;color:#dc2626;" title="Time conflict">⚠</span>` : ""}
         ${eventTags}
       </div>
@@ -1047,47 +1053,6 @@ function renderAgendaView(currentDate, role, viewOptions) {
 
 // ── iCal export ───────────────────────────────────────────────────────────────
 
-function exportToIcs() {
-  const role  = localStorage.getItem('calendarRole') || 'agent';
-  const events = getCalendarEventsForView(role, { showPersonal: true, showAgency: true, showHolidays: false, canManageAgency: true });
-  const esc  = s => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-  const fmtDt = (date, time) => {
-    const [y, mo, d] = date.split('-');
-    if (time) { const [h, mi] = time.split(':'); return `${y}${mo}${d}T${h}${mi}00`; }
-    return `${y}${mo}${d}`;
-  };
-  const stamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
-
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Financial Agent Dashboard//Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
-  events.forEach(ev => {
-    if (!ev.date) return;
-    lines.push('BEGIN:VEVENT');
-    lines.push(`UID:${ev.id || Date.now()}@aia-dashboard`);
-    lines.push(`DTSTAMP:${stamp}`);
-    if (ev.startTime) {
-      lines.push(`DTSTART:${fmtDt(ev.date, ev.startTime)}`);
-      lines.push(`DTEND:${fmtDt(ev.date, ev.endTime || ev.startTime)}`);
-    } else {
-      const next = new Date(ev.date + 'T00:00:00'); next.setDate(next.getDate() + 1);
-      lines.push(`DTSTART;VALUE=DATE:${ev.date.replace(/-/g, '')}`);
-      lines.push(`DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`);
-    }
-    lines.push(`SUMMARY:${esc(ev.title)}`);
-    if (ev.location) lines.push(`LOCATION:${esc(ev.location)}`);
-    const desc = [ev.notes, ev.leadName ? 'Lead: ' + ev.leadName : ''].filter(Boolean).join('\\n');
-    if (desc) lines.push(`DESCRIPTION:${esc(desc)}`);
-    lines.push('END:VEVENT');
-  });
-  lines.push('END:VCALENDAR');
-
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'calendar-export.ics';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  showCalendarToast('Calendar exported as .ics');
-}
 
 // ── Reminder scheduler ────────────────────────────────────────────────────────
 
@@ -1136,17 +1101,28 @@ async function _wireAgentSelector(refreshCalendar) {
   const legend = document.getElementById("calendar-team-legend");
   if (!bar || !select) return;
 
-  // Fetch team members from /performance
+  const myId      = sessionStorage.getItem("dashboardUser") || "";
+  const myRole    = sessionStorage.getItem("dashboardRole") || "agent";
+  const isLeader  = myRole === "leader";
+
   let agents = [];
   try {
-    const rows = await apiGet("/performance");
-    const myId = sessionStorage.getItem("dashboardUser") || "";
-    agents = (Array.isArray(rows) ? rows : [])
-      .filter(r => r.agent_id && String(r.agent_id) !== String(myId))
-      .map(r => ({ id: String(r.agent_id), name: r.full_name || r.agent_id }));
-    // Deduplicate by id
-    const seen = new Set();
-    agents = agents.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+    if (isLeader) {
+      // Leaders only see their own team members
+      const rows = await apiGet("/teams/" + encodeURIComponent(myId));
+      agents = (Array.isArray(rows) ? rows : [])
+        .filter(r => r.agent_id)
+        .map(r => ({ id: String(r.agent_id), name: r.full_name || r.agent_id }));
+    } else {
+      // Admin / district: fetch all agents from /performance
+      const rows = await apiGet("/performance");
+      agents = (Array.isArray(rows) ? rows : [])
+        .filter(r => r.agent_id && String(r.agent_id) !== String(myId))
+        .map(r => ({ id: String(r.agent_id), name: r.full_name || r.agent_id }));
+      // Deduplicate by id
+      const seen = new Set();
+      agents = agents.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+    }
   } catch (e) {
     console.warn("Calendar: could not fetch team members", e);
   }
@@ -1311,12 +1287,8 @@ function wireCalendarPage() {
     });
   });
 
-  // Export .ics button
-  const exportBtn = document.getElementById('cal-export-ics-btn');
-  if (exportBtn) exportBtn.addEventListener('click', exportToIcs);
-
-  // District / admin: populate the agent selector and wire it
-  if (userRole === "district" || userRole === "admin") {
+  // District / admin / leader: populate the agent selector and wire it
+  if (userRole === "district" || userRole === "admin" || userRole === "leader") {
     _wireAgentSelector(update);
   }
 
@@ -2440,38 +2412,18 @@ function wirePersonalEventDialog(state, refreshCalendar) {
 // ── Agency event manager ──────────────────────────────────────────────────────
 
 function wireAgencyEventManager(userRole, refreshCalendar) {
-  const form        = document.getElementById("agency-event-form");
-  const typeInput   = document.getElementById("agency-event-type");
-  const dateInput   = document.getElementById("agency-event-date");
-  const titleInput  = document.getElementById("agency-event-title");
-  const editIdInput = document.getElementById("agency-event-edit-id");
-  const submitBtn   = document.getElementById("agency-event-submit-btn");
-  const cancelBtn   = document.getElementById("agency-event-cancel-btn");
   const list        = document.getElementById("agency-events-editor-list");
   const accessNote  = document.getElementById("agency-events-access-note");
-  if (!form || !typeInput || !dateInput || !titleInput || !editIdInput || !submitBtn || !cancelBtn || !list || !accessNote) return;
+  if (!list || !accessNote) return;
 
   const canManage = userRole === "admin" || userRole === "district";
 
-  const typeButtons = form.querySelectorAll(".event-type-btn");
-
-  const setEditMode = (eventItem) => {
-    if (!eventItem) {
-      editIdInput.value  = "";
-      dateInput.value    = "";
-      titleInput.value   = "";
-      typeInput.value    = "Event";
-      typeButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.type === "Event"));
-      submitBtn.textContent = "Add Event";
-      return;
-    }
-    editIdInput.value  = eventItem.id;
-    dateInput.value    = eventItem.date;
-    titleInput.value   = eventItem.title;
-    typeInput.value    = eventItem.type || "Event";
-    typeButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.type === (eventItem.type || "Event")));
-    submitBtn.textContent = "Save Changes";
-  };
+  // Regular agents see no agency events panel at all
+  if (!canManage) {
+    const panel = document.getElementById("agency-events-panel");
+    if (panel) panel.style.display = "none";
+    return;
+  }
 
   const agencyDotColor = (type) => {
     if (type === "Training") return "purple";
@@ -2481,11 +2433,7 @@ function wireAgencyEventManager(userRole, refreshCalendar) {
 
   const renderEditorList = () => {
     const events = getAgencyEvents().sort((a, b) => a.date.localeCompare(b.date));
-    list.innerHTML = events.map((eventItem) => {
-      const controls = canManage
-        ? `<div class="agency-event-actions"><button type="button" data-action="edit" data-id="${eventItem.id}">Edit</button></div>`
-        : "";
-      return `
+    list.innerHTML = events.map((eventItem) => `
         <li>
           <span class="dot ${agencyDotColor(eventItem.type)}" aria-hidden="true"></span>
           <div class="activity-body">
@@ -2494,26 +2442,14 @@ function wireAgencyEventManager(userRole, refreshCalendar) {
               <span class="activity-time">${eventItem.date}</span>
             </div>
             <p class="activity-desc">${eventItem.type || "Agency Event"}</p>
-            ${controls}
           </div>
         </li>
-      `;
-    }).join("");
-
-    if (canManage) {
-      list.querySelectorAll("button[data-action='edit']").forEach((button) => {
-        button.addEventListener("click", () => {
-          const eventToEdit = getAgencyEvents().find((item) => item.id === button.dataset.id);
-          if (eventToEdit) setEditMode(eventToEdit);
-        });
-      });
-    }
+      `).join("");
   };
 
   accessNote.textContent = canManage
-    ? "You have admin access and can add, edit, or import agency-level events."
-    : "Agency-level events are read-only. Only admins can add, edit, or import.";
-  form.style.display = canManage ? "grid" : "none";
+    ? "You have admin access and can import or clear agency-level events."
+    : "Agency-level events are read-only. Only admins can import or clear.";
 
   const importSection = document.getElementById("agency-events-import-section");
   if (importSection) importSection.style.display = canManage ? "block" : "none";
@@ -2556,50 +2492,6 @@ function wireAgencyEventManager(userRole, refreshCalendar) {
     }
   }
 
-  typeButtons.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      typeInput.value = btn.dataset.type;
-      typeButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-    });
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!canManage) return;
-    const date  = dateInput.value;
-    const title = titleInput.value.trim();
-    if (!date || !title) return;
-
-    const editingId  = editIdInput.value;
-    const typeValue  = typeInput.value || "Event";
-    const origText   = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Saving…";
-
-    try {
-      if (editingId) {
-        await apiPut('/events/' + editingId, { title, event_date: date, event_type: typeValue });
-        const updated = getAgencyEvents().map((item) => (item.id === editingId ? { ...item, date, title, type: typeValue } : item));
-        saveAgencyEvents(updated);
-        try { window.dispatchEvent(new CustomEvent("calendarEventAdded", { detail: { type: "agency", event: updated.find((it) => it.id === editingId) } })); } catch (_) {}
-      } else {
-        const newEv = addAgencyEvent({ date, title, type: typeValue });
-        try { window.dispatchEvent(new CustomEvent("calendarEventAdded", { detail: { type: "agency", event: newEv } })); } catch (_) {}
-      }
-      setEditMode(null);
-      renderEditorList();
-      refreshCalendar();
-    } catch (err) {
-      console.error("Agency event save failed:", err);
-    } finally {
-      submitBtn.disabled    = false;
-      submitBtn.textContent = origText;
-    }
-  });
-
-  cancelBtn.addEventListener("click", () => setEditMode(null));
   renderEditorList();
 
   // CSV / Excel import

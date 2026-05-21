@@ -694,38 +694,123 @@
       .booking-topbar {
         grid-template-columns: 1fr;
       }
+
+      /* Toolbar: wrap to two rows instead of horizontal scroll */
       .cal-toolbar {
         justify-content: flex-start;
-        overflow-x: auto;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
+        gap: 0.4rem;
       }
+      .cal-toolbar .view-toggle {
+        flex: 1 0 auto;
+      }
+      .add-btn {
+        flex: 1 0 auto;
+        justify-content: center;
+        min-height: 36px;
+      }
+      .today-btn {
+        min-height: 36px;
+      }
+
       .range-label {
-        min-width: 210px;
+        font-size: 0.95rem;
+        margin-bottom: 0.4rem;
       }
+
       .room-filter {
         align-items: flex-start;
         flex-direction: column;
       }
-      .cal-toolbar {
-        gap: 0.35rem;
-      }
-      .week-header,
-      .week-body {
-        grid-template-columns: 60px repeat(6, 1fr);
-      }
-      .month-grid {
-        grid-template-columns: repeat(7, minmax(92px, 1fr));
+
+      /* Week/Day grid: horizontal scroll so content stays readable */
+      .week-grid-wrap {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
-      .month-cell {
-        min-height: 96px;
+      .week-header {
+        grid-template-columns: 52px repeat(7, minmax(80px, 1fr));
+        min-width: 620px;
+        padding-right: 0;
       }
+      .week-body {
+        grid-template-columns: 52px repeat(7, minmax(80px, 1fr));
+        min-width: 620px;
+        max-height: 65vh;
+        min-height: 420px;
+      }
+
+      /* Day view: each room gets a readable column */
       .time-slot {
         font-size: 0.6rem;
         padding-right: 0.2rem;
+        width: 52px;
       }
       .booking-block strong {
         font-size: 0.68rem;
+      }
+      .booking-block {
+        padding: 0.15rem 0.3rem;
+      }
+
+      /* Month view: horizontal scroll */
+      .month-view {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .month-grid {
+        grid-template-columns: repeat(7, minmax(80px, 1fr));
+        min-width: 560px;
+      }
+      .month-cell {
+        min-height: 80px;
+        padding: 0.35rem;
+      }
+
+      /* Room filter chips wrap */
+      #roomChips {
+        gap: 0.45rem;
+      }
+      .room-chip {
+        font-size: 0.78rem;
+        padding: 0.18rem 0.45rem;
+      }
+
+      /* Detail popup: full width centered on mobile */
+      .detail-popup {
+        position: fixed !important;
+        left: 0.75rem !important;
+        right: 0.75rem !important;
+        top: auto !important;
+        bottom: 1.5rem !important;
+        max-width: calc(100vw - 1.5rem) !important;
+        min-width: unset !important;
+        width: auto !important;
+      }
+
+      /* Modal form rows: single column */
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      /* Modal: full width */
+      dialog {
+        width: calc(100vw - 1rem);
+        max-width: calc(100vw - 1rem);
+      }
+
+      /* Recurring choice dialog buttons: stacked */
+      #recurChoiceModal .modal-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      #recurChoiceModal .modal-actions > div {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+      }
+      #recurChoiceModal .modal-actions > div button {
+        flex: 1;
       }
     }
   </style>
