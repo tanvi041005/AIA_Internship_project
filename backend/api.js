@@ -148,7 +148,7 @@ function mapLead(r) {
     sumAssured:       Number(extra.sumAssured || 0),
     agency:           extra.agency || '',
     followUps: (r.follow_ups || r.followUps || []).map(function(f) {
-      return { label: f.label, date: f.scheduled_date, done: !!f.is_done };
+      return { label: f.label, date: toSGDate(f.scheduled_date != null ? f.scheduled_date : f.date), done: !!(f.is_done || f.done) };
     }),
   });
 }
@@ -231,6 +231,7 @@ function mapCalendarEvent(r) {
     recurrenceId: r.recurrence_id  || r.recurrenceId  || '',
     taskId:       r.linked_task_id || r.taskId || '',
     editable:     r.is_editable !== false,
+    createdBy:    r.created_by || r.createdBy || '',
   });
 }
 

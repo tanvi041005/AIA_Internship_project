@@ -13,7 +13,7 @@
 
   var user = (sessionStorage.getItem("dashboardUser") || "User").toUpperCase();
   var role = signedInRole;
-  var isHostView = role === "admin" || role === "leader";
+  var isHostView = false;
   var roleLabels = { agent: "Agent", leader: "Agency Leader", admin: "Admin Super User" };
   var attendanceEvents = [];
   var attendanceRecords = [];
@@ -42,7 +42,8 @@
       location: r.location || "",
       type: r.event_type || r.type || "Calendar Event",
       category: r.category || "agency",
-      attendanceToken: r.attendance_token || r.attendanceToken || ""
+      attendanceToken: r.attendance_token || r.attendanceToken || "",
+      createdBy: String(r.created_by || r.createdBy || "").toUpperCase()
     };
   }
 
@@ -55,7 +56,10 @@
     (Array.isArray(attendanceRows) ? attendanceRows : []).forEach(function (row) {
       var eventItem = mapAttendanceEvent(row);
       if (!eventItem.id) return;
-      byId[eventItem.id] = Object.assign({}, byId[eventItem.id] || {}, eventItem);
+      var existing = byId[eventItem.id] || {};
+      byId[eventItem.id] = Object.assign({}, existing, eventItem, {
+        createdBy: eventItem.createdBy || existing.createdBy || ""
+      });
     });
     return Object.keys(byId).map(function (id) { return byId[id]; });
   }
@@ -108,6 +112,11 @@
     return events.find(function (item) { return item.id === eventId; }) || getAutoSelectedEvent(events);
   }
 
+  function canHostEvent(eventItem) {
+    var createdBy = String(eventItem && (eventItem.createdBy || eventItem.created_by) || "").toUpperCase();
+    return !!eventItem && !openedFromQr && !!createdBy && createdBy === user;
+  }
+
   function eventWindow(eventItem) {
     var date = eventItem && eventItem.date ? eventItem.date : new Date().toISOString().slice(0, 10);
     var startTime = eventItem && eventItem.startTime ? eventItem.startTime : "09:00";
@@ -150,7 +159,7 @@
       type: eventItem.type || "Calendar Event",
       category: eventItem.category || "agency",
       attendanceToken: token,
-      createdBy: user
+      createdBy: eventItem.createdBy || user
     };
     var saved = await apiPost("/attendance-events", normalized);
     var merged = Object.assign({}, eventItem, {
@@ -178,6 +187,8 @@
   }
 
   function renderRoleView() {
+    var eventItem = selectedEvent();
+    isHostView = canHostEvent(eventItem);
     var attendeePanel = document.querySelector(".attendance-checkin-panel");
     var hostPanel = document.querySelector(".attendance-host-panel");
     var grid = document.querySelector(".attendance-grid");
@@ -192,8 +203,8 @@
     if (pageTitle) pageTitle.textContent = isHostView ? "Presenter Attendance View" : "Attendee Check-in";
     if (pageLede) {
       pageLede.textContent = isHostView
-        ? "The admin host view automatically selects the current or next database attendance event and generates the attendance QR."
-        : "Agents can only check in after scanning the host QR and signing in.";
+        ? "Host view is available because you created this event."
+        : "Only the event creator can generate the QR and open host view. Attendees can check in after scanning the host QR.";
     }
   }
 
@@ -214,7 +225,11 @@
     btn.disabled = !canCheckIn(eventItem);
     btn.textContent = canCheckIn(eventItem) ? "Check in now" : "Scan QR to check in";
     var hostLabel = document.getElementById("attendance-host-event-label");
-    if (hostLabel) hostLabel.textContent = "Auto-selected: " + (eventItem.title || "Calendar Event") + " - " + formatDate(eventItem.date);
+    if (hostLabel) {
+      hostLabel.textContent = canHostEvent(eventItem)
+        ? "Host event: " + (eventItem.title || "Calendar Event") + " - " + formatDate(eventItem.date)
+        : "Only the event creator can generate QR for this event.";
+    }
   }
 
   function buildCheckInUrl(eventItem) {
@@ -279,6 +294,10 @@
     var title = document.getElementById("attendance-host-qr-title");
     var link = document.getElementById("attendance-host-qr-link");
     if (!dialog || !canvas || !title || !link || !eventItem) return;
+    if (!canHostEvent(eventItem)) {
+      alert("Only the event creator can generate the attendance QR.");
+      return;
+    }
     try {
       var saved = await saveAttendanceEvent(eventItem);
       var url = buildCheckInUrl(saved);
@@ -413,16 +432,16 @@
     attendanceRecords = [];
   }
 
+  renderSelector();
   renderUserMeta();
   renderRoleView();
-  renderSelector();
   renderEvent();
   renderRecords();
   startHostRecordRefresh();
   document.getElementById("attendance-checkin-btn").addEventListener("click", checkIn);
   document.getElementById("attendance-generate-qr-btn").addEventListener("click", function () {
     var eventItem = selectedEvent();
-    if (eventItem) renderHostQr(eventItem);
+    if (eventItem && canHostEvent(eventItem)) renderHostQr(eventItem);
   });
   document.getElementById("attendance-close-qr-btn").addEventListener("click", function () {
     document.getElementById("attendance-qr-fullscreen").close();

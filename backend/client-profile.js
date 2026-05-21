@@ -415,20 +415,21 @@
           </label>
           <label>Commission Amount
             <input type="number" class="pp-commission-amount" value="${commissionAmount}" min="0" readonly />
+            <small>Auto-calculated from Est. Premium / yr and Commission Rate.</small>
           </label>
         </div>
       </div>
     `;
   }
 
-  function updateLead(leadId, updater) {
+  function updateLead(leadId, updater, options = {}) {
     const leads = getLeads();
     const leadIndex = leads.findIndex((lead) => normalizeId(lead.id) === normalizeId(leadId));
     if (leadIndex === -1) return null;
     const updatedLead = updater({ ...leads[leadIndex] });
     leads[leadIndex] = updatedLead;
     saveLeads(leads);
-    syncLeadToApi(updatedLead);
+    if (options.sync !== false) syncLeadToApi(updatedLead);
     return updatedLead;
   }
 
@@ -438,6 +439,14 @@
       date: row.querySelector(".timeline-date-input")?.value || "",
       done: Boolean(row.querySelector(".timeline-done-input")?.checked)
     })).filter((item) => item.label || item.date || item.done);
+  }
+
+  function getFirstMeetupDateFromTimeline(followUps, fallbackDate) {
+    const firstMeetup = (Array.isArray(followUps) ? followUps : []).find((item) => {
+      const label = String(item.label || "").trim().toLowerCase();
+      return item.isFirstMeetup || label === "first meet-up" || label === "first meetup" || label === "first appointment";
+    });
+    return firstMeetup && firstMeetup.date ? firstMeetup.date : (fallbackDate || "");
   }
 
   function renderProfileEditForm(leadId) {
@@ -1426,16 +1435,18 @@
     }
 
     if (saveButton) {
-      saveButton.addEventListener("click", () => {
+      saveButton.addEventListener("click", async () => {
         const followUps = readTimelineRows();
         // Persist follow-ups and update the lead's nextMeetDate to the latest event date
         const dates = followUps.map(f => f.date).filter(Boolean).sort();
         const latestDate = dates.length ? dates[dates.length - 1] : "";
-        updateLead(leadId, (currentLead) => ({
+        const updatedLead = updateLead(leadId, (currentLead) => ({
           ...currentLead,
+          meetDate: getFirstMeetupDateFromTimeline(followUps, currentLead.meetDate),
           followUps,
           nextMeetDate: latestDate
-        }));
+        }), { sync: false });
+        if (updatedLead) await syncLeadToApi(updatedLead);
         renderProfile(leadId);
       });
     }
@@ -1453,29 +1464,8 @@
     const userId = sessionStorage.getItem("dashboardUser");
     try {
       const rows = await apiGet("/leads" + (userId ? "?userId=" + encodeURIComponent(userId) : ""));
-      if (Array.isArray(rows) && rows.length > 0) {
-        const remoteLeads = rows.map(mapLead);
-        const localLeads = getLeads();
-        const mergedById = new Map();
-
-        remoteLeads.forEach((lead) => {
-          mergedById.set(normalizeId(lead.id), lead);
-        });
-        localLeads.forEach((lead) => {
-          const remote = mergedById.get(normalizeId(lead.id));
-          if (remote) {
-            // Referral fields are now server-authoritative — prefer server values
-            mergedById.set(normalizeId(lead.id), {
-              ...lead,
-              referredByLeadId: remote.referredByLeadId || lead.referredByLeadId || "",
-              noReferrals: remote.noReferrals !== undefined ? remote.noReferrals : !!lead.noReferrals,
-            });
-          } else {
-            mergedById.set(normalizeId(lead.id), lead);
-          }
-        });
-
-        saveLeads(Array.from(mergedById.values()));
+      if (Array.isArray(rows)) {
+        saveLeads(rows.map(mapLead));
       }
     } catch (e) { console.warn("Failed to load leads from API:", e); }
   }

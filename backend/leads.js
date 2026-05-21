@@ -142,6 +142,14 @@ function formatCommissionRate(lead) {
   return "—";
 }
 
+function formatCommissionRatePercent(lead) {
+  if (!lead || lead.commissionRate === undefined || lead.commissionRate === null || lead.commissionRate === "") {
+    return "—";
+  }
+  const rate = Number(lead.commissionRate);
+  return Number.isFinite(rate) ? `${rate}%` : "—";
+}
+
 function formatCommissionAmount(lead) {
   const amount = lead && lead.commissionAmount !== undefined && lead.commissionAmount !== null
     ? Number(lead.commissionAmount)
@@ -169,19 +177,22 @@ function followUpsWithFirstMeetup(lead) {
 let LEADS = [];
 let filtered = [];
 let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
+let deleteMode = false;
+let selectedLeadIds = new Set();
 
 async function init(){
   const userId = sessionStorage.getItem("dashboardUser") || "";
-  const localLeads = getStoredLeads();
   let remoteLeads = [];
+  let loadedFromApi = false;
   try {
     remoteLeads = typeof apiGet === "function"
       ? (await apiGet('/leads' + (userId ? '?userId=' + encodeURIComponent(userId) : ''))).map(mapLead)
       : [];
+    loadedFromApi = typeof apiGet === "function";
   } catch (e) {
     console.warn("Failed to load leads from API:", e);
   }
-  LEADS = mergeLeads(remoteLeads, localLeads);
+  LEADS = loadedFromApi ? remoteLeads.map(normalizeLead) : getStoredLeads();
   saveStoredLeads(LEADS);
   filtered = [...LEADS];
   renderKPIs();
@@ -247,6 +258,7 @@ function sortData(){
 
 function render(){
   document.getElementById("summary-line").textContent = `Showing ${filtered.length} of ${LEADS.length} leads`;
+  updateDeleteControls();
   document.querySelectorAll(".lead-table th[data-col]").forEach(th => {
     th.classList.remove("sorted");
     const arrow = th.querySelector(".sort-arrow");
@@ -259,10 +271,13 @@ function render(){
   }
   tbody.innerHTML = filtered.map(l => {
     const col = AVATAR_COLORS[Math.abs(l.id) % AVATAR_COLORS.length];
+    const idKey = normalizeId(l.id);
+    const checked = selectedLeadIds.has(idKey);
     return `
-    <tr class="lead-row${activeId === l.id ? " selected" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="View details for ${l.name}">
+    <tr class="lead-row${activeId === l.id ? " selected" : ""}${deleteMode ? " delete-mode" : ""}${checked ? " selected-for-delete" : ""}" data-id="${l.id}" tabindex="0" role="button" aria-label="${deleteMode ? "Select" : "View details for"} ${l.name}">
       <td>
         <div class="lead-name-cell">
+          ${deleteMode ? `<input type="checkbox" class="lead-select-checkbox" data-select-id="${idKey}" aria-label="Select ${l.name} for deletion" ${checked ? "checked" : ""} />` : ""}
           <div class="lead-mini-avatar" style="background:${col}">${initials(l.name)}</div>
           <strong class="lead-name">${l.name}</strong>
         </div>
@@ -376,8 +391,71 @@ function renderClosure(){
       <td><span class="status-pill ${l.urgency}" style="font-size:.7rem">${cap(l.urgency)}</span></td>
       <td style="font-size:.82rem">${l.specificPlanType || l.planType}</td>
       <td class="premium-val">${(l.currency === "USD" ? "USD" : "SGD")} ${l.premium.toLocaleString()}</td>
-      <td style="font-size:.8rem;color:var(--text-muted)">${formatCommissionRate(l)}</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">${formatCommissionRatePercent(l)}</td>
+      <td style="font-size:.8rem;color:var(--text-muted)">${formatCommissionAmount(l)}</td>
     </tr>`).join("");
+}
+
+function setDeleteMode(enabled) {
+  deleteMode = enabled;
+  selectedLeadIds = new Set();
+  render();
+}
+
+function updateDeleteControls() {
+  const deleteBtn = document.getElementById("delete-lead-btn");
+  const cancelBtn = document.getElementById("cancel-delete-btn");
+  if (!deleteBtn || !cancelBtn) return;
+  const count = selectedLeadIds.size;
+  deleteBtn.classList.toggle("active", deleteMode);
+  cancelBtn.hidden = !deleteMode;
+  deleteBtn.disabled = deleteMode && count === 0;
+  deleteBtn.textContent = deleteMode
+    ? `Delete selected${count ? ` (${count})` : ""}`
+    : "Delete Lead";
+}
+
+function toggleLeadSelection(id) {
+  const key = normalizeId(id);
+  if (!key) return;
+  if (selectedLeadIds.has(key)) selectedLeadIds.delete(key);
+  else selectedLeadIds.add(key);
+  render();
+}
+
+async function deleteSelectedLeads() {
+  const ids = Array.from(selectedLeadIds);
+  if (!ids.length) return;
+  const names = LEADS
+    .filter((lead) => ids.includes(normalizeId(lead.id)))
+    .map((lead) => lead.name || lead.id);
+  const confirmed = window.confirm(`Delete ${ids.length} lead${ids.length === 1 ? "" : "s"}?\n\n${names.join("\n")}`);
+  if (!confirmed) return;
+
+  const failed = [];
+  for (const id of ids) {
+    try {
+      if (typeof apiDelete === "function" && /^\d{1,10}$/.test(id)) {
+        await apiDelete("/leads/" + encodeURIComponent(id));
+      }
+    } catch (error) {
+      failed.push(id);
+    }
+  }
+
+  if (failed.length) {
+    alert(`Could not delete ${failed.length} lead${failed.length === 1 ? "" : "s"}. Please try again.`);
+    return;
+  }
+
+  LEADS = LEADS.filter((lead) => !ids.includes(normalizeId(lead.id)));
+  filtered = filtered.filter((lead) => !ids.includes(normalizeId(lead.id)));
+  saveStoredLeads(LEADS);
+  selectedLeadIds = new Set();
+  deleteMode = false;
+  renderKPIs();
+  applyFilters();
+  renderClosure();
 }
 
 function parseExcelFile(file) {
@@ -580,6 +658,18 @@ function bindEvents(){
     stageFilter = null;
     filtered = [...LEADS]; sortData(); render();
   });
+
+  document.getElementById("delete-lead-btn").addEventListener("click", () => {
+    if (!deleteMode) {
+      setDeleteMode(true);
+      return;
+    }
+    deleteSelectedLeads();
+  });
+
+  document.getElementById("cancel-delete-btn").addEventListener("click", () => {
+    setDeleteMode(false);
+  });
   
   // Excel Import Modal
   const modal = document.getElementById("excel-import-modal");
@@ -700,6 +790,11 @@ function bindEvents(){
   document.getElementById("lead-tbody").addEventListener("click", e => {
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
+    if (deleteMode) {
+      e.preventDefault();
+      toggleLeadSelection(row.dataset.id);
+      return;
+    }
     window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.getElementById("lead-tbody").addEventListener("keydown", e => {
@@ -707,10 +802,15 @@ function bindEvents(){
     const row = e.target.closest("tr[data-id]");
     if(!row) return;
     e.preventDefault();
+    if (deleteMode) {
+      toggleLeadSelection(row.dataset.id);
+      return;
+    }
     window.location.href = `client-profile.html?id=${row.dataset.id}`;
   });
   document.addEventListener("keydown", e => {
-    if(e.key === "Escape" && activeId) closeDrawer();
+    if(e.key === "Escape" && deleteMode) setDeleteMode(false);
+    else if(e.key === "Escape" && activeId) closeDrawer();
   });
 
   // Listen for localStorage changes (made by client-profile page) and refresh leads view

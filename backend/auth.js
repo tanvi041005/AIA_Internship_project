@@ -45,6 +45,9 @@
     usernameInput.addEventListener("input", () => {
       if (roleError) roleError.hidden = true;
     });
+    passwordInput.addEventListener("input", () => {
+      if (roleError) roleError.hidden = true;
+    });
 
     async function loginFromApi(username, password) {
       if (typeof window.apiPost !== "function") return null;
@@ -86,7 +89,7 @@
           submitButton.removeAttribute("aria-busy");
         }
         if (roleError) {
-          roleError.textContent = "Invalid User ID or password.";
+          roleError.textContent = "User ID or password incorrect.";
           roleError.hidden = false;
         }
         return;

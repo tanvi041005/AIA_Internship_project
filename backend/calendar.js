@@ -152,6 +152,7 @@ function mapCalendarEvent(r) {
     leadId:      r.lead_id         || '',
     leadName:    r.lead_name       || '',
     editable:    r.is_editable !== false,
+    createdBy:   r.created_by || r.createdBy || '',
   };
 }
 
@@ -188,6 +189,10 @@ async function loadCalendarFromApi() {
     meetupDate: lead.meetDate || '',
     meetupLocation: lead.location || '',
     meetingType: lead.meetType || '',
+    followUps: (Array.isArray(lead.followUps) ? lead.followUps : []).map((item) => ({
+      ...item,
+      date: calendarDateOnly(item.date)
+    })),
     owner: lead.ownerId === userId ? 'agent' : 'district'
   }));
 
@@ -289,7 +294,7 @@ async function saveAttendanceEvent(eventItem) {
     type:            eventItem.type            || "Calendar Event",
     category:        eventItem.category        || "personal",
     attendanceToken: eventItem.attendanceToken || `qr-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
-    createdBy:       sessionStorage.getItem("dashboardUser") || "Host"
+    createdBy:       eventItem.createdBy || eventItem.created_by || sessionStorage.getItem("dashboardUser") || "Host"
   };
   const saved = await apiPost("/attendance-events", normalized);
   return {
@@ -347,6 +352,7 @@ function addPersonalEvent(payload) {
     date,
     title, startTime, endTime, location, notes, taskTitle, taskId, type,
     category: 'personal',
+    createdBy: sessionStorage.getItem('dashboardUser') || '',
     reminder,
     ...(leadId      ? { leadId }      : {}),
     ...(leadName    ? { leadName }    : {}),
@@ -390,6 +396,7 @@ function addAgencyEvent(payload) {
     ...(notes        ? { notes     }    : {}),
     ...(recurrenceId ? { recurrenceId } : {}),
     category: 'agency',
+    createdBy: sessionStorage.getItem('dashboardUser') || '',
   };
   _agencyEvents.push(ev);
   try { localStorage.setItem(AGENCY_EVENTS_STORAGE_KEY, JSON.stringify(_agencyEvents)); } catch (e) {}
@@ -531,6 +538,25 @@ function formatTimeRange(event) {
   return "Time not set";
 }
 
+function calendarDateOnly(value) {
+  if (!value) return "";
+  if (typeof toSGDate === "function") return toSGDate(value);
+  const text = String(value);
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : text.slice(0, 10);
+}
+
+function currentCalendarUserId() {
+  return String(sessionStorage.getItem("dashboardUser") || "").trim().toUpperCase();
+}
+
+function isCurrentUserEventCreator(eventItem) {
+  if (!eventItem || eventItem.category === "holiday") return false;
+  const createdBy = String(eventItem.createdBy || eventItem.created_by || "").trim().toUpperCase();
+  const currentUser = currentCalendarUserId();
+  return !!currentUser && !!createdBy && currentUser === createdBy;
+}
+
 function isValidSameDayTimeRange(startTime, endTime) {
   if (!startTime || !endTime) return false;
   return endTime > startTime;
@@ -559,8 +585,10 @@ function getPublicHolidayEvents(year) {
 }
 
 function getLeadEvents(role = "agent", options = { showPersonal: true, showAgency: false }) {
-  const personalLeads = leadData
-    .filter((lead) => (role === "admin" ? lead.owner === "district" : lead.owner === "agent"))
+  const visibleLeads = leadData
+    .filter((lead) => (role === "admin" ? lead.owner === "district" : lead.owner === "agent"));
+
+  const personalLeads = visibleLeads
     .map((lead) => ({
       id:       `lead-${lead.id}`,
       leadId:   lead.id,
@@ -571,6 +599,29 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
       category: "personal",
       editable: false
     }));
+
+  const leadTimelineEvents = visibleLeads.flatMap((lead) => {
+    return (Array.isArray(lead.followUps) ? lead.followUps : [])
+      .filter((item) => {
+        const label = String(item.label || "").trim().toLowerCase();
+        const itemDate = calendarDateOnly(item.date);
+        return itemDate &&
+          label !== "lead created" &&
+          label !== "first meet-up" &&
+          label !== "first meetup" &&
+          label !== "first appointment";
+      })
+      .map((item, index) => ({
+        id:       `lead-${lead.id}-timeline-${index}-${calendarDateOnly(item.date)}`,
+        leadId:   lead.id,
+        date:     calendarDateOnly(item.date),
+        title:    `${lead.name} · ${item.label || "Follow-up"}`,
+        location: lead.meetupLocation,
+        type:     item.done ? "Completed Follow-up" : "Follow-up",
+        category: "personal",
+        editable: false
+      }));
+  });
 
   const personalCustomEvents = getPersonalEvents().map((event) => ({
     ...event,
@@ -596,7 +647,7 @@ function getLeadEvents(role = "agent", options = { showPersonal: true, showAgenc
   }));
 
   const events = [];
-  if (options.showPersonal) events.push(...personalLeads, ...personalCustomEvents);
+  if (options.showPersonal) events.push(...personalLeads, ...leadTimelineEvents, ...personalCustomEvents);
   if (options.showAgency)   events.push(...agencyMeetups);
   if (options.showHolidays !== false) events.push(...holidayEvents);
   if (teamEvents.length)    events.push(...teamEvents);
@@ -1513,7 +1564,7 @@ function _openDayPopup(clickEvent, date, events, state) {
   const userRole   = sessionStorage.getItem("dashboardRole") || "agent";
   const isDistrict = userRole === "district" || userRole === "admin";
   const dateLabel  = new Date(date + "T00:00:00").toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-  const attendanceEvent = events.find((event) => event.category !== "holiday");
+  const attendanceEvent = events.find((event) => event.category !== "holiday" && isCurrentUserEventCreator(event));
 
   const popup = document.createElement("div");
   popup.id = "cal-day-popup";
@@ -1588,6 +1639,7 @@ function _openDayPopup(clickEvent, date, events, state) {
   const attendanceQrBtn = document.getElementById("day-popup-attendance-qr-btn");
   if (attendanceQrBtn) {
     attendanceQrBtn.addEventListener("click", () => {
+      if (!isCurrentUserEventCreator(attendanceEvent)) return;
       closeDayPopup();
       openAttendanceQrDialog(attendanceEvent);
     });
@@ -1665,7 +1717,7 @@ function openCalendarEventDialog(date, events, clickEvent = null, state = null) 
     if (type === "Meeting")  return "teal";
     return "orange";
   };
-  const attendanceEvent = events.find((event) => event.category !== "holiday") || events[0];
+  const attendanceEvent = events.find((event) => event.category !== "holiday" && isCurrentUserEventCreator(event)) || null;
 
   title.textContent = `Scheduled Events · ${date}`;
   list.innerHTML = events.map((event) => {
@@ -1743,7 +1795,7 @@ function openCalendarEventDialog(date, events, clickEvent = null, state = null) 
   };
 
   if (qrButton) {
-    const canTakeAttendance = attendanceEvent && attendanceEvent.category !== "holiday";
+    const canTakeAttendance = attendanceEvent && isCurrentUserEventCreator(attendanceEvent);
     qrButton.hidden  = !canTakeAttendance;
     qrButton.onclick = () => { if (canTakeAttendance) openAttendanceQrDialog(attendanceEvent); };
   }
@@ -1769,6 +1821,10 @@ async function openAttendanceQrDialog(eventItem) {
   const title  = document.getElementById("attendance-qr-event");
   const link   = document.getElementById("attendance-qr-link");
   if (!dialog || !canvas || !link || !eventItem) return;
+  if (!isCurrentUserEventCreator(eventItem)) {
+    alert("Only the event creator can generate the attendance QR.");
+    return;
+  }
 
   let storedEvent;
   try {

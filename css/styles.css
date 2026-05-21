@@ -2328,6 +2328,10 @@ table.data tr:last-child td {
   display: none;
 }
 
+.form-error:not([hidden]) {
+  display: block;
+}
+
 .form-success {
   display: none;
   padding: 0.75rem 1rem;
@@ -3421,9 +3425,11 @@ dialog::backdrop {
 .upload-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 0.45rem 0.9rem;
   background: var(--brand);
   color: #fff;
+  border: 1px solid var(--brand);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -3457,9 +3463,9 @@ dialog::backdrop {
 
 .admin-user-form {
   display: grid;
-  grid-template-columns: minmax(130px, 0.85fr) minmax(180px, 1.25fr) minmax(130px, 0.8fr) minmax(180px, 1fr) minmax(170px, 1fr) auto;
+  grid-template-columns: minmax(130px, 0.85fr) minmax(180px, 1.25fr) minmax(130px, 0.8fr) minmax(180px, 1fr) minmax(220px, 1fr);
   gap: 0.75rem;
-  align-items: end;
+  align-items: start;
   margin: 1rem 0;
   padding: 0.85rem;
   border: 1px solid var(--border);
@@ -3493,16 +3499,42 @@ dialog::backdrop {
 }
 
 .admin-user-actions {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .admin-user-actions .upload-btn,
 .admin-user-actions .team-remove-btn {
-  min-height: 38px;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
+}
+
+.admin-user-actions .team-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: var(--brand);
+  border: 1px solid #f4cbd2;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-user-actions .team-remove-btn:hover,
+.admin-user-actions .team-remove-btn:focus-visible {
+  background: var(--brand-light);
+  border-color: var(--brand);
+  color: var(--brand-dark);
 }
 
 .admin-table-actions {

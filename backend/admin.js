@@ -68,7 +68,10 @@
     if (form) form.reset();
     if (editingId) editingId.value = "";
     if (userId) userId.disabled = false;
-    if (password) password.placeholder = "Required for new users";
+    if (password) {
+      password.required = true;
+      password.placeholder = "Required for new users";
+    }
     if (submit) submit.textContent = "Create user";
     if (cancel) cancel.hidden = true;
   }
@@ -193,6 +196,7 @@
     document.getElementById("admin-user-role").value = normalizeRole(row.role || row.role_key) || "agent";
     document.getElementById("admin-user-agency").value = getUserAgency(row);
     document.getElementById("admin-user-password").value = "";
+    document.getElementById("admin-user-password").required = false;
     document.getElementById("admin-user-password").placeholder = "Leave blank to keep current password";
     document.getElementById("admin-user-submit-btn").textContent = "Save changes";
     document.getElementById("admin-user-cancel-btn").hidden = false;
@@ -209,7 +213,7 @@
     const fullName = document.getElementById("admin-user-name").value.trim();
     const roleKey = document.getElementById("admin-user-role").value;
     const agency = document.getElementById("admin-user-agency").value;
-    const password = document.getElementById("admin-user-password").value;
+    const password = document.getElementById("admin-user-password").value.trim();
 
     if (!userId || !fullName || !roleKey) {
       showUserMsg("error", "User ID, full name, and role are required.");
@@ -217,6 +221,10 @@
     }
     if (!editingId && !password) {
       showUserMsg("error", "Password is required for new users.");
+      return;
+    }
+    if (password && password.trim().length < 4) {
+      showUserMsg("error", "Password must be at least 4 characters.");
       return;
     }
 
