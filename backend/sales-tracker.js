@@ -373,7 +373,7 @@
             return { id: t.activity_type_id || t.id, label: t.label, points: Number(t.points || 0) };
           });
         }
-        if (settings && settings.weeklyTarget) DAILY_TARGET = Math.round(settings.weeklyTarget / 7) || DAILY_TARGET;
+        DAILY_TARGET = 15;
       } catch (e) { console.warn('Failed to load sales settings:', e); }
       try {
         var entriesPath = isManager ? '/sales-entries' : '/sales-entries?agentId=' + encodeURIComponent(user);
