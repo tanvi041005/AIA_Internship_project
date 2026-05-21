@@ -89,10 +89,10 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 .lead-row:focus-visible{outline:2px solid #d9b8b8;outline-offset:-2px}
 .lead-row:hover{background:#fbfaf8}
 .lead-row.selected{background:var(--brand-light)}
-.status-pill{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.7rem;font-weight:700;line-height:1.2}
-.status-pill.urgent{background:#fee2e2;color:#b91c1c}
-.status-pill.non-urgent{background:#dcfce7;color:#166534}
-.status-pill.medium{background:#fef3c7;color:#92400e}
+.status-pill{display:inline-block;padding:0 .28rem;border-radius:0;font-size:.7rem;font-weight:700;line-height:1.2;background:transparent}
+.status-pill.urgent{background:transparent;color:#b91c1c}
+.status-pill.non-urgent{background:transparent;color:#166534}
+.status-pill.medium{background:transparent;color:#92400e}
 .badge,.badge-text{display:inline;color:var(--text);background:transparent;padding:0;border-radius:0;font-size:.82rem;font-weight:500}
 .badge.online,.badge.physical,.badge.hybrid{background:transparent;color:var(--text)}
 .stage-pill{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.71rem;font-weight:700;line-height:1.2;background:#f3f4f6;color:#6b7280}
