@@ -482,6 +482,18 @@
     }
 
     showAnnouncementPrompt();
+    ensurePersistentPlanner();
+  }
+
+  function ensurePersistentPlanner() {
+    if (!loggedRole || currentPage === "login.html") return;
+    if (document.getElementById("todo-sidebar") || document.getElementById("floating-task-form")) return;
+    if (document.querySelector('script[src$="planner.js"]')) return;
+
+    const script = document.createElement("script");
+    script.src = "../backend/planner.js";
+    script.defer = true;
+    document.body.appendChild(script);
   }
 
   function showAnnouncementPrompt() {

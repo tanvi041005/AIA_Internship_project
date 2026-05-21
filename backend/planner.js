@@ -4,6 +4,68 @@
 //   openCalendarEventDialog, openPersonalEventDialog,
 //   notifyUpcomingEvents, requestNotificationPermission)
 
+(function ensurePlannerFallbacks() {
+  const TASKS_KEY = "personalTasks";
+
+  if (typeof window.getPersonalTasks !== "function") {
+    window.getPersonalTasks = function getPersonalTasksFallback() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(TASKS_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    };
+  }
+
+  if (typeof window.savePersonalTasks !== "function") {
+    window.savePersonalTasks = function savePersonalTasksFallback(tasks) {
+      localStorage.setItem(TASKS_KEY, JSON.stringify(Array.isArray(tasks) ? tasks : []));
+      window.dispatchEvent(new CustomEvent("personalTasksUpdated"));
+    };
+  }
+
+  if (typeof window.addPersonalTask !== "function") {
+    window.addPersonalTask = function addPersonalTaskFallback(payload) {
+      const title = String(payload && payload.title || "").trim();
+      if (!title) return null;
+      const task = {
+        id: "task-local-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+        title,
+        done: false,
+        source: "manual",
+        dueDate: payload && payload.dueDate || "",
+        eventTitle: payload && payload.eventTitle || "",
+        priority: payload && payload.priority || "normal",
+      };
+      const tasks = window.getPersonalTasks();
+      tasks.unshift(task);
+      window.savePersonalTasks(tasks);
+      return task;
+    };
+  }
+
+  if (typeof window.getUpcomingCalendarReminders !== "function") {
+    window.getUpcomingCalendarReminders = function getUpcomingCalendarRemindersFallback() {
+      return [];
+    };
+  }
+
+  if (typeof window.getCalendarEventsForView !== "function") {
+    window.getCalendarEventsForView = function getCalendarEventsForViewFallback() {
+      return [];
+    };
+  }
+
+  if (typeof window.openCalendarEventDialog !== "function") {
+    window.openCalendarEventDialog = function openCalendarEventDialogFallback() {};
+  }
+
+  if (typeof window.openPersonalEventDialog !== "function") {
+    window.openPersonalEventDialog = function openPersonalEventDialogFallback() {};
+  }
+})();
+
 function wirePersonalTodo() {
   const form = document.getElementById("personal-task-form");
   const input = document.getElementById("personal-task-input");
@@ -56,6 +118,7 @@ function wireFloatingTodo() {
   if (!main) return;
 
   const widget = document.createElement("aside");
+  widget.id = "todo-sidebar";
   widget.className = "todo-sidebar is-collapsed";
   widget.setAttribute("aria-label", "Personal planner");
   widget.innerHTML = `

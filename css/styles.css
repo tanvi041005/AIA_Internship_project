@@ -1843,7 +1843,9 @@ table.data tr:last-child td {
 /* Calendar */
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  max-width: 100%;
   gap: 1px;
   background: var(--border);
   border-radius: var(--radius);
@@ -1853,6 +1855,7 @@ table.data tr:last-child td {
 
 .cal-head {
   padding: 0.5rem;
+  min-width: 0;
   text-align: center;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1863,10 +1866,12 @@ table.data tr:last-child td {
 }
 
 .cal-cell {
+  min-width: 0;
   min-height: 86px;
   padding: 0.5rem;
   background: #fff;
   font-size: 0.8125rem;
+  overflow: hidden;
 }
 
 .cal-cell-clickable {
@@ -1938,6 +1943,7 @@ table.data tr:last-child td {
 
 .calendar-legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.4rem 0 0.9rem;
 }
@@ -1983,6 +1989,7 @@ table.data tr:last-child td {
   border-radius: 999px;
   width: fit-content;
   max-width: 100%;
+  min-width: 0;
   padding: 0.08rem 0.35rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4024,4 +4031,359 @@ dialog::backdrop {
   gap: 0.4rem;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+/* Responsive hardening across dashboard pages */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+canvas,
+svg,
+video {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.panel,
+.kpi-card,
+.card,
+.modal-card,
+.form-card {
+  min-width: 0;
+}
+
+.table-wrap {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1180px) {
+  .site-header-inner,
+  .nav-inner,
+  main {
+    max-width: 100%;
+  }
+
+  main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .admin-grid,
+  .prod-charts-grid,
+  .tracker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .overview-tabs-panel-head,
+  .performance-toolbar,
+  .panel-head,
+  .attendance-hero,
+  .attendance-grid,
+  .sales-tracker-hero,
+  .sales-tracker-layout,
+  .cpf-layout,
+  .admin-grid,
+  .tracker-hero,
+  .tracker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-head {
+    align-items: stretch;
+  }
+
+  .panel-head > * {
+    min-width: 0;
+  }
+
+  .overview-agency-control,
+  .overview-agency-control select,
+  .prod-agency-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .calendar-shell,
+  .sales-manager-layout,
+  .room-booking-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cal-grid {
+    font-size: 0.9rem;
+  }
+
+  .cal-head {
+    padding: 0.45rem 0.25rem;
+  }
+
+  .cal-cell {
+    min-height: 72px;
+    padding: 0.4rem 0.35rem;
+  }
+
+  .cal-cell .pill {
+    width: 24px;
+    height: 24px;
+  }
+
+  .event-tag {
+    max-width: 100%;
+    padding-inline: 0.3rem;
+  }
+
+  .attendance-qr-shell,
+  .attendance-host-qr {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .risk-details,
+  .financial-detail-grid,
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .site-header {
+    padding: 1rem;
+  }
+
+  main {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .nav-inner {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    scrollbar-width: thin;
+  }
+
+  .nav-inner a,
+  .nav-inner button.nav-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .nav-user-meta,
+  .header-user-meta {
+    margin-left: 0;
+  }
+
+  .overview-scope-menu,
+  .calendar-section-menu,
+  .tools-section-menu {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    top: 3.25rem;
+    width: auto;
+    min-width: 0;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .page-lede {
+    margin-bottom: 1rem;
+  }
+
+  .kpi-grid,
+  .performance-kpis,
+  .sales-tracker-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-card {
+    height: auto;
+    min-height: 96px;
+  }
+
+  .panel {
+    padding: 0.85rem;
+  }
+
+  .panel-head {
+    gap: 0.75rem;
+  }
+
+  .controls-row,
+  .lead-controls,
+  .calendar-controls,
+  .attendance-host-actions,
+  .section-edit-actions,
+  .timeline-toolbar-actions,
+  .event-dialog-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .controls-row > *,
+  .lead-controls > *,
+  .calendar-controls > *,
+  .attendance-host-actions > *,
+  .section-edit-actions > *,
+  .timeline-toolbar-actions > *,
+  .event-dialog-actions > * {
+    flex: 1 1 160px;
+  }
+
+  .controls-row input,
+  .controls-row select,
+  .lead-controls input,
+  .lead-controls select,
+  .calendar-controls input,
+  .calendar-controls select {
+    width: 100%;
+  }
+
+  .lead-table,
+  .data-table,
+  .attendance-table,
+  .sales-manager-weekly-table {
+    min-width: 760px;
+  }
+
+  .lead-table.leaderboard-table {
+    min-width: 0;
+  }
+
+  .event-dialog-row,
+  .cpf-form-grid,
+  .cpf-result-grid,
+  .section-form-grid.two-col,
+  .form-row,
+  .prod-kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card,
+  .form-card,
+  dialog {
+    width: min(100%, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(78px, 1fr));
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cal-head,
+  .cal-cell {
+    min-width: 78px;
+  }
+
+  .todo-sidebar-toggle {
+    top: auto;
+    right: 0;
+    bottom: 1rem;
+  }
+
+  .todo-sidebar-panel {
+    width: min(360px, calc(100vw - 1.5rem));
+    right: 0.75rem;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    font-size: 14px;
+  }
+
+  main {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .site-title {
+    font-size: 1.25rem;
+  }
+
+  .site-subtitle,
+  .page-lede {
+    font-size: 0.88rem;
+  }
+
+  .nav-inner {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  .panel,
+  .kpi-card {
+    border-radius: 8px;
+  }
+
+  .controls-row > *,
+  .lead-controls > *,
+  .calendar-controls > *,
+  .attendance-host-actions > *,
+  .section-edit-actions > *,
+  .timeline-toolbar-actions > *,
+  .event-dialog-actions > * {
+    flex-basis: 100%;
+  }
+
+  .attendance-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(72px, 1fr));
+  }
+
+  .cal-head,
+  .cal-cell {
+    min-width: 72px;
+  }
+
+  .cal-cell {
+    min-height: 68px;
+    padding: 0.35rem 0.3rem;
+  }
+
+  .cal-grid,
+  .calendar-grid-wrap,
+  .weekly-chart,
+  .line-chart,
+  .bar-chart {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .drawer,
+  .todo-sidebar-panel {
+    width: 100vw;
+    right: 0;
+  }
 }

@@ -242,6 +242,32 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
 .btn-manual-fill:hover{background:var(--brand-light);border-color:var(--brand-dark)}
 .btn-manual-fill:active{transform:scale(0.98)}
 
+/* Persistent planner tab */
+.todo-sidebar{position:fixed;top:0;right:0;z-index:45;height:100vh;pointer-events:none}
+.todo-sidebar-toggle{position:absolute;top:9rem;right:0;display:grid;gap:.35rem;justify-items:center;min-width:52px;padding:.7rem .45rem;border:1px solid var(--border-strong);border-right:none;border-radius:8px 0 0 8px;background:#fff;color:var(--brand);cursor:pointer;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(32,33,36,.12);pointer-events:auto}
+.todo-toggle-short{writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.03em}
+.todo-sidebar-count{min-width:22px;height:22px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--brand);color:#fff;font-size:.75rem}
+.todo-sidebar-panel{width:min(340px,calc(100vw - 3.75rem));height:100%;padding:1rem;background:#fff;border-left:1px solid var(--border);box-shadow:-8px 0 24px rgba(32,33,36,.12);transform:translateX(0);transition:transform .2s ease;pointer-events:auto;overflow-y:auto}
+.todo-sidebar.is-collapsed .todo-sidebar-panel{transform:translateX(100%)}
+.todo-sidebar:not(.is-collapsed) .todo-sidebar-toggle{display:none}
+.todo-sidebar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding-bottom:.85rem;border-bottom:1px solid var(--border);position:sticky;top:-1rem;background:#fff;z-index:1}
+.todo-sidebar-head h2{margin:0;font-size:1rem}
+.todo-sidebar-head p{margin:.15rem 0 0;color:var(--text-muted);font-size:.82rem}
+.todo-controls,.floating-task-form{display:grid;gap:.5rem;margin:.85rem 0}
+.todo-controls-label{font-size:.78rem;font-weight:700;color:var(--text-muted)}
+.planner-day-select,.floating-task-form input{width:100%;padding:.5rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;background:#fff}
+.todo-notify-label{display:flex;align-items:center;gap:.45rem;font-size:.85rem;color:var(--text-muted)}
+.todo-section{padding:.85rem 0;border-top:1px solid var(--border)}
+.todo-section-title{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.todo-list{list-style:none;margin:0;padding:0}
+.todo-list li{padding:.5rem 0;border-bottom:1px solid var(--border)}
+.floating-task-form-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}
+.floating-task-form button,.task-priority-btn{padding:.5rem .7rem;border:1px solid var(--border);border-radius:8px;background:#fff;font:inherit;font-weight:700;color:var(--text)}
+.floating-task-form button[type="submit"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.reminder-btn{display:flex;align-items:stretch;gap:.65rem;width:100%;text-align:left;padding:.6rem .4rem;border:none;background:transparent;border-radius:8px;cursor:pointer;font:inherit;border-bottom:1px solid var(--border)}
+.reminder-body{flex:1;min-width:0}.reminder-title{font-weight:600;font-size:.87rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.reminder-meta{font-size:.75rem;color:var(--text-muted);display:flex;gap:.25rem;flex-wrap:wrap}
+.reminder-accent{display:block;width:3px;border-radius:99px;flex-shrink:0;align-self:stretch;min-height:36px}
+
 @media(max-width:720px){
   body{font-size:13px}
   main{padding-top:1.15rem}
@@ -255,4 +281,62 @@ main{max-width:none;margin:0 auto;padding:1.6rem 1rem 3rem}
   .modal-content{width:95%;max-width:none}
   .dropzone{padding:1.5rem}
   .dropzone-icon{font-size:2rem}
+  .todo-sidebar-toggle{top:auto;bottom:1rem}
+  .todo-sidebar-panel{width:min(360px,calc(100vw - 1.5rem))}
+}
+
+/* Responsive hardening for the Leads module */
+html,body{overflow-x:hidden}
+img,canvas,svg,video{max-width:100%}
+input,select,button{max-width:100%}
+.panel,.kpi-card,.modal-content,.drawer{min-width:0}
+.table-wrap{max-width:100%;-webkit-overflow-scrolling:touch}
+
+@media(max-width:1180px){
+  .site-header-inner,.nav-inner,main{max-width:100%}
+  main{padding-left:1rem;padding-right:1rem}
+  .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+}
+
+@media(max-width:900px){
+  .panel-head{align-items:stretch}
+  .panel-head>*,.controls-row>*{min-width:0}
+  .controls-row{width:100%}
+  .controls-row input,.controls-row select{flex:1 1 150px}
+  .lead-table{min-width:900px}
+  .closure-table{min-width:680px}
+  .detail-grid{grid-template-columns:1fr}
+  .drawer{width:min(440px,100vw)}
+}
+
+@media(max-width:720px){
+  .site-header{padding:1rem}
+  main{padding:1rem .75rem 2rem}
+  .page-title{font-size:1.25rem}
+  .page-lede{margin-bottom:1rem}
+  .kpi-grid{grid-template-columns:1fr}
+  .kpi-card{height:auto;min-height:96px}
+  .panel{padding:.85rem}
+  .controls-row{display:flex;flex-wrap:wrap;gap:.5rem}
+  .controls-row>*{flex:1 1 150px}
+  .controls-row input,.controls-row select,.controls-row button{width:100%}
+  .lead-table{min-width:820px}
+  .closure-table{min-width:640px}
+  .drawer{width:100vw}
+  .drawer-actions{flex-direction:column}
+  .email-modal{padding:1.25rem}
+  .modal-content{width:min(100%,calc(100vw - 1.5rem));max-width:calc(100vw - 1.5rem)}
+}
+
+@media(max-width:520px){
+  body{font-size:14px}
+  main{padding-left:.6rem;padding-right:.6rem}
+  .site-title{font-size:1.25rem}
+  .site-subtitle,.page-lede{font-size:.88rem}
+  .nav-inner{padding-left:.55rem;padding-right:.55rem}
+  .controls-row>*{flex-basis:100%}
+  .lead-table{min-width:760px}
+  .closure-table{min-width:620px}
+  .drawer-body{padding:.95rem}
+  .drawer-header{padding:.95rem}
 }
