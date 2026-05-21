@@ -17,13 +17,13 @@
   function getLeads() {
     try {
       var stored = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY));
-      if (Array.isArray(stored) && stored.length > 0) return stored;
+      if (Array.isArray(stored) && stored.length > 0) return stored.map(normalizeLead);
     } catch (e) {}
     return [];
   }
 
   function saveLeads(leads) {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify((Array.isArray(leads) ? leads : []).map(normalizeLead)));
   }
 
   function cleanContact(value) {
@@ -56,7 +56,89 @@
       proposedPlans:     lead.proposedPlans      || [],
       noReferrals:       !!lead.noReferrals,
       referredByLeadId:  lead.referredByLeadId   || "",
+      birthDate:         lead.birthDate          || "",
+      nextMeetDate:      lead.nextMeetDate       || calculateLatestFollowUpDate(lead.followUps),
     };
+  }
+
+  function normalizeDateValue(value) {
+    if (!value) return "";
+    if (typeof toSGDate === "function") return toSGDate(value);
+    const text = String(value);
+    const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+    return match ? match[1] : text;
+  }
+
+  function normalizeFollowUps(followUps) {
+    return (Array.isArray(followUps) ? followUps : [])
+      .map((item) => ({
+        label: item.label || "",
+        date: normalizeDateValue(item.date || item.scheduled_date),
+        done: !!(item.done || item.is_done),
+        isFirstMeetup: !!item.isFirstMeetup,
+      }))
+      .filter((item) => item.label || item.date || item.done);
+  }
+
+  function normalizeLead(lead) {
+    return {
+      ...lead,
+      id: lead.id != null ? lead.id : lead.lead_id,
+      meetDate: normalizeDateValue(lead.meetDate || lead.meet_date),
+      nextMeetDate: normalizeDateValue(lead.nextMeetDate),
+      followUps: normalizeFollowUps(lead.followUps || lead.follow_ups),
+      premium: Number(lead.premium || lead.annual_premium || 0),
+      cpfOA: Number(lead.cpfOA || lead.cpf_oa || 0),
+      cpfSA: Number(lead.cpfSA || lead.cpf_sa || 0),
+    };
+  }
+
+  function calculateLatestFollowUpDate(followUps) {
+    const dates = normalizeFollowUps(followUps)
+      .map((item) => item.date)
+      .filter(Boolean)
+      .sort();
+    return dates.length ? dates[dates.length - 1] : "";
+  }
+
+  function leadToApiPayload(lead) {
+    const normalized = normalizeLead(lead);
+    return {
+      name: normalized.name || "New Lead",
+      age: normalized.age || null,
+      contact: cleanContact(normalized.contact),
+      email: normalized.email || null,
+      meet_date: normalized.meetDate || null,
+      location: normalized.location || null,
+      meet_type: normalized.meetType || "Physical",
+      urgency: normalized.urgency || "non-urgent",
+      stage: normalized.stage || "Prospecting",
+      remarks: normalized.remarks || null,
+      plan_type: normalized.specificPlanType || normalized.planType || null,
+      annual_premium: normalized.premium || null,
+      commission_type: normalized.commission || null,
+      cpf_oa: normalized.cpfOA || null,
+      cpf_sa: normalized.cpfSA || null,
+      occupation: normalized.occupation || null,
+      income: normalized.income || null,
+      referred_by: normalized.referredBy || null,
+      owner_id: normalized.ownerId || sessionStorage.getItem("dashboardUser") || null,
+      extra: buildLeadExtraPayload(normalized),
+      followUps: normalizeFollowUps(normalized.followUps).map((item) => ({
+        label: item.label || "Follow-up",
+        scheduled_date: item.date || null,
+        is_done: !!item.done,
+      })),
+    };
+  }
+
+  async function syncLeadToApi(lead) {
+    if (typeof apiPut !== "function" || !/^\d{1,10}$/.test(normalizeId(lead.id))) return;
+    try {
+      await apiPut(`/leads/${encodeURIComponent(lead.id)}`, leadToApiPayload(lead));
+    } catch (e) {
+      console.warn("Failed to sync lead to API:", e);
+    }
   }
 
   function saveReferrals(currentLeadId, selectedIds, noReferrals) {
@@ -90,7 +172,9 @@
 
     if (typeof apiPut === "function") {
       toSync.forEach((l) => {
-        apiPut(`/leads/${l.id}`, { extra: buildLeadExtraPayload(l) }).catch(() => {});
+        if (/^\d{1,10}$/.test(normalizeId(l.id))) {
+          apiPut(`/leads/${encodeURIComponent(l.id)}`, { extra: buildLeadExtraPayload(l) }).catch(() => {});
+        }
       });
     }
   }
@@ -344,6 +428,7 @@
     const updatedLead = updater({ ...leads[leadIndex] });
     leads[leadIndex] = updatedLead;
     saveLeads(leads);
+    syncLeadToApi(updatedLead);
     return updatedLead;
   }
 
@@ -611,6 +696,7 @@
       if (idx !== -1) {
         allLeads[idx] = updatedLead;
         saveLeads(allLeads);
+        syncLeadToApi(updatedLead);
 
         successEl.style.display = "block";
         setTimeout(() => {

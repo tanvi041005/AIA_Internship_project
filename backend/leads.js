@@ -5,6 +5,136 @@ const LEADS_STORAGE_KEY = "financial_leads_data";
 const URGENCY_ORDER = {urgent:0,medium:1,"non-urgent":2};
 const AVATAR_COLORS = ["#a6192e","#3b82f6","#16a34a","#f59e0b","#8b5cf6","#ec4899"];
 
+function normalizeId(value) {
+  return String(value == null ? "" : value).trim();
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (typeof toSGDate === "function") return toSGDate(value);
+  const text = String(value);
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : text;
+}
+
+function normalizeFollowUps(followUps) {
+  return (Array.isArray(followUps) ? followUps : [])
+    .map((item) => ({
+      label: item.label || "",
+      date: normalizeDateValue(item.date || item.scheduled_date),
+      done: !!(item.done || item.is_done),
+      isFirstMeetup: !!item.isFirstMeetup,
+    }))
+    .filter((item) => item.label || item.date || item.done);
+}
+
+function normalizeLead(lead) {
+  return {
+    ...lead,
+    id: lead.id != null ? lead.id : lead.lead_id,
+    meetDate: normalizeDateValue(lead.meetDate || lead.meet_date),
+    nextMeetDate: normalizeDateValue(lead.nextMeetDate),
+    followUps: normalizeFollowUps(lead.followUps || lead.follow_ups),
+    premium: Number(lead.premium || lead.annual_premium || 0),
+    cpfOA: Number(lead.cpfOA || lead.cpf_oa || 0),
+    cpfSA: Number(lead.cpfSA || lead.cpf_sa || 0),
+  };
+}
+
+function getStoredLeads() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || "[]");
+    return Array.isArray(stored) ? stored.map(normalizeLead) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveStoredLeads(leads) {
+  localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify((Array.isArray(leads) ? leads : []).map(normalizeLead)));
+}
+
+function mergeLeads(remoteLeads, localLeads) {
+  const merged = new Map();
+  (remoteLeads || []).map(normalizeLead).forEach((lead) => merged.set(normalizeId(lead.id), lead));
+  (localLeads || []).map(normalizeLead).forEach((lead) => {
+    const key = normalizeId(lead.id);
+    if (!key) return;
+    merged.set(key, { ...(merged.get(key) || {}), ...lead });
+  });
+  return Array.from(merged.values());
+}
+
+function calculateLatestFollowUpDate(followUps) {
+  const dates = normalizeFollowUps(followUps).map((item) => item.date).filter(Boolean).sort();
+  return dates.length ? dates[dates.length - 1] : "";
+}
+
+function buildLeadExtraPayload(lead) {
+  return {
+    specificPlanType: lead.specificPlanType || "",
+    generalPlanType: lead.generalPlanType || "",
+    commissionRate: lead.commissionRate || 0,
+    commissionAmount: lead.commissionAmount || 0,
+    cpfMA: lead.cpfMA || 0,
+    bankBalance: lead.bankBalance || 0,
+    generalExpense: lead.generalExpense || "",
+    surplus: lead.surplus || "",
+    existingPlans: lead.existingPlans || "",
+    existingPlansList: lead.existingPlansList || [],
+    currency: lead.currency === "USD" ? "USD" : "SGD",
+    sumAssured: lead.sumAssured || 0,
+    agency: lead.agency || "",
+    proposedPlans: lead.proposedPlans || [],
+    noReferrals: !!lead.noReferrals,
+    referredByLeadId: lead.referredByLeadId || "",
+    birthDate: lead.birthDate || "",
+    nextMeetDate: lead.nextMeetDate || calculateLatestFollowUpDate(lead.followUps),
+  };
+}
+
+function leadToApiPayload(lead) {
+  const normalized = normalizeLead(lead);
+  return {
+    name: normalized.name || "New Lead",
+    age: normalized.age || null,
+    contact: cleanContact(normalized.contact),
+    email: normalized.email || null,
+    meet_date: normalized.meetDate || null,
+    location: normalized.location || null,
+    meet_type: normalized.meetType || "Physical",
+    urgency: normalized.urgency || "non-urgent",
+    stage: normalized.stage || "Prospecting",
+    remarks: normalized.remarks || null,
+    plan_type: normalized.specificPlanType || normalized.planType || null,
+    annual_premium: normalized.premium || null,
+    commission_type: normalized.commission || null,
+    cpf_oa: normalized.cpfOA || null,
+    cpf_sa: normalized.cpfSA || null,
+    occupation: normalized.occupation || null,
+    income: normalized.income || null,
+    referred_by: normalized.referredBy || null,
+    owner_id: normalized.ownerId || sessionStorage.getItem("dashboardUser") || null,
+    extra: buildLeadExtraPayload(normalized),
+    followUps: normalizeFollowUps(normalized.followUps).map((item) => ({
+      label: item.label || "Follow-up",
+      scheduled_date: item.date || null,
+      is_done: !!item.done,
+    })),
+  };
+}
+
+async function persistLead(lead) {
+  const payload = leadToApiPayload(lead);
+  if (typeof apiPost !== "function" || typeof apiPut !== "function" || !payload.owner_id) return normalizeLead(lead);
+  if (/^\d{1,10}$/.test(String(lead.id || ""))) {
+    await apiPut("/leads/" + encodeURIComponent(lead.id), payload);
+    return normalizeLead(lead);
+  }
+  const saved = await apiPost("/leads", payload);
+  return normalizeLead({ ...lead, id: saved.lead_id || saved.id || lead.id, ownerId: payload.owner_id });
+}
+
 function formatCommissionRate(lead) {
   if (lead && lead.commissionRate !== undefined && lead.commissionRate !== null && lead.commissionRate !== "") {
     return String(Number(lead.commissionRate));
@@ -42,7 +172,17 @@ let sortCol = "meetDate", sortDir = "asc", activeId = null, stageFilter = null;
 
 async function init(){
   const userId = sessionStorage.getItem("dashboardUser") || "";
-  LEADS = (await apiGet('/leads?userId=' + userId)).map(mapLead);
+  const localLeads = getStoredLeads();
+  let remoteLeads = [];
+  try {
+    remoteLeads = typeof apiGet === "function"
+      ? (await apiGet('/leads' + (userId ? '?userId=' + encodeURIComponent(userId) : ''))).map(mapLead)
+      : [];
+  } catch (e) {
+    console.warn("Failed to load leads from API:", e);
+  }
+  LEADS = mergeLeads(remoteLeads, localLeads);
+  saveStoredLeads(LEADS);
   filtered = [...LEADS];
   renderKPIs();
   sortData();
@@ -55,7 +195,7 @@ function renderKPIs(){
   const urgent = LEADS.filter(l => l.urgency === "urgent").length;
   const totalPrem = LEADS.reduce((a,l) => a + l.premium, 0);
   const closing = LEADS.filter(l => l.stage === "Closing").length;
-  const avgAge = Math.round(LEADS.reduce((a,l) => a + l.age, 0) / LEADS.length);
+  const avgAge = LEADS.length ? Math.round(LEADS.reduce((a,l) => a + Number(l.age || 0), 0) / LEADS.length) : 0;
   const referred = LEADS.filter(l => l.referredBy && l.referredBy.trim() !== "").length;
   const refRate = LEADS.length > 0 ? Math.round(referred / LEADS.length * 100) : 0;
   const avgCase = LEADS.length ? Math.round(totalPrem / LEADS.length) : 0;
@@ -146,16 +286,8 @@ function formatDate(d){
 }
 
 function getNextMeetDate(lead){
-  // Prefer an explicitly stored nextMeetDate (set when timeline is saved).
-  if(lead.nextMeetDate) return lead.nextMeetDate;
-  // Otherwise, if any follow-ups exist return the most recent event date (latest)
-  const allDates = (lead.followUps || []).map(f => f.date).filter(Boolean).sort();
-  if(allDates.length) return allDates[allDates.length - 1];
-  // Fallback: find the earliest pending follow-up date
-  const pending = (lead.followUps || [])
-    .filter(f => !f.done && f.date)
-    .sort((a,b) => a.date.localeCompare(b.date));
-  return pending[0]?.date || "";
+  if(lead.nextMeetDate) return normalizeDateValue(lead.nextMeetDate);
+  return calculateLatestFollowUpDate(lead.followUps);
 }
 
 function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -407,26 +539,22 @@ function handleExcelFileUpload(file, closeModalCallback) {
 
   // Parse Excel and create lead
   parseExcelFile(file)
-    .then((excelData) => {
-      const newLead = mapExcelDataToLead(excelData);
-      
-      // Save lead to localStorage
-      const LEADS_STORAGE_KEY = "financial_leads_data";
-      let savedLeads = [];
+    .then(async (excelData) => {
+      let newLead = mapExcelDataToLead(excelData);
       try {
-        savedLeads = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || [];
+        newLead = await persistLead(newLead);
       } catch (e) {
-        savedLeads = [];
+        console.warn("Failed to save imported lead to API; cached locally:", e);
       }
-      savedLeads.push(newLead);
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(savedLeads));
+      LEADS = mergeLeads(LEADS, [newLead]);
+      saveStoredLeads(LEADS);
       
       // Show success message
       uploadSuccess.style.display = 'block';
       
       // Redirect to client profile after short delay
       setTimeout(() => {
-        window.location.href = `client-profile.html?id=${newLead.id}`;
+        window.location.href = `client-profile.html?id=${encodeURIComponent(newLead.id)}`;
       }, 1000);
     })
     .catch((error) => {
@@ -482,13 +610,13 @@ function bindEvents(){
   modalOverlay.addEventListener("click", closeModal);
   
   // Manual fill button - create new lead and navigate to client profile
-  manualFillBtn.addEventListener("click", () => {
+  manualFillBtn.addEventListener("click", async () => {
     const newLeadId = Date.now();
     
     // Create empty lead
     const newLead = {
       id: newLeadId,
-      name: '',
+      name: 'New Lead',
       age: '',
       contact: '',
       email: '',
@@ -521,19 +649,17 @@ function bindEvents(){
       ]
     };
     
-    // Save to localStorage
-    const LEADS_STORAGE_KEY = "financial_leads_data";
-    let savedLeads = [];
     try {
-      savedLeads = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY)) || [];
+      const savedLead = await persistLead(newLead);
+      LEADS = mergeLeads(LEADS, [savedLead]);
+      saveStoredLeads(LEADS);
+      window.location.href = `client-profile.html?id=${encodeURIComponent(savedLead.id)}`;
     } catch (e) {
-      savedLeads = [];
+      console.warn("Failed to save lead draft to API; cached locally:", e);
+      LEADS = mergeLeads(LEADS, [newLead]);
+      saveStoredLeads(LEADS);
+      window.location.href = `client-profile.html?id=${newLeadId}`;
     }
-    savedLeads.push(newLead);
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(savedLeads));
-    
-    // Navigate to client profile page where each section can be edited independently
-    window.location.href = `client-profile.html?id=${newLeadId}`;
   });
 
   // Dropzone interactions
@@ -592,8 +718,7 @@ function bindEvents(){
     if (e.key !== LEADS_STORAGE_KEY) return;
     try {
       const newVal = JSON.parse(e.newValue || '[]') || [];
-      // localStorage contains lead objects saved by the UI; use them as-is
-      LEADS = Array.isArray(newVal) ? newVal : [];
+      LEADS = Array.isArray(newVal) ? newVal.map(normalizeLead) : [];
       filtered = [...LEADS];
       renderKPIs();
       sortData();
